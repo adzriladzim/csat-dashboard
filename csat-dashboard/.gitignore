@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+package.json
+package-lock.json
+# Build output
+dist/
+dist-ssr/
+
+# Environment variables — JANGAN COMMIT INI!
+.env
+.env.example
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vite
+*.local
