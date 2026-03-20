@@ -28,14 +28,21 @@
   --shadow-overlay: 0 15px 50px -12px rgba(0,0,0,0.7);
   
   --bg-dropdown:  #0a1f26;
+  --accent-emerald:   #10b981;
+  --accent-sapphire:  #3b82f6;
+  --accent-slate:     #94a3b8;
+  --hero-bg:          linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --hero-text:        #f8fafc;
   --nav-active-bg:    rgba(196,165,99,0.12);
   --nav-active-text:  #e2d1a3;
   --nav-active-border:rgba(196,165,99,0.2);
   --table-hover:  rgba(196,165,99,0.03);
-  --positive:     #34d399;
-  --negative:     #f87171;
-  --warning:      #fbbf24;
-  --info:         #60a5fa;
+  --positive:     #10b981;
+  --negative:     #f43f5e;
+  --warning:      #f59e0b;
+  --info:         #3b82f6;
+  --csat-glow:    0 0 25px rgba(59, 130, 246, 0.35);
+  --mapping-glow: 0 0 25px rgba(16, 185, 129, 0.35);
 }
 
 /* ── LIGHT MODE ──────────────────────────────────────────────────────────── */

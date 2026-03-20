@@ -91,17 +91,37 @@ export default function DashboardPage() {
 
       {/* Global stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
-        <StatCard label="CSAT Gabungan"    value={fmt(globalCsat)}       sub={scoreLabel(globalCsat)}       icon={Star}       color={scoreColor(globalCsat)} />
-        <StatCard label="Performa Dosen"   value={fmt(globalPerforma)}   sub={scoreLabel(globalPerforma)}   icon={TrendingUp} color={scoreColor(globalPerforma)} />
-        <StatCard label="Pemahaman Materi" value={fmt(globalPemahaman)}  sub={scoreLabel(globalPemahaman)}  icon={BookOpen}   color={scoreColor(globalPemahaman)} />
-        <StatCard label="Interaktivitas"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   color={scoreColor(globalInteraktif)} />
+        <StatCard 
+          label="CSAT Gabungan"    
+          value={fmt(globalCsat)}       
+          sub={scoreLabel(globalCsat)}       
+          icon={Star}       
+          highlight={true}
+          color="#3b82f6"
+        />
+        <StatCard label="Performa Dosen"   value={fmt(globalPerforma)}   sub={scoreLabel(globalPerforma)}   icon={TrendingUp} />
+        <StatCard label="Pemahaman Materi" value={fmt(globalPemahaman)}  sub={scoreLabel(globalPemahaman)}  icon={BookOpen}   />
+        <StatCard label="Interaktivitas"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Responden Valid"    value={filtered.length.toLocaleString('id-ID')} icon={Users}         color="var(--brand)" size="sm" />
-        <StatCard label="Jumlah Dosen"       value={dosenList.length}                        icon={Award}         color="#34d399" size="sm" />
-        <StatCard label="Mapping Data"       value={`${mappingAccuracy.toFixed(1)}%`} icon={CheckCircle2} color="#10b981" size="sm" />
-        <StatCard label="Perhatian"            value={anomalies.filter(a=>a.type==='concern').length} icon={AlertCircle} color="#f59e0b" size="sm" />
+        <StatCard label="Responden Valid"    value={filtered.length.toLocaleString('id-ID')} icon={Users}         size="sm" />
+        <StatCard label="Jumlah Dosen"       value={dosenList.length}                        icon={Award}         size="sm" />
+        <StatCard 
+          label="Mapping Data"       
+          value={`${mappingAccuracy.toFixed(1)}%`} 
+          icon={CheckCircle2} 
+          highlightAlt={true}
+          size="sm" 
+          color="#10b981"
+        />
+        <StatCard 
+          label="Perhatian"            
+          value={anomalies.filter(a=>a.type==='concern').length} 
+          icon={AlertCircle} 
+          color="#f87171" 
+          size="sm" 
+        />
       </div>
 
       {/* Trend + Breakdown */}
@@ -112,11 +132,11 @@ export default function DashboardPage() {
         </div>
         <div className="card p-6 space-y-5">
           <h2 className="section-title">Breakdown Metrik</h2>
-          <ScoreBar label="Performa Dosen"   score={globalPerforma} />
-          <ScoreBar label="Pemahaman Materi" score={globalPemahaman} />
-          <ScoreBar label="Interaktivitas"   score={globalInteraktif} />
-          <div className="pt-4 border-t border-[var(--border)]">
-            <ScoreBar label="CSAT Gabungan" score={globalCsat} />
+          <ScoreBar label="CSAT Gabungan" score={globalCsat} customColor="#3b82f6" />
+          <div className="border-t border-[var(--border)] pt-5 space-y-5">
+            <ScoreBar label="Performa Dosen"   score={globalPerforma} />
+            <ScoreBar label="Pemahaman Materi" score={globalPemahaman} />
+            <ScoreBar label="Interaktivitas"   score={globalInteraktif} />
           </div>
         </div>
       </div>

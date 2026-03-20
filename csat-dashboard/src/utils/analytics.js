@@ -6,11 +6,11 @@ export function avg(arr) {
   return v.length ? +(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : null
 }
 export function scoreColor(s) {
-  if (!s) return 'var(--muted-2)'
-  if (s >= 4.5) return 'var(--positive)'
-  if (s >= 4.0) return 'var(--info)'
-  if (s >= 3.0) return 'var(--warning)'
-  return 'var(--negative)'
+  if (!s) return '#94a3b8'
+  if (s >= 4.5) return '#10b981' // Emerald (Softer)
+  if (s >= 4.0) return '#3b82f6' // Sapphire
+  if (s >= 3.0) return '#f59e0b' // Amber
+  return '#ef4444' // Rose
 }
 export function scoreColorHex(s) {
   if (!s) return '#64748b'
