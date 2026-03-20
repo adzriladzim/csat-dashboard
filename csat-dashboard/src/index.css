@@ -22,6 +22,7 @@
   --brand:        var(--u-gold);
   --brand-dim:    var(--u-gold-dim);
   --brand-border: rgba(196,165,99,0.3);
+  --brand-text:   var(--u-navy); /* Dark text on gold */
   --shadow:       0 10px 40px -10px rgba(0,0,0,0.6);
   --shadow-sm:    0 4px 12px -2px rgba(0,0,0,0.4);
   --shadow-sidebar: 20px 0 50px -15px rgba(0,0,0,0.4);
@@ -60,6 +61,7 @@
   --brand:        #004b5a; 
   --brand-dim:    rgba(0,75,90,0.06);
   --brand-border: rgba(0,75,90,0.15);
+  --brand-text:   #ffffff; /* White text on dark teal */
   --shadow:       0 10px 40px -10px rgba(0,61,77,0.12);
   --shadow-sm:    0 4px 12px -2px rgba(0,61,77,0.06);
   --shadow-sidebar: 10px 0 30px -10px rgba(0,61,77,0.05);

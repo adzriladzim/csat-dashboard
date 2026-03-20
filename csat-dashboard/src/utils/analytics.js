@@ -117,3 +117,33 @@ export function analyzeSentiment(text) {
 const STOPWORDS=new Set(['yang','dan','di','ke','dari','ini','itu','ada','untuk','dengan','pada','atau','juga','sudah','saya','kamu','kami','kita','mereka','adalah','dalam','tidak','bisa','akan','bagi','oleh','seperti','lebih','sudah','belum','sangat','hari','kelas','dosen','materi','kuliah','pembelajaran','pertemuan','mahasiswa','mengajar','penyampaian','agar','karena','tetapi','tapi','namun','jadi','jika','bila','maka','nya','kan','lah','pun','ya','iya','dr','dgn','utk','krn','tp','pak','bu','mas','mbak','bpk','ibu','bang','kak','prof','sih','nih','deh','dong','jg','sm','lg','yg','jd','bs','sy','km','hrs','sdh','blm','ada','hal','cara','setiap','semua','selalu','sering','jarang','satu','dua','tiga','empat','lima','the','and','for','are','but','not','you','all','can','was','have'])
 export function buildWordCloud(texts,maxWords=80){const freq={};texts.forEach(text=>{if(!text)return;text.toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).forEach(word=>{word=word.trim();if(word.length<3||STOPWORDS.has(word))return;freq[word]=(freq[word]||0)+1})});return Object.entries(freq).sort(([,a],[,b])=>b-a).slice(0,maxWords).map(([text,value])=>({text,value}))}
 export function detectAnomalies(dosenList){const all=dosenList.map(d=>d.csatGabungan).filter(Boolean);if(all.length<3)return[];const mean=avg(all),std=Math.sqrt(all.reduce((a,s)=>a+Math.pow(s-mean,2),0)/all.length);return dosenList.filter(d=>d.csatGabungan&&Math.abs(d.csatGabungan-mean)>std).map(d=>({...d,zScore:+((d.csatGabungan-mean)/std).toFixed(2),type:d.csatGabungan>mean?'outstanding':'concern'}))}
+
+// ── Correlation ───────────────────────────────────────────────────────────
+export function pearson(x, y) {
+  const n = x.length
+  if (n !== y.length || n === 0) return 0
+  const sumX = x.reduce((a, b) => a + b, 0)
+  const sumY = y.reduce((a, b) => a + b, 0)
+  const sumX2 = x.reduce((a, b) => a + b * b, 0)
+  const sumY2 = y.reduce((a, b) => a + b * b, 0)
+  const sumXY = x.map((v, i) => v * y[i]).reduce((a, b) => a + b, 0)
+  const num = n * sumXY - sumX * sumY
+  const den = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY))
+  if (den === 0) return 0
+  return +(num / den).toFixed(2)
+}
+
+export function getCorrelationMatrix(dosenList) {
+  const data = dosenList.map(d => ({
+    performa: d.skorPerforma || 0,
+    pemahaman: d.skorPemahaman || 0,
+    interaktif: d.skorInteraktif || 0,
+    respon: d.totalRespon || 0
+  }))
+  const keys = ['performa', 'pemahaman', 'interaktif', 'respon']
+  const labels = ['Performa Dosen', 'Pemahaman Materi', 'Interaktivitas', 'Jumlah Respon']
+  const matrix = keys.map(rKey => keys.map(cKey => 
+    pearson(data.map(d => d[rKey]), data.map(d => d[cKey]))
+  ))
+  return { matrix, labels }
+}

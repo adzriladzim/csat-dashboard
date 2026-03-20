@@ -185,12 +185,12 @@ export default function ExportMenu({ dosenData, buttonClass }) {
                     <FileText size={14} />
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="font-bold truncate text-[13px] dark:text-slate-100 text-slate-800 group-hover:text-white dark:group-hover:text-[var(--u-navy)]">Kelas {k.kodeKelas}</span>
-                    <span className="text-[10px] opacity-70 truncate uppercase font-medium dark:text-slate-300 text-slate-600 group-hover:text-white/80 dark:group-hover:text-[var(--u-navy)]/70">{k.mataKuliah || 'Mata Kuliah'}</span>
+                    <span className="font-bold truncate text-[13px] text-[var(--foreground)] group-hover:text-[var(--brand-text)] transition-colors">Kelas {k.kodeKelas}</span>
+                    <span className="text-[10px] truncate uppercase font-medium text-[var(--muted)] group-hover:text-[var(--brand-text)] transition-colors opacity-70 group-hover:opacity-100">{k.mataKuliah || 'Mata Kuliah'}</span>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold text-[var(--brand)] group-hover:text-white dark:group-hover:text-[var(--u-navy)]">{k.totalRespon} Respon</span>
+                      <span className="text-[10px] font-bold text-[var(--brand)] group-hover:text-[var(--brand-text)] transition-colors">{k.totalRespon} Respon</span>
                       {k.rows?.[0]?.tanggal && (
-                        <span className="text-[10px] opacity-40 font-mono italic group-hover:text-white/60 dark:group-hover:text-[var(--u-navy)]/50">· {k.rows[0].tanggal}</span>
+                        <span className="text-[10px] font-mono italic text-[var(--muted)] group-hover:text-[var(--brand-text)] transition-colors opacity-40 group-hover:opacity-100">· {k.rows[0].tanggal}</span>
                       )}
                     </div>
                   </div>

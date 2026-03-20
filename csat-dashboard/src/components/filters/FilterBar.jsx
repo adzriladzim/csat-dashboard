@@ -2,25 +2,25 @@ import { Search, X } from 'lucide-react'
 import useStore from '@/lib/store'
 
 export default function FilterBar() {
-  const { filters, setFilter, resetFilters, getDosenList, getProdiList, getPertemuanList } = useStore()
+  const { filters, setFilter, resetFilters, getDosenList, getProdiList, getMatkulList, getPertemuanList } = useStore()
   const dosenList     = getDosenList()
   const prodiList     = getProdiList()
+  const matkulList    = getMatkulList()
   const pertemuanList = getPertemuanList()
 
-  const hasActive = filters.search || filters.prodi !== 'all' || filters.dosen !== 'all' ||
+  const hasActive = filters.matkul !== 'all' || filters.prodi !== 'all' || filters.dosen !== 'all' ||
                     filters.pertemuan !== 'all' || filters.dateFrom || filters.dateTo
 
   return (
     <div className="card p-4">
       <div className="flex flex-wrap items-end gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[180px]">
-          <label className="block text-[10px] text-muted mb-1.5 uppercase tracking-wider">Cari Dosen</label>
-          <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input type="text" placeholder="Nama dosen..." value={filters.search}
-              onChange={e=>setFilter('search',e.target.value)} className="input pl-9" />
-          </div>
+        {/* Mata Kuliah */}
+        <div className="min-w-[180px] flex-1">
+          <label className="block text-[10px] text-muted mb-1.5 uppercase tracking-wider">Mata Kuliah</label>
+          <select value={filters.matkul} onChange={e=>setFilter('matkul',e.target.value)} className="input">
+            <option value="all">Semua Mata Kuliah</option>
+            {matkulList.map(m=><option key={m} value={m}>{m}</option>)}
+          </select>
         </div>
 
         {/* Program Studi */}
