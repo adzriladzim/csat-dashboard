@@ -164,7 +164,7 @@ export default function DashboardPage() {
                 <th className="hidden lg:table-cell">Pemahaman</th>
                 <th className="hidden lg:table-cell">Interaktif</th>
                 <th>Respon</th>
-                <th className="text-right">Opsi</th>
+                <th className="text-left">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
                     <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorInteraktif) }}>{fmt(d.skorInteraktif)}</td>
                     <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{d.totalRespon}</td>
                     <td>
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-start gap-2">
                         <ExportMenu dosenData={d} />
                         <button
                           onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}

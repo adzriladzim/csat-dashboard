@@ -90,17 +90,24 @@ export default function ExportMenu({ dosenData, buttonClass }) {
         onClick={handleExportAll}
         disabled={exporting === 'all'}
         className={clsx(
-          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all',
+          'w-[116px] rounded-lg border flex items-center justify-center gap-1.5 h-[30px] text-[10px] font-bold uppercase transition-all whitespace-nowrap',
           exporting === 'all'
             ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
-            : buttonClass || 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border border-red-500/20'
+            : buttonClass || 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border-red-500/20'
         )}
       >
         <FileDown size={12} />
-        {exporting === 'all' ? '...' : 'PDF'}
+        {exporting === 'all' ? '...' : 'Cetak PDF'}
       </button>
     )
   }
+
+  const commonBtnClass = clsx(
+    'flex items-center justify-center gap-1.5 h-[30px] text-[10px] font-bold uppercase transition-all',
+    exporting !== null
+      ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
+      : buttonClass || 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border-red-500/20'
+  )
 
   return (
     <div className="relative inline-block" ref={buttonRef}>
@@ -108,28 +115,31 @@ export default function ExportMenu({ dosenData, buttonClass }) {
         <button
           onClick={handleExportAll}
           disabled={exporting !== null}
-          className={clsx(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-l-lg text-[10px] font-bold uppercase transition-all border-r border-white/10',
-            exporting === 'all'
-              ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
-              : buttonClass || 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border border-red-500/20'
-          )}
+          className={clsx('w-[84px] rounded-l-lg border-l border-y whitespace-nowrap', commonBtnClass)}
           title="Unduh Semua Kelas"
         >
           <FileDown size={12} />
-          {exporting === 'all' ? '...' : 'PDF'}
+          {exporting === 'all' ? '...' : 'Cetak PDF'}
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen) }}
+          onClick={(e) => { 
+            e.stopPropagation()
+            if (hasMultipleKelas) setIsOpen(!isOpen)
+            else handleExportAll()
+          }}
           disabled={exporting !== null}
           className={clsx(
-            'flex items-center justify-center w-7 h-[29.3px] rounded-r-lg transition-all',
+            'flex items-center justify-center w-8 h-[30px] rounded-r-lg transition-all border-y border-x',
             isOpen 
-              ? 'bg-red-500 text-white' 
-              : buttonClass || 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border-y border-r border-red-500/20'
+              ? 'bg-red-500 text-white border-red-500 scale-[1.02] shadow-lg shadow-red-500/20 z-10' 
+              : buttonClass || 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border-red-500/20'
           )}
         >
-          <ChevronDown size={12} className={clsx('transition-transform', isOpen && 'rotate-180')} />
+          {hasMultipleKelas ? (
+            <ChevronDown size={12} className={clsx('transition-transform duration-300', isOpen && 'rotate-180')} />
+          ) : (
+            <Download size={12} />
+          )}
         </button>
       </div>
 
