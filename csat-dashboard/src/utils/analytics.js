@@ -3,7 +3,9 @@ export { isValidTopik, isValidFeedback }
 
 export function avg(arr) {
   const v = arr.filter(x => x != null && !isNaN(x))
-  return v.length ? +(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : null
+  if (!v.length) return null
+  const res = v.reduce((a,b)=>a+b,0)/v.length
+  return Math.round(res * 1000) / 1000
 }
 export function scoreColor(s) {
   if (!s) return '#94a3b8'
@@ -29,7 +31,10 @@ export function scoreBadgeClass(s) {
   if (s >= 3.0) return 'bg-amber-500/15 text-amber-400'
   return 'bg-red-500/15 text-red-400'
 }
-export function fmt(s) { return s != null ? s.toFixed(2) : '–' }
+export function fmt(s) { 
+  if (s == null) return '–'
+  return s.toString()
+}
 export function fmtPct(v, t) { return t ? `${Math.round(v/t*100)}%` : '0%' }
 
 function newBucket(namaDosen) {
