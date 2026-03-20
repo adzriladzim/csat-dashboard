@@ -20,7 +20,7 @@ React Dashboard (User upload file ke browser)
         ↓
 Instant Analytics (Data diolah & ditampilkan secara lokal)
         ↓
-Export PDF / Excel (Laporan siap cetak)ab
+Export PDF / Excel (Laporan siap cetak)
 ```
 
 > [!NOTE]
