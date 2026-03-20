@@ -63,17 +63,17 @@ const useStore = create((set, get) => ({
   clearData: () => set({ parsedData: [], isLoaded: false, fileName: '' }),
 
   filters: {
-    search: '', prodi: 'all', dosen: 'all',
+    matkul: 'all', prodi: 'all', dosen: 'all',
     pertemuan: 'all', dateFrom: '', dateTo: '',
   },
 
   setFilter:    (key, value) => set(s => ({ filters: { ...s.filters, [key]: value } })),
-  resetFilters: () => set({ filters: { search: '', prodi: 'all', dosen: 'all', pertemuan: 'all', dateFrom: '', dateTo: '' } }),
+  resetFilters: () => set({ filters: { matkul: 'all', prodi: 'all', dosen: 'all', pertemuan: 'all', dateFrom: '', dateTo: '' } }),
 
   getFiltered: () => {
     const { parsedData, filters } = get()
     return parsedData.filter(r => {
-      if (filters.search    && !r.namaDosen?.toLowerCase().includes(filters.search.toLowerCase())) return false
+      if (filters.matkul    !== 'all' && r.mataKuliah !== filters.matkul) return false
       if (filters.prodi     !== 'all' && r.prodi     !== filters.prodi)    return false
       if (filters.dosen     !== 'all' && r.namaDosen !== filters.dosen)    return false
       if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
@@ -83,9 +83,43 @@ const useStore = create((set, get) => ({
     })
   },
 
-  getDosenList:     () => [...new Set(get().parsedData.map(r => r.namaDosen).filter(Boolean))].sort(),
-  getProdiList:     () => [...new Set(get().parsedData.map(r => r.prodi).filter(Boolean))].sort(),
-  getPertemuanList: () => [...new Set(get().parsedData.map(r => r.pertemuan).filter(Boolean))].sort((a,b)=>a-b),
+  getDosenList: () => {
+    const { parsedData, filters } = get()
+    const subset = parsedData.filter(r => {
+      if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
+      if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
+      return true
+    })
+    return [...new Set(subset.map(r => r.namaDosen).filter(Boolean))].sort()
+  },
+  getProdiList: () => {
+    const { parsedData, filters } = get()
+    const subset = parsedData.filter(r => {
+      if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
+      if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
+      return true
+    })
+    return [...new Set(subset.map(r => r.prodi).filter(Boolean))].sort()
+  },
+  getMatkulList: () => {
+    const { parsedData, filters } = get()
+    const subset = parsedData.filter(r => {
+      if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
+      if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
+      return true
+    })
+    return [...new Set(subset.map(r => r.mataKuliah).filter(Boolean))].sort()
+  },
+  getPertemuanList: () => {
+    const { parsedData, filters } = get()
+    const subset = parsedData.filter(r => {
+      if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
+      if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
+      if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
+      return true
+    })
+    return [...new Set(subset.map(r => r.pertemuan).filter(Boolean))].sort((a,b)=>a-b)
+  },
 }))
 
 export default useStore
