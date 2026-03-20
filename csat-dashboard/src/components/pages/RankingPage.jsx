@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ChevronUp, ChevronDown, Download, Trophy, FileDown, AlertCircle } from 'lucide-react'
 import useStore from '@/lib/store'
 import { aggregateByDosen, fmt, scoreColor, scoreBadgeClass } from '@/utils/analytics'
-import { exportDosenExcel, exportDosenReport } from '@/utils/exportUtils'
+import { exportDosenExcel } from '@/utils/exportUtils'
 import FilterBar from '@/components/filters/FilterBar'
 import { RankingBarChart } from '@/components/charts/ChartComponents'
+import ExportMenu from '@/components/ui/ExportMenu'
 import clsx from 'clsx'
 
 const SORT_FIELDS = {
@@ -43,15 +44,7 @@ export default function RankingPage() {
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  async function handleExportPDF(e, dosen) {
-    e.stopPropagation()
-    setExportingId(dosen.namaDosen)
-    try {
-      await exportDosenReport(dosen)
-    } finally {
-      setExportingId(null)
-    }
-  }
+  // Removed handleExportPDF as it's handled by ExportMenu
 
   function SortIcon({ field }) {
     if (sortKey !== field) return <ChevronUp size={12} className="text-slate-600" />
@@ -156,19 +149,7 @@ export default function RankingPage() {
                   <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{d.totalRespon}</td>
                   <td>
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={(e) => handleExportPDF(e, d)}
-                        disabled={exportingId === d.namaDosen}
-                        className={clsx(
-                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all',
-                          exportingId === d.namaDosen
-                            ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
-                            : 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border border-red-500/20'
-                        )}
-                      >
-                        <FileDown size={12} />
-                        {exportingId === d.namaDosen ? '...' : 'PDF'}
-                      </button>
+                      <ExportMenu dosenData={d} />
                       <button
                         onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--brand-dim)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-[var(--u-navy)] transition-all"

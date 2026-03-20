@@ -6,10 +6,11 @@ import {
 } from 'lucide-react'
 import useStore from '@/lib/store'
 import { aggregateByDosen, avg, fmt, scoreColor, scoreBadgeClass, scoreLabel, detectAnomalies } from '@/utils/analytics'
-import { exportDosenExcel, exportDashboardPDF, exportDosenReport } from '@/utils/exportUtils'
+import { exportDosenExcel, exportDashboardPDF } from '@/utils/exportUtils'
 import FilterBar from '@/components/filters/FilterBar'
 import { StatCard, ScoreBar } from '@/components/ui/StatCard'
 import { TrendChart } from '@/components/charts/ChartComponents'
+import ExportMenu from '@/components/ui/ExportMenu'
 import clsx from 'clsx'
 
 const PAGE_SIZE = 15
@@ -18,7 +19,6 @@ export default function DashboardPage() {
   const { getFiltered, fileName } = useStore()
   const navigate   = useNavigate()
   const [page, setPage]           = useState(1)
-  const [exportingId, setExportingId]   = useState(null)
   const [exportingAll, setExportingAll] = useState(false)
 
   const filtered  = getFiltered()
@@ -45,13 +45,6 @@ export default function DashboardPage() {
 
   const totalPages = Math.ceil(dosenList.length / PAGE_SIZE)
   const paginated  = dosenList.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE)
-
-  async function handleExportPDF(e, d) {
-    e.stopPropagation()
-    setExportingId(d.namaDosen)
-    try { await exportDosenReport(d) }
-    finally { setExportingId(null) }
-  }
 
   async function handleExportAllPDF() {
     setExportingAll(true)
@@ -167,18 +160,7 @@ export default function DashboardPage() {
                     <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{d.totalRespon}</td>
                     <td>
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={(e) => handleExportPDF(e, d)}
-                          disabled={exportingId === d.namaDosen}
-                          className={clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all',
-                            exportingId === d.namaDosen
-                              ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
-                              : 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border border-red-500/20'
-                          )}
-                        >
-                          <FileDown size={12} />
-                          <span className="hidden sm:inline">{exportingId === d.namaDosen ? '...' : 'PDF'}</span>
-                        </button>
+                        <ExportMenu dosenData={d} />
                         <button
                           onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--brand-dim)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-[var(--u-navy)] transition-all"

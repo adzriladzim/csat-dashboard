@@ -46,7 +46,13 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
   y = 54
 
   // Ringkasan skor
-  secTitle(pdf, isAll ? 'Ringkasan Skor Kinerja — Semua Kelas (Skala 1–5)' : `Ringkasan Skor Kinerja — Kelas ${data.kodeKelas} (Skala 1–5)`, y); y += 9
+  const titleText = isAll 
+    ? (data.kodeKelas && !data.kodeKelas.includes(',') 
+        ? `Ringkasan Skor Kinerja — Kelas ${data.kodeKelas} (Skala 1-5)`
+        : 'Ringkasan Skor Kinerja — Semua Kelas (Skala 1-5)')
+    : `Ringkasan Skor Kinerja — Kelas ${data.kodeKelas} (Skala 1-5)`
+    
+  secTitle(pdf, titleText, y); y += 9
 
   const metrics = [
     ['CSAT Gabungan',    data.csatGabungan],
@@ -148,7 +154,9 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
 export async function exportDosenReport(dosenData) {
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
   await buildDosenPDF(pdf, dosenData, null)
-  pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}_SemuaKelas_${new Date().toISOString().slice(0,10)}.pdf`)
+  const isSingleKelas = dosenData.kodeKelas && !dosenData.kodeKelas.includes(',')
+  const suffix = isSingleKelas ? `_Kelas_${dosenData.kodeKelas.replace(/[^a-zA-Z0-9]/g,'_')}` : '_SemuaKelas'
+  pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}${suffix}_${new Date().toISOString().slice(0,10)}.pdf`)
 }
 
 // ── Export per kelas tertentu ─────────────────────────────────────────────

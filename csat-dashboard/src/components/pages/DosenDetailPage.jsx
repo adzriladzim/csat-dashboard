@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft, Download, FileDown, Star, BookOpen, Activity,
   TrendingUp, MessageSquare, AlertCircle, ChevronRight,
@@ -19,8 +19,10 @@ import clsx from 'clsx'
 export default function DosenDetailPage() {
   const { name }       = useParams()
   const navigate       = useNavigate()
+  const [searchParams] = useSearchParams()
+  const initialKelas   = searchParams.get('kelas')
+  const [activeTab, setActiveTab]   = useState(initialKelas || 'semua')
   const { parsedData } = useStore()
-  const [activeTab, setActiveTab]   = useState('semua')
   const [exporting, setExporting]   = useState(null)  // null | 'all' | kodeKelas
 
   const decodedName = decodeURIComponent(name)
