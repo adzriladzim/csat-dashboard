@@ -30,6 +30,18 @@ function cleanText(val) {
   return s
 }
 
+function extractFaktor(val) {
+  if (!val) return null
+  const s = String(val).trim()
+  // Match (5) Text...
+  const m = s.match(/^\((\d+(?:\.\d+)?)\)\s*(.*)/)
+  if (m) {
+    const text = m[2].trim()
+    return text.length > 3 ? text : null
+  }
+  return s.length > 3 ? s : null
+}
+
 // ── Topik Belum Paham: filter SANGAT KETAT ────────────────────────────────
 // Aturan: HARUS ada indikasi kebingungan / ketidaktahuan, ATAU nama topik teknis spesifik
 // Apapun yang berbunyi positif / sudah paham = DIBUANG
@@ -76,25 +88,21 @@ const TECHNICAL_PATTERN = /\b(array|linked.?list|tree|graph|sql|python|java|oop|
 export function isValidTopik(text) {
   if (!text) return false
   const s = text.trim()
-  if (s.length < 4) return false
+  if (s.length < 3) return false
   const lower = s.toLowerCase()
 
-  // Cek pola positif yang jelas → BUANG
+  // Pola positif yang jelas → BUANG (sudah paham bukan topik sulit)
   if (DEFINITELY_POSITIVE.some(p => p.test(s))) return false
 
-  // Cek kata struggle → VALID langsung
+  // Jika ada kata struggle atau teknis → VALID
   if (STRUGGLE_WORDS.some(w => lower.includes(w))) return true
-
-  // Cek nama topik teknis → VALID
   if (TECHNICAL_PATTERN.test(s)) return true
 
-  // Kalimat panjang (≥6 kata) yang tidak positif → cek lebih dalam
+  // Jika teks bersih dan bukan "ok/baik" → anggap sebagai topik (misal: "Debit Kredit")
   const words = s.split(/\s+/)
-  if (words.length >= 6) {
-    // Tapi kalau kalimatnya positif, tetap buang
-    const posEnding = /(mudah dipahami|mudah dimengerti|jelas dipahami|berjalan (dengan )?(baik|lancar)|sudah (baik|jelas|oke)|dengan (baik|jelas|lancar))\s*[.!]?$/i
-    if (posEnding.test(s)) return false
-    return true
+  if (words.length >= 1) {
+    const junk = ['oke','ok','okay','baik','aman','lancar','bagus','sep','sip','siap','mantap','tidak ada','tdk ada','-','..']
+    if (!junk.includes(lower)) return true
   }
 
   return false
@@ -116,9 +124,6 @@ export function isValidFeedback(text) {
 
 // ── Main parser ────────────────────────────────────────────────────────────
 export function parseRow(row, headers) {
-  const pemahaman  = parseScore(getVal(row, headers, 'pemahaman') || getVal(row, headers, 'materi'))
-  const interaktif = parseScore(getVal(row, headers, 'interaktif'))
-  const performa   = parseScore(getVal(row, headers, 'performa') || getVal(row, headers, 'kepuasan'))
   const tsRaw = getVal(row, headers, 'Timestamp')
   let tsISO = null
   if (tsRaw) { const d = new Date(tsRaw); if (!isNaN(d)) tsISO = d.toISOString() }
@@ -129,10 +134,24 @@ export function parseRow(row, headers) {
   const mk2       = cleanText(getExact(row, headers, 'Mata Kuliah 2'))
   const kk1       = cleanText(getExact(row, headers, 'Kode Kelas'))
   const kk2       = cleanText(getExact(row, headers, 'Kode Kelas 2'))
-  const topikRaw    = getVal(row, headers, 'masih belum kamu pahami')
+  
+  // -- Blok A Keywords (questions) --
+  const hPemahaman = getVal(row, headers, 'tingkat pemahaman') || getVal(row, headers, 'materi')
+  const hInteraktif = getVal(row, headers, 'Interaktif yang dimaksud') || getVal(row, headers, 'interaktif')
+  const hPerforma = getVal(row, headers, 'kepuasan kamu terhadap performa') || getVal(row, headers, 'performa') || getVal(row, headers, 'kepuasan')
+  
+  const pemahaman  = parseScore(hPemahaman)
+  const interaktif = parseScore(hInteraktif)
+  const performa   = parseScore(hPerforma)
+  
+  const topikRaw    = getVal(row, headers, 'paham') || getVal(row, headers, 'topik') || getVal(row, headers, 'materi sulit')
   const topikClean  = cleanText(topikRaw)
-  const feedbackRaw = getVal(row, headers, 'feedback untuk DOSEN')
+  const feedbackRaw = getVal(row, headers, 'feedback') || getVal(row, headers, 'asaran') || getVal(row, headers, 'masukan') || getVal(row, headers, 'komentar')
   const fbClean     = cleanText(feedbackRaw)
+
+  // -- Extract Factors from score sentences if present (Blok A style) --
+  const fp1 = cleanText(getVal(row, headers, 'faktor pendorong skor performa')) || extractFaktor(hPerforma)
+  const fp2 = cleanText(getVal(row, headers, 'faktor pendorong skor interaktif')) || extractFaktor(hInteraktif)
   return {
     timestamp_response:  tsISO,
     tanggal:             tsISO ? tsISO.slice(0, 10) : null,
@@ -152,5 +171,7 @@ export function parseRow(row, headers) {
     csat_gabungan:       computeCsat(pemahaman, interaktif, performa),
     topik_belum_paham:   (topikClean && isValidTopik(topikClean)) ? topikClean : null,
     feedback_dosen:      (fbClean && isValidFeedback(fbClean)) ? fbClean : null,
+    faktor_performa:     fp1,
+    faktor_interaktif:   fp2,
   }
 }

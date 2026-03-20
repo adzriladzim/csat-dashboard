@@ -12,19 +12,19 @@ export function StatCard({ label, value, sub, icon: Icon, trend, color, size = '
       <div className="flex items-start justify-between">
         <p className={clsx('font-medium opacity-60', size === 'sm' ? 'text-[10px] uppercase tracking-wider' : 'text-xs')} style={{ color: 'var(--foreground)' }}>{label}</p>
         {Icon && (
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform group-hover:scale-110"
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform group-hover:scale-105"
             style={{ 
               background: highlight ? 'rgba(59, 130, 246, 0.1)' : highlightAlt ? 'rgba(16, 185, 129, 0.1)' : 'var(--brand-dim)', 
               border: '1px solid var(--brand-border)' 
             }}>
-            <Icon size={18} style={{ color: highlight ? '#3b82f6' : highlightAlt ? '#10b981' : (color || 'var(--brand)') }} />
+            <Icon size={16} className="sm:size-[18px]" style={{ color: highlight ? '#3b82f6' : highlightAlt ? '#10b981' : (color || 'var(--brand)') }} />
           </div>
         )}
       </div>
       <p
         className={clsx(
-          'font-serif-accent font-black tracking-tight leading-none mt-3 transition-colors', 
-          size === 'sm' ? 'text-3xl' : 'text-5xl'
+          'font-serif-accent font-extrabold tracking-tight leading-none mt-2 sm:mt-3 transition-colors', 
+          size === 'sm' ? 'text-xl sm:text-2xl' : 'text-3xl sm:text-4xl'
         )}
         style={{ color: color || 'var(--foreground)' }}
       >

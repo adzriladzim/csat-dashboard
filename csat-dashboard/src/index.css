@@ -17,8 +17,8 @@
   --border-hover: rgba(196,165,99,0.25);
   --foreground:   #f1f5f9;
   --foreground-2: #cbd5e1;
-  --muted:        #64748b;
-  --muted-2:      #475569;
+  --muted:        #94a3b8; /* Slate 400 - for better contrast in dark */
+  --muted-2:      #64748b; /* Slate 500 */
   --brand:        var(--u-gold);
   --brand-dim:    var(--u-gold-dim);
   --brand-border: rgba(196,165,99,0.3);
@@ -54,9 +54,9 @@
   --border:       rgba(0,61,77,0.08);
   --border-hover: rgba(0,61,77,0.15);
   --foreground:   #0f172a;
-  --foreground-2: #334155;
-  --muted:        #64748b;
-  --muted-2:      #94a3b8;
+  --foreground-2: #1e293b;
+  --muted:        #475569; /* Slate 600 - for better contrast in light on white */
+  --muted-2:      #64748b; /* Slate 500 */
   --brand:        #004b5a; 
   --brand-dim:    rgba(0,75,90,0.06);
   --brand-border: rgba(0,75,90,0.15);
@@ -201,8 +201,9 @@
     background: var(--bg-card);
     border: 1.5px solid var(--border);
     border-radius: 1.25rem;
-    padding: 20px;
-    display: flex; flex-direction: column; gap: 6px;
+    padding: 16px;
+    @apply sm:p-5;
+    display: flex; flex-direction: column; gap: 4px;
     transition: all 0.3s;
     box-shadow: var(--shadow-sm);
   }
@@ -214,7 +215,8 @@
 
   .section-title {
     font-family: 'Sora', sans-serif;
-    font-size: 1.1rem; font-weight: 800;
+    font-size: 0.95rem; font-weight: 800;
+    @apply sm:text-[1.05rem];
     color: var(--foreground);
     letter-spacing: -0.01em;
   }
@@ -253,6 +255,26 @@
   }
   .data-table tr:last-child td { border-bottom: none; }
   .data-table tr:hover td { background: var(--table-hover); color: var(--foreground); }
+
+  /* New Table Utilities */
+  .table-scroll-container {
+    max-height: 65vh;
+    overflow-y: auto;
+    border-radius: 0 0 1rem 1rem;
+  }
+  .sticky-header th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: var(--bg-surface) !important;
+  }
+  .sticky-header::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: 0; right: 0;
+    height: 1px;
+    background: var(--border);
+  }
 
   /* Utility */
   .text-brand        { color: var(--brand) !important; }

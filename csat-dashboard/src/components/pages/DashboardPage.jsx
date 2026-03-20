@@ -14,12 +14,14 @@ import { TrendChart } from '@/components/charts/ChartComponents'
 import ExportMenu from '@/components/ui/ExportMenu'
 import clsx from 'clsx'
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 10
 
 export default function DashboardPage() {
   const { getFiltered, fileName, mappingAccuracy, rawCount, removedCount } = useStore()
   const navigate   = useNavigate()
   const [page, setPage]           = useState(1)
+  const [jumpIdx, setJumpIdx]     = useState(null)
+  const [jumpVal, setJumpVal]     = useState('')
   const [exportingAll, setExportingAll] = useState(false)
 
   const filtered  = getFiltered()
@@ -56,13 +58,13 @@ export default function DashboardPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 animate-enter">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3 md:gap-4">
         <div className="flex-1">
-          <h1 className="font-serif-accent text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
+          <h1 className="font-serif-accent text-2xl md:text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
             Dashboard <span style={{ color: 'var(--brand)' }}>Overview</span>
           </h1>
           <div className="flex items-center gap-2 mt-1.5">
-            <p className="text-sm font-medium opacity-60" style={{ color: 'var(--muted)' }}>
+            <p className="text-sm font-bold" style={{ color: 'var(--muted)' }}>
               {filtered.length.toLocaleString('id-ID')} Responden Valid
             </p>
             {removedCount > 0 && (
@@ -71,7 +73,7 @@ export default function DashboardPage() {
               </span>
             )}
             <span className="text-sm opacity-30" style={{ color: 'var(--muted)' }}>·</span>
-            <p className="text-sm font-medium opacity-60" style={{ color: 'var(--muted)' }}>
+            <p className="text-sm font-bold" style={{ color: 'var(--muted)' }}>
               {dosenList.length} Dosen · {fileName}
             </p>
           </div>
@@ -90,7 +92,7 @@ export default function DashboardPage() {
       <FilterBar />
 
       {/* Global stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger">
         <StatCard 
           label="CSAT Gabungan"    
           value={fmt(globalCsat)}       
@@ -104,7 +106,7 @@ export default function DashboardPage() {
         <StatCard label="Interaktivitas"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Responden Valid"    value={filtered.length.toLocaleString('id-ID')} icon={Users}         size="sm" />
         <StatCard label="Jumlah Dosen"       value={dosenList.length}                        icon={Award}         size="sm" />
         <StatCard 
@@ -148,14 +150,11 @@ export default function DashboardPage() {
             <h2 className="section-title">Database Kinerja Dosen</h2>
             <span className="badge bg-u-navy text-brand border border-[var(--brand-border)]">{dosenList.length}</span>
           </div>
-          <p className="text-[11px] font-bold uppercase tracking-wider opacity-50 hidden sm:block">
-            Halaman {page} dari {totalPages}
-          </p>
         </div>
 
-        <div className="overflow-x-auto -mx-6 px-6">
+        <div className="table-scroll-container -mx-6 px-6">
           <table className="w-full data-table min-w-[700px]">
-            <thead>
+            <thead className="sticky-header">
               <tr>
                 <th className="w-12 text-center">Rank</th>
                 <th>Dosen & Program Studi</th>
@@ -180,7 +179,7 @@ export default function DashboardPage() {
                       >
                         {d.namaDosen}
                       </button>
-                      <p className="text-[11px] font-medium mt-1 opacity-60 uppercase tracking-wide" style={{ color: 'var(--muted)' }}>{d.prodi || 'Staf Pengajar'}</p>
+                      <p className="text-[11px] font-bold mt-1 uppercase tracking-wide" style={{ color: 'var(--muted)' }}>{d.prodi || 'Staf Pengajar'}</p>
                     </td>
                     <td>
                       <span className={clsx('badge px-3 py-1.5', scoreBadgeClass(d.csatGabungan))}>
@@ -209,29 +208,99 @@ export default function DashboardPage() {
           </table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination Professional Style */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 pt-6 border-t border-[var(--border)]">
-            <button onClick={() => setPage(p=>Math.max(1,p-1))} disabled={page===1}
-              className="btn-ghost flex items-center gap-1">
-              <ChevronLeft size={16} /><span>Sebelumnya</span>
-            </button>
-            <div className="flex items-center gap-1.5">
-              {Array.from({length: totalPages}, (_,i) => i+1).map(p => (
-                <button key={p} onClick={() => setPage(p)}
-                  className={clsx('w-8 h-8 rounded-lg text-xs font-bold transition-all border',
-                    p===page 
-                      ? 'bg-[var(--brand)] text-white dark:text-[var(--u-navy)] border-[var(--brand)] shadow-lg shadow-brand/20' 
-                      : 'text-[var(--muted)] hover:bg-[var(--brand-dim)] border-transparent'
-                  )}>
-                  {p}
-                </button>
-              ))}
+          <div className="flex flex-col lg:flex-row items-center justify-between mt-8 pt-6 border-t border-[var(--border)] gap-6">
+            <div className="text-xs sm:text-sm font-medium text-[var(--muted)] text-center lg:text-left">
+              Menampilkan <span className="text-[var(--foreground)] font-bold">{(page-1)*PAGE_SIZE + 1}</span> - <span className="text-[var(--foreground)] font-bold">{Math.min(page*PAGE_SIZE, dosenList.length)}</span> dari <span className="text-[var(--foreground)] font-bold">{dosenList.length}</span> dosen
             </div>
-            <button onClick={() => setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
-              className="btn-ghost flex items-center gap-1">
-              <span>Berikutnya</span><ChevronRight size={16} />
-            </button>
+            
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <div className="flex items-center gap-1.5 order-2 sm:order-1">
+                <button 
+                  onClick={() => setPage(1)} 
+                  disabled={page === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--brand-dim)] disabled:opacity-50 transition-all"
+                  title="Halaman Pertama"
+                >
+                  <ChevronLeft size={14} className="-mr-1"/><ChevronLeft size={14} />
+                </button>
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p-1))} 
+                  disabled={page === 1}
+                  className="h-8 px-2 sm:px-3 flex items-center gap-1 rounded-lg border border-[var(--border)] text-[10px] sm:text-xs font-bold text-[var(--muted)] hover:bg-[var(--brand-dim)] disabled:opacity-50 transition-all"
+                >
+                  <ChevronLeft size={14} /> <span className="hidden xs:inline">Sebelumnya</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1 mx-1 order-1 sm:order-2">
+                {/* Simple smart pagination logic */}
+                {Array.from({length: totalPages}, (_,i) => i+1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                  .map((p, i, arr) => (
+                    <div key={p} className="flex items-center gap-1">
+                      {i > 0 && arr[i-1] !== p-1 && (
+                        jumpIdx === i ? (
+                          <input 
+                            autoFocus
+                            type="number"
+                            value={jumpVal}
+                            onChange={e => setJumpVal(e.target.value)}
+                            onBlur={() => { setJumpIdx(null); setJumpVal('') }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                const num = parseInt(jumpVal)
+                                if (!isNaN(num) && num >= 1 && num <= totalPages) setPage(num)
+                                setJumpIdx(null); setJumpVal('')
+                              }
+                              if (e.key === 'Escape') { setJumpIdx(null); setJumpVal('') }
+                            }}
+                            className="w-10 h-8 sm:w-12 text-center text-xs font-bold bg-[var(--brand-dim)] border border-[var(--brand)] rounded-lg outline-none shadow-inner"
+                            placeholder="..."
+                          />
+                        ) : (
+                          <button 
+                            onClick={() => { setJumpIdx(i); setJumpVal('') }}
+                            className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-xs font-bold transition-all text-[var(--muted)] hover:bg-[var(--brand-dim)] hover:text-[var(--brand)]"
+                            title="Klik untuk loncat ke halaman..."
+                          >
+                            ...
+                          </button>
+                        )
+                      )}
+                      <button 
+                        onClick={() => setPage(p)}
+                        className={clsx('w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 rounded-lg text-xs font-bold transition-all border',
+                          p === page 
+                            ? 'bg-[var(--brand)] text-white dark:text-[var(--u-navy)] border-[var(--brand)] shadow-lg shadow-brand/20' 
+                            : 'text-[var(--muted)] hover:bg-[var(--brand-dim)] border-transparent'
+                        )}
+                      >
+                        {p}
+                      </button>
+                    </div>
+                  ))}
+              </div>
+
+              <div className="flex items-center gap-1.5 order-3">
+                <button 
+                  onClick={() => setPage(p => Math.min(totalPages, p+1))} 
+                  disabled={page === totalPages}
+                  className="h-8 px-2 sm:px-3 flex items-center gap-1 rounded-lg border border-[var(--border)] text-[10px] sm:text-xs font-bold text-[var(--muted)] hover:bg-[var(--brand-dim)] disabled:opacity-50 transition-all"
+                >
+                  <span className="hidden xs:inline">Berikutnya</span> <ChevronRight size={14} />
+                </button>
+                <button 
+                  onClick={() => setPage(totalPages)} 
+                  disabled={page === totalPages}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--brand-dim)] disabled:opacity-50 transition-all"
+                  title="Halaman Terakhir"
+                >
+                  <ChevronRight size={14} /><ChevronRight size={14} className="-ml-1"/>
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
