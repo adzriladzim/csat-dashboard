@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Star, BookOpen, Activity, Download, TrendingUp,
-  ChevronRight, ChevronLeft, FileDown, Award, AlertTriangle
+  ChevronRight, ChevronLeft, FileDown, Award, AlertTriangle, AlertCircle
 } from 'lucide-react'
 import useStore from '@/lib/store'
 import { aggregateByDosen, avg, fmt, scoreColor, scoreBadgeClass, scoreLabel, detectAnomalies } from '@/utils/analytics'
@@ -60,20 +60,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-5 animate-enter">
+    <div className="p-4 md:p-6 space-y-6 animate-enter">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
         <div className="flex-1">
-          <h1 className="font-display text-xl md:text-2xl font-bold text-white">Dashboard Overview</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            {filtered.length.toLocaleString('id-ID')} responden · {dosenList.length} dosen · {fileName}
+          <h1 className="font-serif-accent text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
+            Dashboard <span style={{ color: 'var(--brand)' }}>Overview</span>
+          </h1>
+          <p className="text-sm mt-1.5 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
+            {filtered.length.toLocaleString('id-ID')} Responden · {dosenList.length} Dosen · {fileName}
           </p>
         </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <button onClick={() => exportDosenExcel(dosenList)} className="btn-secondary text-xs">
-            <Download size={14} />Excel
+        <div className="flex gap-2.5 flex-shrink-0">
+          <button onClick={() => exportDosenExcel(dosenList)} className="btn-secondary">
+            <Download size={14} />Export Excel
           </button>
-          <button onClick={handleExportAllPDF} className="btn-primary text-xs" disabled={exportingAll}>
+          <button onClick={handleExportAllPDF} className="btn-primary" disabled={exportingAll}>
             <FileDown size={14} />
             {exportingAll ? 'Generating...' : 'Export PDF'}
           </button>
@@ -83,109 +85,105 @@ export default function DashboardPage() {
       <FilterBar />
 
       {/* Global stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 stagger">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
         <StatCard label="CSAT Gabungan"    value={fmt(globalCsat)}       sub={scoreLabel(globalCsat)}       icon={Star}       color={scoreColor(globalCsat)} />
         <StatCard label="Performa Dosen"   value={fmt(globalPerforma)}   sub={scoreLabel(globalPerforma)}   icon={TrendingUp} color={scoreColor(globalPerforma)} />
         <StatCard label="Pemahaman Materi" value={fmt(globalPemahaman)}  sub={scoreLabel(globalPemahaman)}  icon={BookOpen}   color={scoreColor(globalPemahaman)} />
         <StatCard label="Interaktivitas"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   color={scoreColor(globalInteraktif)} />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Total Responden"    value={filtered.length.toLocaleString('id-ID')} icon={Users}         color="#7d97fb" size="sm" />
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard label="Total Responden"    value={filtered.length.toLocaleString('id-ID')} icon={Users}         color="var(--brand)" size="sm" />
         <StatCard label="Jumlah Dosen"       value={dosenList.length}                        icon={Award}         color="#34d399" size="sm" />
-        <StatCard label="Anomali"            value={anomalies.filter(a=>a.type==='concern').length} icon={AlertTriangle} color="#f59e0b" size="sm" />
+        <StatCard label="Perhatian"            value={anomalies.filter(a=>a.type==='concern').length} icon={AlertCircle} color="#f59e0b" size="sm" />
       </div>
 
       {/* Trend + Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 card p-5">
-          <h2 className="section-title mb-4">Tren CSAT per Pertemuan (Global)</h2>
-          <TrendChart data={globalTrend} height={200} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 card p-6">
+          <h2 className="section-title mb-6">Tren CSAT per Pertemuan (Global)</h2>
+          <TrendChart data={globalTrend} height={220} />
         </div>
-        <div className="card p-5 space-y-4">
+        <div className="card p-6 space-y-5">
           <h2 className="section-title">Breakdown Metrik</h2>
           <ScoreBar label="Performa Dosen"   score={globalPerforma} />
           <ScoreBar label="Pemahaman Materi" score={globalPemahaman} />
           <ScoreBar label="Interaktivitas"   score={globalInteraktif} />
-          <div className="pt-2 border-t border-white/5">
+          <div className="pt-4 border-t border-[var(--border)]">
             <ScoreBar label="CSAT Gabungan" score={globalCsat} />
           </div>
         </div>
       </div>
 
       {/* Tabel semua dosen + pagination */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h2 className="section-title">Semua Dosen</h2>
-            <span className="badge bg-brand-500/15 text-brand-400">{dosenList.length}</span>
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2.5">
+            <h2 className="section-title">Database Kinerja Dosen</h2>
+            <span className="badge bg-u-navy text-brand border border-[var(--brand-border)]">{dosenList.length}</span>
           </div>
-          <p className="text-xs text-slate-500 hidden sm:block">
-            Hal. {page}/{totalPages}
+          <p className="text-[11px] font-bold uppercase tracking-wider opacity-50 hidden sm:block">
+            Halaman {page} dari {totalPages}
           </p>
         </div>
 
-        <div className="overflow-x-auto -mx-5 px-5">
-          <table className="w-full data-table min-w-[600px]">
+        <div className="overflow-x-auto -mx-6 px-6">
+          <table className="w-full data-table min-w-[700px]">
             <thead>
               <tr>
-                <th className="w-8">#</th>
-                <th>Nama Dosen</th>
-                <th className="hidden md:table-cell">Program Studi</th>
+                <th className="w-12 text-center">Rank</th>
+                <th>Dosen & Program Studi</th>
                 <th>CSAT</th>
-                <th className="hidden sm:table-cell">Performa</th>
-                <th className="hidden sm:table-cell">Pemahaman</th>
+                <th className="hidden lg:table-cell">Performa</th>
+                <th className="hidden lg:table-cell">Pemahaman</th>
                 <th className="hidden lg:table-cell">Interaktif</th>
                 <th>Respon</th>
-                <th>Aksi</th>
+                <th className="text-right">Opsi</th>
               </tr>
             </thead>
             <tbody>
               {paginated.map((d, i) => {
                 const rank = (page-1)*PAGE_SIZE + i + 1
                 return (
-                  <tr key={d.namaDosen}>
-                    <td className="text-slate-500 font-mono text-xs">{rank}</td>
+                  <tr key={d.namaDosen} className="group">
+                    <td className="font-serif-accent font-bold text-[var(--brand)] text-center">{rank}</td>
                     <td>
                       <button
                         onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
-                        className="font-medium text-slate-200 hover:text-brand-300 transition-colors text-left"
+                        className="font-bold text-base hover:text-[var(--brand)] transition-colors text-left leading-tight" style={{ color: 'var(--foreground)' }}
                       >
                         {d.namaDosen}
                       </button>
-                      <p className="text-xs text-slate-500 truncate max-w-[180px] md:hidden">{d.prodi || '–'}</p>
-                    </td>
-                    <td className="text-xs text-slate-400 hidden md:table-cell max-w-[140px]">
-                      <p className="truncate">{d.prodi || '–'}</p>
+                      <p className="text-[11px] font-medium mt-1 opacity-60 uppercase tracking-wide" style={{ color: 'var(--muted)' }}>{d.prodi || 'Staf Pengajar'}</p>
                     </td>
                     <td>
-                      <span className={clsx('badge', scoreBadgeClass(d.csatGabungan))}>
+                      <span className={clsx('badge px-3 py-1.5', scoreBadgeClass(d.csatGabungan))}>
                         {fmt(d.csatGabungan)}
                       </span>
                     </td>
-                    <td className="font-mono text-sm hidden sm:table-cell" style={{color:scoreColor(d.skorPerforma)}}>{fmt(d.skorPerforma)}</td>
-                    <td className="font-mono text-sm hidden sm:table-cell" style={{color:scoreColor(d.skorPemahaman)}}>{fmt(d.skorPemahaman)}</td>
-                    <td className="font-mono text-sm hidden lg:table-cell" style={{color:scoreColor(d.skorInteraktif)}}>{fmt(d.skorInteraktif)}</td>
-                    <td className="text-slate-400 text-sm">{d.totalRespon}</td>
+                    <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPerforma) }}>{fmt(d.skorPerforma)}</td>
+                    <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPemahaman) }}>{fmt(d.skorPemahaman)}</td>
+                    <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorInteraktif) }}>{fmt(d.skorInteraktif)}</td>
+                    <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{d.totalRespon}</td>
                     <td>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={(e) => handleExportPDF(e, d)}
                           disabled={exportingId === d.namaDosen}
-                          className={clsx('flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all',
+                          className={clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all',
                             exportingId === d.namaDosen
-                              ? 'bg-white/5 text-slate-500 cursor-wait'
-                              : 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20'
+                              ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
+                              : 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border border-red-500/20'
                           )}
                         >
-                          <FileDown size={11} />
+                          <FileDown size={12} />
                           <span className="hidden sm:inline">{exportingId === d.namaDosen ? '...' : 'PDF'}</span>
                         </button>
                         <button
                           onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
-                          className="p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--brand-dim)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-[var(--u-navy)] transition-all"
                         >
-                          <ChevronRight size={13} />
+                          <ChevronRight size={16} />
                         </button>
                       </div>
                     </td>
@@ -198,24 +196,26 @@ export default function DashboardPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
+          <div className="flex items-center justify-between mt-6 pt-6 border-t border-[var(--border)]">
             <button onClick={() => setPage(p=>Math.max(1,p-1))} disabled={page===1}
-              className="btn-ghost text-xs disabled:opacity-30 disabled:cursor-not-allowed">
-              <ChevronLeft size={13} />Sebelumnya
+              className="btn-ghost flex items-center gap-1">
+              <ChevronLeft size={16} /><span>Sebelumnya</span>
             </button>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {Array.from({length: totalPages}, (_,i) => i+1).map(p => (
                 <button key={p} onClick={() => setPage(p)}
-                  className={clsx('w-7 h-7 rounded-lg text-xs font-medium transition-all',
-                    p===page ? 'bg-brand-600 text-white' : 'text-slate-400 hover:bg-white/5'
+                  className={clsx('w-8 h-8 rounded-lg text-xs font-bold transition-all border',
+                    p===page 
+                      ? 'bg-[var(--brand)] text-white dark:text-[var(--u-navy)] border-[var(--brand)] shadow-lg shadow-brand/20' 
+                      : 'text-[var(--muted)] hover:bg-[var(--brand-dim)] border-transparent'
                   )}>
                   {p}
                 </button>
               ))}
             </div>
             <button onClick={() => setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
-              className="btn-ghost text-xs disabled:opacity-30 disabled:cursor-not-allowed">
-              Berikutnya<ChevronRight size={13} />
+              className="btn-ghost flex items-center gap-1">
+              <span>Berikutnya</span><ChevronRight size={16} />
             </button>
           </div>
         )}

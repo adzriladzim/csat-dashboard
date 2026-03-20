@@ -32,12 +32,16 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [dark, setDark] = useDarkMode()
 
-  const ThemeBtn = ({ size = 14 }) => (
+  const ThemeBtn = ({ size = 15 }) => (
     <button
       onClick={() => setDark(d => !d)}
       title={dark ? 'Mode Terang' : 'Mode Gelap'}
-      className="flex items-center justify-center w-8 h-8 rounded-lg transition-all"
-      style={{ background: 'var(--border)', color: 'var(--muted)' }}
+      className="flex items-center justify-center w-9 h-9 rounded-xl transition-all hover:scale-105 active:scale-95"
+      style={{ 
+        background: dark ? 'rgba(196,165,99,0.1)' : 'rgba(0,61,77,0.05)', 
+        color: 'var(--brand)',
+        border: '1.5px solid var(--brand-border)'
+      }}
     >
       {dark ? <Sun size={size} /> : <Moon size={size} />}
     </button>
@@ -59,22 +63,23 @@ export default function Layout() {
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
 
       {/* ── DESKTOP Sidebar ─────────────────────────────────── */}
-      <aside className="hidden md:flex w-62 flex-shrink-0 flex-col"
-        style={{ background: 'var(--bg-surface)', borderRight: '1px solid var(--border)', width: '248px' }}>
+      <aside className="hidden md:flex w-64 flex-shrink-0 flex-col"
+        style={{ background: 'var(--bg-surface)', borderRight: '1.5px solid var(--border)', width: '260px' }}>
 
-        {/* Logo + Theme */}
-        <div className="px-4 py-4 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--brand)' }}>
-            <TrendingUp size={15} className="text-white" />
+        <div className="px-5 py-6 flex flex-col gap-4" style={{ borderBottom: '1.5px solid var(--border)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white p-1.5 shadow-sm border border-[var(--border)]">
+              <img src="/CAKRAWALA LOGOMARK 2A.png" alt="Cakrawala University" className="w-full h-full object-contain" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-serif-accent font-extrabold text-base tracking-tight leading-tight" style={{ color: 'var(--brand)' }}>
+                CSAT <span style={{ color: 'var(--foreground)' }}>DASHBOARD</span>
+              </h1>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5 opacity-60" style={{ color: 'var(--foreground)' }}>
+                Cakrawala University
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-display font-bold text-sm leading-none truncate" style={{ color: 'var(--foreground)' }}>
-              CSAT Dashboard
-            </p>
-            <p className="text-[10px] mt-0.5" style={{ color: 'var(--muted-2)' }}>Cakrawala University</p>
-          </div>
-          <ThemeBtn />
         </div>
 
         {/* File info */}
@@ -108,33 +113,33 @@ export default function Layout() {
         </div>
 
         {/* Credits */}
-        <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
-          <div className="flex items-center gap-1.5">
-            <Heart size={10} style={{ color: 'var(--brand)' }} />
-            <p className="text-[10px]" style={{ color: 'var(--muted-2)' }}>
-              Dibuat oleh <span className="font-semibold" style={{ color: 'var(--muted)' }}>Adzril Adzim Hendrynov</span>
+        <div className="px-5 py-4" style={{ borderTop: '1.5px solid var(--border)' }}>
+          <div className="flex items-center gap-2">
+            <Heart size={12} fill="var(--brand)" className="text-[var(--brand)]" />
+            <p className="text-[11px] font-medium" style={{ color: 'var(--muted)' }}>
+              Dibuat oleh  <span className="font-bold" style={{ color: 'var(--foreground)' }}>Adzril Adzim</span>
             </p>
           </div>
-          <p className="text-[9px] mt-0.5" style={{ color: 'var(--muted-2)' }}>
-            Untuk Cakrawala University · 2026
+          <p className="text-[10px] mt-1 opacity-60" style={{ color: 'var(--muted)' }}>
+            Cakrawala University · 2026
           </p>
         </div>
       </aside>
 
       {/* ── MOBILE Top Bar ──────────────────────────────────── */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 px-4 py-3 flex items-center justify-between"
-        style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--brand)' }}>
-            <TrendingUp size={13} className="text-white" />
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 px-4 py-3 flex items-center justify-between glass"
+        style={{ background: 'var(--bg-surface)', borderBottom: '1.5px solid var(--border)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg overflow-hidden bg-white p-1 shadow-sm border border-[var(--border)]">
+            <img src="/CAKRAWALA LOGOMARK 2A.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <p className="font-display font-bold text-sm" style={{ color: 'var(--foreground)' }}>CSAT Dashboard</p>
+          <p className="font-serif-accent font-bold text-sm tracking-tight" style={{ color: 'var(--foreground)' }}>CSAT DASHBOARD</p>
         </div>
         <div className="flex items-center gap-2">
-          <ThemeBtn size={15} />
-          <button onClick={() => setMenuOpen(o => !o)} className="w-8 h-8 flex items-center justify-center rounded-lg"
-            style={{ background: 'var(--border)', color: 'var(--muted)' }}>
-            {menuOpen ? <X size={16} /> : <Menu size={16} />}
+          <ThemeBtn />
+          <button onClick={() => setMenuOpen(o => !o)} className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors"
+            style={{ background: 'var(--brand-dim)', color: 'var(--brand)' }}>
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
       </div>
@@ -162,11 +167,11 @@ export default function Layout() {
               <Upload size={14} />Ganti File
             </button>
             {/* Credits di drawer */}
-            <div className="pt-3 mt-2" style={{ borderTop: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-1.5 px-3">
-                <Heart size={10} style={{ color: 'var(--brand)' }} />
-                <p className="text-[10px]" style={{ color: 'var(--muted-2)' }}>
-                  Adzril Adzim Hendrynov · 2026
+            <div className="pt-4 mt-2" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2 px-3">
+                <Heart size={10} fill="var(--brand)" className="text-[var(--brand)]" />
+                <p className="text-[10px] font-medium" style={{ color: 'var(--muted)' }}>
+                  Adzril Adzim · Cakrawala University
                 </p>
               </div>
             </div>
@@ -193,7 +198,20 @@ export default function Layout() {
       {/* ── Main ─────────────────────────────────────────────── */}
       <main className="flex-1 overflow-y-auto md:mt-0 mt-14 mb-14 md:mb-0"
         style={{ background: 'var(--bg-base)' }}>
-        <Outlet />
+        
+        {/* Desktop Header area */}
+        <header className="hidden md:flex items-center justify-between px-8 py-4 sticky top-0 z-20 glass"
+          style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-2">
+             <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Dataset:</span>
+             <span className="text-[11px] font-bold text-[var(--brand)]">{fileName || 'No Data'}</span>
+          </div>
+          <ThemeBtn />
+        </header>
+
+        <div className="max-w-[1600px] mx-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

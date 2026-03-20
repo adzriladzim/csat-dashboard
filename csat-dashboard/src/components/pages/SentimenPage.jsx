@@ -79,9 +79,11 @@ export default function SentimenPage() {
   return (
     <div className="p-6 space-y-6 animate-enter">
       <div>
-        <h1 className="font-display text-2xl font-bold text-white">Analisis Komentar</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          {allFeedbacks.length} komentar terkumpul dari {filtered.length} respon
+        <h1 className="font-serif-accent text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
+          Analisis <span style={{ color: 'var(--brand)' }}>Sentimen & Komentar</span>
+        </h1>
+        <p className="text-sm mt-1.5 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
+          Mengekstrak wawasan dari {allFeedbacks.length} masukan mahasiswa · Universitas Cakrawala
         </p>
       </div>
 
@@ -90,107 +92,114 @@ export default function SentimenPage() {
       {/* Sentiment summary */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { key: 'positive', label: 'Positif',  icon: TrendingUp,   color: '#34d399', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-          { key: 'neutral',  label: 'Netral',   icon: Minus,         color: '#94a3b8', bg: 'bg-white/5 border-white/10' },
-          { key: 'negative', label: 'Negatif',  icon: TrendingDown,  color: '#f87171', bg: 'bg-red-500/10 border-red-500/20' },
+          { key: 'positive', label: 'Positif',  icon: TrendingUp,   color: '#34d399', bg: 'bg-emerald-500/5 border-emerald-500/10' },
+          { key: 'neutral',  label: 'Netral',   icon: Minus,         color: 'var(--muted)', bg: 'bg-u-navy border-[var(--brand-border)]' },
+          { key: 'negative', label: 'Negatif',  icon: TrendingDown,  color: '#f87171', bg: 'bg-red-500/5 border-red-500/10' },
         ].map(({ key, label, icon: Icon, color, bg }) => (
-          <div key={key} className={clsx('card p-5 border', bg)}>
+          <div key={key} className={clsx('card p-6 border', bg)}>
             <div className="flex items-center justify-between">
-              <Icon size={18} style={{ color }} />
-              <span className="text-xs text-slate-500">
-                {counts.total ? Math.round((counts[key] / counts.total) * 100) : 0}%
+              <Icon size={20} style={{ color }} />
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                {counts.total ? Math.round((counts[key] / counts.total) * 100) : 0}% Distribusi
               </span>
             </div>
-            <p className="font-display text-3xl font-bold mt-3" style={{ color }}>{counts[key]}</p>
-            <p className="text-sm text-slate-400 mt-1">Komentar {label}</p>
+            <p className="font-serif-accent text-4xl font-extrabold mt-4" style={{ color }}>{counts[key]}</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider mt-1 opacity-70">Sentimen {label}</p>
           </div>
         ))}
       </div>
 
       {/* Word clouds */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <WordCloudCard title="💬 Kata Kunci Feedback" words={feedbackWords} color="#5a72f5" />
-        <WordCloudCard title="📚 Topik Belum Dipahami" words={topicWords} color="#f59e0b" />
+        <WordCloudCard title="💬 Kata Kunci Unggulan" words={feedbackWords} color="var(--brand)" />
+        <WordCloudCard title="📚 Evaluasi Materi" words={topicWords} color="#fbbf24" />
       </div>
 
       {/* Per-dosen sentiment */}
-      <div className="card p-5">
-        <h2 className="section-title mb-4">Sentimen per Dosen</h2>
-        <div className="space-y-3">
+      <div className="card p-6">
+        <h2 className="section-title mb-6">Distribusi Sentimen per Pengajar</h2>
+        <div className="space-y-4">
           {dosenSentiment.map(({ dosen, positive, neutral, negative, total, positiveRate }) => (
-            <div key={dosen} className="flex items-center gap-4">
-              <p className="text-sm text-slate-300 w-48 truncate flex-shrink-0">{dosen}</p>
-              <div className="flex-1 h-2 rounded-full overflow-hidden bg-white/5 flex">
-                <div className="h-full bg-emerald-500" style={{ width: `${total ? (positive/total)*100 : 0}%` }} />
-                <div className="h-full bg-slate-500"   style={{ width: `${total ? (neutral/total)*100 : 0}%` }} />
-                <div className="h-full bg-red-500"     style={{ width: `${total ? (negative/total)*100 : 0}%` }} />
+            <div key={dosen} className="flex items-center gap-5">
+              <p className="text-sm font-bold w-56 truncate flex-shrink-0" style={{ color: 'var(--foreground)' }}>{dosen}</p>
+              <div className="flex-1 h-3 rounded-full overflow-hidden bg-white/5 flex shadow-inner border border-[var(--border)]">
+                <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" style={{ width: `${total ? (positive/total)*100 : 0}%` }} />
+                <div className="h-full bg-slate-400"   style={{ width: `${total ? (neutral/total)*100 : 0}%` }} />
+                <div className="h-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]"     style={{ width: `${total ? (negative/total)*100 : 0}%` }} />
               </div>
-              <span className="text-xs font-mono text-emerald-400 w-10 text-right">{positiveRate}%</span>
-              <span className="text-xs text-slate-500 w-16 text-right">{total} komen</span>
+              <div className="flex items-baseline gap-2 w-28 justify-end flex-shrink-0">
+                <span className="text-xs font-mono font-bold text-emerald-400">{positiveRate}%</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">{total} Respon</span>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Comments table */}
-      <div className="card p-5">
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <h2 className="section-title flex-1">Tabel Komentar Lengkap</h2>
-
-          {/* Sentiment filter tabs */}
-          <div className="flex gap-1 bg-white/5 rounded-xl p-1">
-            {SENTIMEN_FILTER.map(s => (
-              <button
-                key={s}
-                onClick={() => setSentimenFilter(s)}
-                className={clsx(
-                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  sentimenFilter === s
-                    ? 'bg-brand-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
-                )}
-              >
-                {s === 'all' ? 'Semua' : s === 'positive' ? '😊 Positif' : s === 'negative' ? '😟 Negatif' : '😐 Netral'}
-              </button>
-            ))}
+      <div className="card p-6">
+        <div className="flex flex-wrap items-center gap-5 mb-6">
+          <div className="flex-1 min-w-[200px]">
+            <h2 className="section-title">Log Masukan Mahasiswa</h2>
+            <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest mt-1">Total {shownFeedbacks.length} Masukan</p>
           </div>
 
-          {/* Search */}
-          <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Cari komentar..."
-              value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-              className="input pl-8 text-xs py-2 w-44"
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Sentiment filter tabs */}
+            <div className="flex gap-1 bg-u-navy border border-[var(--brand-border)] rounded-xl p-1">
+              {SENTIMEN_FILTER.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSentimenFilter(s)}
+                  className={clsx(
+                    'px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all',
+                    sentimenFilter === s
+                      ? 'bg-[var(--brand)] text-[var(--u-navy)] shadow-sm'
+                      : 'text-[var(--muted)] hover:text-white'
+                  )}
+                >
+                  {s === 'all' ? 'Semua' : s === 'positive' ? 'Positif' : s === 'negative' ? 'Negatif' : 'Netral'}
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Cari kata kunci..."
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                className="input pl-9 text-xs py-2.5 w-56 border-[var(--border)] focus:border-[var(--brand)] transition-colors"
+                style={{ background: 'var(--bg-input)' }}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
           {shownFeedbacks.length === 0 && (
-            <p className="text-slate-500 text-sm text-center py-8">Tidak ada komentar yang sesuai filter</p>
+            <p className="col-span-full text-slate-500 text-sm text-center py-12 font-medium">Tidak ditemukan komentar yang sesuai dengan filter pencarian.</p>
           )}
           {shownFeedbacks.map((f, i) => (
-            <div key={i} className="p-3.5 rounded-xl bg-white/3 border border-white/5 flex gap-3">
+            <div key={i} className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-[var(--brand-border)] transition-all flex gap-4 group">
               <div
-                className="w-1.5 flex-shrink-0 rounded-full self-stretch"
+                className="w-1.5 flex-shrink-0 rounded-full self-stretch shadow-sm"
                 style={{ backgroundColor: sentimentColor(f.sentiment) }}
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-medium text-slate-300">{f.dosen}</span>
-                  <span className="text-xs text-slate-600">·</span>
-                  <span className="text-xs text-slate-500">{f.mataKuliah}</span>
-                  {f.pertemuan && <span className="text-xs text-slate-600">P{f.pertemuan}</span>}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wide opacity-80" style={{ color: 'var(--foreground)' }}>{f.dosen}</span>
+                  <span className="w-1 h-1 rounded-full bg-slate-700" />
+                  <span className="text-[10px] font-bold text-[var(--brand)] uppercase tracking-tight">{f.pertemuan ? `P${f.pertemuan}` : 'Umum'}</span>
                 </div>
-                <p className="text-sm text-slate-300 leading-relaxed">{f.text}</p>
+                <p className="text-sm text-slate-300 leading-relaxed font-medium italic opacity-90">"{f.text}"</p>
+                <p className="text-[10px] font-bold mt-3 opacity-40 uppercase tracking-widest">{f.mataKuliah}</p>
               </div>
             </div>
           ))}
         </div>
-        <p className="text-xs text-slate-600 mt-3">Menampilkan {shownFeedbacks.length} dari {allFeedbacks.length} komentar</p>
       </div>
     </div>
   )

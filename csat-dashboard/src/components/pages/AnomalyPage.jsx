@@ -19,99 +19,136 @@ export default function PerformancePage() {
   const mean        = allScores.length ? +(allScores.reduce((a,b)=>a+b,0)/allScores.length).toFixed(2) : 0
 
   return (
-    <div className="p-4 md:p-6 space-y-5 animate-enter">
+    <div className="p-4 md:p-6 space-y-6 animate-enter">
       <div>
-        <h1 className="font-display text-xl md:text-2xl font-bold text-foreground">Performa & Perhatian Dosen</h1>
-        <p className="text-muted text-sm mt-1">
-          Identifikasi dosen dengan performa luar biasa dan dosen yang membutuhkan dukungan lebih
+        <h1 className="font-serif-accent text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
+          Peta Performa <span style={{ color: 'var(--brand)' }}>& Anomali</span>
+        </h1>
+        <p className="text-sm mt-1.5 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
+          Identifikasi strategis untuk pengembangan kualitas akademik · Universitas Cakrawala
         </p>
       </div>
 
       <FilterBar />
 
       {/* Penjelasan fitur */}
-      <div className="card p-4 flex items-start gap-3 border-brand-500/20 bg-brand-500/5">
-        <Info size={15} className="text-brand-400 flex-shrink-0 mt-0.5" />
+      <div className="card p-5 flex items-start gap-4 border-[var(--brand-border)] bg-[var(--brand-dim)] shadow-inner">
+        <div className="w-10 h-10 rounded-full bg-[var(--u-navy)] border border-[var(--brand-border)] flex items-center justify-center flex-shrink-0">
+          <Info size={18} className="text-[var(--brand)]" />
+        </div>
         <div>
-          <p className="text-sm font-medium text-foreground">Cara membaca halaman ini</p>
-          <p className="text-xs text-muted mt-1 leading-relaxed">
-            Sistem membandingkan skor CSAT setiap dosen dengan rata-rata keseluruhan (<span className="font-mono font-bold text-foreground">{fmt({toFixed:()=>mean.toFixed(2)})}{mean.toFixed(2)}</span>).
-            Dosen yang skornya <span className="text-emerald-400 font-medium">jauh di atas rata-rata</span> ditandai sebagai "Performa Luar Biasa",
-            sedangkan yang <span className="text-red-400 font-medium">jauh di bawah rata-rata</span> mendapat label "Perlu Dukungan" agar bisa mendapat bantuan dan perhatian lebih.
-            Dosen dengan skor normal tidak ditampilkan di sini.
+          <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Metodologi Analisis Komparatif</p>
+          <p className="text-xs mt-1.5 leading-relaxed opacity-80" style={{ color: 'var(--muted)' }}>
+            Sistem membandingkan skor CSAT setiap dosen dengan rata-rata institusi (<span className="font-mono font-bold text-[var(--brand)]">{mean.toFixed(2)}</span>).
+            Dosen dengan deviasi <span className="text-emerald-400 font-bold">positif signifikan</span> ditandai sebagai "Performa Unggulan",
+            sebagai kandidat mentor. Sementara deviasi <span className="text-red-400 font-bold">negatif signifikan</span> memerlukan "Dukungan Struktural"
+            untuk peningkatan kualitas pengajaran di masa mendatang.
           </p>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="card p-4">
-          <Users size={15} className="text-brand-400 mb-2" />
-          <p className="font-display text-2xl font-bold text-foreground">{dosenList.length}</p>
-          <p className="text-xs text-muted mt-1">Total Dosen Dianalisis</p>
+      <div className="grid grid-cols-3 gap-5 stagger">
+        <div className="card p-6 border-[var(--border)]">
+          <div className="flex items-center justify-between mb-4">
+             <Users size={20} className="text-[var(--brand)] opacity-60" />
+             <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Sample Size</span>
+          </div>
+          <p className="font-serif-accent text-4xl font-extrabold" style={{ color: 'var(--foreground)' }}>{dosenList.length}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider mt-1 opacity-50">Total Pengajar</p>
         </div>
-        <div className="card p-4 border-emerald-500/20 bg-emerald-500/5">
-          <Award size={15} className="text-emerald-400 mb-2" />
-          <p className="font-display text-2xl font-bold text-emerald-400">{outstanding.length}</p>
-          <p className="text-xs text-muted mt-1">Performa Luar Biasa</p>
+        <div className="card p-6 border-emerald-500/20 bg-emerald-500/5">
+          <div className="flex items-center justify-between mb-4">
+             <Award size={20} className="text-emerald-400 opacity-80" />
+             <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/60 font-mono">Top Dev.</span>
+          </div>
+          <p className="font-serif-accent text-4xl font-extrabold text-emerald-400">{outstanding.length}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider mt-1 text-emerald-500/70">Performa Unggulan</p>
         </div>
-        <div className="card p-4 border-red-500/20 bg-red-500/5">
-          <AlertCircle size={15} className="text-red-400 mb-2" />
-          <p className="font-display text-2xl font-bold text-red-400">{concern.length}</p>
-          <p className="text-xs text-muted mt-1">Perlu Dukungan</p>
+        <div className="card p-6 border-red-500/20 bg-red-500/5">
+          <div className="flex items-center justify-between mb-4">
+             <AlertCircle size={20} className="text-red-400 opacity-80" />
+             <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/60 font-mono">Crit. Dev.</span>
+          </div>
+          <p className="font-serif-accent text-4xl font-extrabold text-red-400">{concern.length}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider mt-1 text-red-500/70">Dukungan Prioritas</p>
         </div>
       </div>
 
       {/* Visualisasi distribusi semua dosen */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="section-title">Distribusi Skor Semua Dosen</h2>
-          <p className="text-xs text-muted">Rata-rata: <span className="font-mono text-foreground">{mean.toFixed(2)}</span></p>
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+             <div className="w-8 h-8 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center">
+                <Star size={16} className="text-[var(--brand)]" />
+             </div>
+             <h2 className="section-title">Spektrum Kinerja Institusional</h2>
+          </div>
+          <div className="px-3 py-1.5 rounded-lg bg-[var(--u-navy)] border border-[var(--brand-border)]">
+             <p className="text-[10px] font-bold uppercase tracking-widest">Rerata: <span className="text-[var(--brand)] font-mono text-xs">{mean.toFixed(2)}</span></p>
+          </div>
         </div>
-        <p className="text-xs text-muted mb-4">Batang hijau = performa luar biasa · Batang merah = perlu dukungan · Biru = normal</p>
-        <div className="space-y-1.5">
+        
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
           {dosenList.map(d => {
             const anom = anomalies.find(a => a.namaDosen === d.namaDosen)
             const isOut = anom?.type === 'outstanding'
             const isCon = anom?.type === 'concern'
             const pct   = d.csatGabungan ? (d.csatGabungan / 5) * 100 : 0
             return (
-              <div key={d.namaDosen} className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity group"
+              <div key={d.namaDosen} className="flex items-center gap-4 py-1.5 group cursor-pointer"
                 onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}>
-                <p className="text-xs text-muted w-40 truncate flex-shrink-0 group-hover:text-foreground transition-colors">{d.namaDosen}</p>
-                <div className="flex-1 h-2 rounded-full bg-surface overflow-hidden">
-                  <div className="h-full rounded-full transition-all"
-                    style={{ width: `${pct}%`, backgroundColor: isOut ? '#34d399' : isCon ? '#f87171' : '#5a72f5' }} />
+                <p className="text-xs font-bold w-48 truncate flex-shrink-0 group-hover:text-[var(--brand)] transition-colors opacity-80" style={{ color: 'var(--foreground)' }}>{d.namaDosen}</p>
+                <div className="flex-1 h-2 rounded-full bg-[var(--bg-input)] overflow-hidden shadow-inner border border-[var(--border)]">
+                  <div className="h-full rounded-full transition-all duration-700"
+                    style={{ 
+                      width: `${pct}%`, 
+                      backgroundColor: isOut ? '#10b981' : isCon ? '#ef4444' : 'var(--brand-border)',
+                      boxShadow: isOut ? '0 0 10px rgba(16,185,129,0.3)' : isCon ? '0 0 10px rgba(239,68,68,0.3)' : 'none'
+                    }} />
                 </div>
-                <span className="text-xs font-mono w-10 text-right flex-shrink-0" style={{color: scoreColor(d.csatGabungan)}}>{fmt(d.csatGabungan)}</span>
-                {isOut && <TrendingUp size={12} className="text-emerald-400 flex-shrink-0" />}
-                {isCon && <TrendingDown size={12} className="text-red-400 flex-shrink-0" />}
-                {!anom  && <div className="w-3 flex-shrink-0" />}
+                <div className="w-16 flex items-center justify-end gap-2 flex-shrink-0">
+                  <span className="text-xs font-mono font-bold" style={{color: scoreColor(d.csatGabungan)}}>{fmt(d.csatGabungan)}</span>
+                  {isOut && <TrendingUp size={12} className="text-emerald-400" />}
+                  {isCon && <TrendingDown size={12} className="text-red-400" />}
+                </div>
               </div>
             )
           })}
         </div>
-        <div className="mt-3 flex items-center gap-2 pt-3 border-t border-border">
-          <div className="w-4 h-0.5 bg-brand-400/60" />
-          <p className="text-xs text-muted">Garis referensi rata-rata: {mean.toFixed(2)}</p>
+        <div className="mt-6 flex items-center justify-center gap-6 pt-4 border-t border-[var(--border)]">
+           <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Unggulan</span>
+           </div>
+           <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[var(--brand-border)]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Standar</span>
+           </div>
+           <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Dukungan</span>
+           </div>
         </div>
       </div>
 
       {/* Dosen perlu dukungan */}
       {concern.length > 0 && (
-        <PerformanceCard title="🔴 Dosen yang Perlu Dukungan" subtitle="Skor CSAT secara signifikan di bawah rata-rata. Disarankan untuk diberikan pendampingan, pelatihan, atau perhatian lebih dari pihak akademik." items={concern} type="concern" navigate={navigate} />
+        <PerformanceCard title="🔴 Fokus Peningkatan Kualitas" subtitle="Dosen dengan deviasi skor di bawah rata-rata. Memerlukan evaluasi kurikulum dan pendampingan pedagogis." items={concern} type="concern" navigate={navigate} />
       )}
 
       {/* Dosen luar biasa */}
       {outstanding.length > 0 && (
-        <PerformanceCard title="🌟 Dosen dengan Performa Luar Biasa" subtitle="Skor CSAT secara signifikan di atas rata-rata. Dosen-dosen ini bisa menjadi role model atau mentor bagi dosen lainnya." items={outstanding} type="outstanding" navigate={navigate} />
+        <PerformanceCard title="🌟 Teladan Akademik" subtitle="Dosen dengan performa melampaui standar institusional. Diusulkan sebagai mentor utama dalam pengembangan SDM." items={outstanding} type="outstanding" navigate={navigate} />
       )}
 
       {anomalies.length === 0 && (
-        <div className="card p-10 text-center">
-          <Star size={28} className="text-muted mx-auto mb-3" />
-          <p className="text-muted">Semua dosen memiliki skor dalam rentang normal.</p>
-          <p className="text-muted text-sm mt-1">Tidak ada dosen yang perlu perhatian khusus saat ini.</p>
+        <div className="card p-12 text-center border-dashed border-2 border-[var(--border)]">
+          <div className="w-16 h-16 rounded-full bg-[var(--brand-dim)] flex items-center justify-center mx-auto mb-4">
+             <Star size={32} className="text-[var(--brand)] opacity-60" />
+          </div>
+          <p className="text-lg font-serif-accent font-bold" style={{ color: 'var(--foreground)' }}>Harmonisasi Kinerja Tercapai</p>
+          <p className="text-sm mt-1 opacity-60 font-medium" style={{ color: 'var(--muted)' }}>Seluruh staf pengajar berada dalam parameter kinerja yang ideal saat ini.</p>
         </div>
       )}
     </div>

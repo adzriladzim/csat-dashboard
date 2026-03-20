@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, ChevronUp, ChevronDown, Download, Trophy, FileDown } from 'lucide-react'
+import { ChevronRight, ChevronUp, ChevronDown, Download, Trophy, FileDown, AlertCircle } from 'lucide-react'
 import useStore from '@/lib/store'
 import { aggregateByDosen, fmt, scoreColor, scoreBadgeClass } from '@/utils/analytics'
 import { exportDosenExcel, exportDosenReport } from '@/utils/exportUtils'
@@ -64,9 +64,11 @@ export default function RankingPage() {
     <div className="p-6 space-y-6 animate-enter">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-white">Ranking Dosen</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            {sorted.length} dosen · diurutkan berdasarkan {SORT_FIELDS[sortKey]}
+          <h1 className="font-serif-accent text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
+            Ranking <span style={{ color: 'var(--brand)' }}>Dosen</span>
+          </h1>
+          <p className="text-sm mt-1.5 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
+            {sorted.length} Dosen Terdata · Universitas Cakrawala
           </p>
         </div>
         <button onClick={() => exportDosenExcel(dosenList)} className="btn-secondary">
@@ -79,101 +81,99 @@ export default function RankingPage() {
 
       {/* Top & Bottom charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Trophy size={16} className="text-amber-400" />
-            <h2 className="section-title">Top 5 Tertinggi</h2>
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <Trophy size={20} className="text-amber-400" />
+            </div>
+            <h2 className="section-title">Apresiasi: Top 5 Skor Tertinggi</h2>
           </div>
           <RankingBarChart data={top5} height={220} />
         </div>
-        <div className="card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Trophy size={16} className="text-slate-500" />
-            <h2 className="section-title">Bottom 5 Terendah</h2>
+        <div className="card p-6 border-amber-500/20">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <AlertCircle size={20} className="text-amber-500" />
+            </div>
+            <h2 className="section-title">Perhatian: Bottom 5 Skor Terendah</h2>
           </div>
           <RankingBarChart data={bot5} height={220} />
         </div>
       </div>
 
       {/* Full table */}
-      <div className="card p-5">
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="section-title">Tabel Lengkap</h2>
-          <span className="badge bg-brand-500/15 text-brand-400">{sorted.length} dosen</span>
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-2">
+          <h2 className="section-title">Tabel Peringkat Lengkap</h2>
+          <span className="badge bg-u-navy text-brand border border-[var(--brand-border)]">{sorted.length} Dosen</span>
         </div>
-        <p className="text-xs text-slate-500 mb-4">
-          Klik header untuk mengurutkan · Klik nama dosen untuk detail · Klik PDF untuk ekspor laporan
+        <p className="text-[11px] font-medium opacity-60 mb-6" style={{ color: 'var(--muted)' }}>
+          Urutkan berdasarkan metrik yang diinginkan dengan menekan judul kolom tabel di bawah.
         </p>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-6 px-6">
           <table className="w-full data-table">
             <thead>
               <tr>
-                <th className="w-10">#</th>
-                <th>Nama Dosen</th>
-                <th>Program Studi</th>
+                <th className="w-12 text-center">Rank</th>
+                <th>Dosen & Program Studi</th>
                 {Object.entries(SORT_FIELDS).map(([key, label]) => (
                   <th key={key}>
                     <button
                       onClick={() => toggleSort(key)}
-                      className="flex items-center gap-1 hover:text-slate-200 transition-colors"
+                      className="flex items-center gap-1.5 hover:text-[var(--brand)] transition-colors group"
                     >
                       {label} <SortIcon field={key} />
                     </button>
                   </th>
                 ))}
-                <th>Aksi</th>
+                <th className="text-right">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((d, i) => (
                 <tr key={d.namaDosen}>
-                  <td>
-                    <span className="text-xs font-mono text-slate-500">{i + 1}</span>
-                  </td>
+                  <td className="font-serif-accent font-bold text-[var(--brand)] text-center">{i + 1}</td>
                   <td
-                    className="cursor-pointer"
+                    className="cursor-pointer group"
                     onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
                   >
-                    <p className="font-medium text-slate-200 hover:text-brand-300 transition-colors">
+                    <p className="font-bold text-base group-hover:text-[var(--brand)] transition-colors leading-tight" style={{ color: 'var(--foreground)' }}>
                       {d.namaDosen}
                     </p>
-                    <p className="text-xs text-slate-500 truncate max-w-[240px]">{d.mataKuliah}</p>
-                  </td>
-                  <td className="text-xs text-slate-400 max-w-[160px]">
-                    <p className="truncate">{d.prodi || '–'}</p>
+                    <p className="text-[11px] font-medium mt-1 opacity-60 uppercase tracking-wide truncate max-w-[240px]" style={{ color: 'var(--muted)' }}>
+                      {d.prodi || d.mataKuliah || 'Staf Pengajar'}
+                    </p>
                   </td>
                   <td>
-                    <span className={clsx('badge', scoreBadgeClass(d.csatGabungan))}>
+                    <span className={clsx('badge px-3 py-1.5', scoreBadgeClass(d.csatGabungan))}>
                       {fmt(d.csatGabungan)}
                     </span>
                   </td>
-                  <td className="font-mono text-sm" style={{ color: scoreColor(d.skorPerforma) }}>{fmt(d.skorPerforma)}</td>
-                  <td className="font-mono text-sm" style={{ color: scoreColor(d.skorPemahaman) }}>{fmt(d.skorPemahaman)}</td>
-                  <td className="font-mono text-sm" style={{ color: scoreColor(d.skorInteraktif) }}>{fmt(d.skorInteraktif)}</td>
-                  <td className="text-slate-400 text-sm">{d.totalRespon}</td>
+                  <td className="font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPerforma) }}>{fmt(d.skorPerforma)}</td>
+                  <td className="font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPemahaman) }}>{fmt(d.skorPemahaman)}</td>
+                  <td className="font-mono text-sm font-bold" style={{ color: scoreColor(d.skorInteraktif) }}>{fmt(d.skorInteraktif)}</td>
+                  <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{d.totalRespon}</td>
                   <td>
-                    <div className="flex items-center gap-2">
-                      {/* PDF export button */}
+                    <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={(e) => handleExportPDF(e, d)}
                         disabled={exportingId === d.namaDosen}
                         className={clsx(
-                          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all',
                           exportingId === d.namaDosen
-                            ? 'bg-white/5 text-slate-500 cursor-wait'
-                            : 'bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20'
+                            ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
+                            : 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border border-red-500/20'
                         )}
                       >
                         <FileDown size={12} />
                         {exportingId === d.namaDosen ? '...' : 'PDF'}
                       </button>
-                      {/* Detail button */}
                       <button
                         onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
-                        className="p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--brand-dim)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-[var(--u-navy)] transition-all"
                       >
-                        <ChevronRight size={14} />
+                        <ChevronRight size={16} />
                       </button>
                     </div>
                   </td>
