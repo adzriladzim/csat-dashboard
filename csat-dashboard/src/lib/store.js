@@ -17,7 +17,8 @@ const useStore = create((set, get) => ({
       .map(r => parseRow(r, headers))
       .filter(r => 
         r.nama_dosen && r.nama_dosen.trim() !== '' && 
-        r.nama_dosen.toLowerCase() !== 'nama dosen'
+        r.nama_dosen.toLowerCase() !== 'nama dosen' &&
+        r.csat_gabungan !== null 
       )
 
     // 2. Simplified Cleaning (Skip Deduplication as it lowers count too much)
