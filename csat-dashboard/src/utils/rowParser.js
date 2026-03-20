@@ -116,9 +116,9 @@ export function isValidFeedback(text) {
 
 // ── Main parser ────────────────────────────────────────────────────────────
 export function parseRow(row, headers) {
-  const pemahaman  = parseScore(getVal(row, headers, 'tingkat pemahaman kamu'))
-  const interaktif = parseScore(getVal(row, headers, 'Interaktif yang dimaksud'))
-  const performa   = parseScore(getVal(row, headers, 'tingkat kepuasan kamu terhadap performa'))
+  const pemahaman  = parseScore(getVal(row, headers, 'pemahaman') || getVal(row, headers, 'materi'))
+  const interaktif = parseScore(getVal(row, headers, 'interaktif'))
+  const performa   = parseScore(getVal(row, headers, 'performa') || getVal(row, headers, 'kepuasan'))
   const tsRaw = getVal(row, headers, 'Timestamp')
   let tsISO = null
   if (tsRaw) { const d = new Date(tsRaw); if (!isNaN(d)) tsISO = d.toISOString() }

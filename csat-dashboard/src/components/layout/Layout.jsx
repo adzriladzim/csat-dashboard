@@ -63,8 +63,13 @@ export default function Layout() {
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
 
       {/* ── DESKTOP Sidebar ─────────────────────────────────── */}
-      <aside className="hidden md:flex w-64 flex-shrink-0 flex-col"
-        style={{ background: 'var(--bg-surface)', borderRight: '1.5px solid var(--border)', width: '260px' }}>
+      <aside className="hidden md:flex w-64 flex-shrink-0 flex-col z-30"
+        style={{ 
+          background: 'var(--bg-surface)', 
+          borderRight: '1px solid var(--border)', 
+          width: '260px',
+          boxShadow: 'var(--shadow-sidebar)'
+        }}>
 
         <div className="px-5 py-6 flex flex-col gap-4" style={{ borderBottom: '1.5px solid var(--border)' }}>
           <div className="flex items-center gap-3">
@@ -128,7 +133,11 @@ export default function Layout() {
 
       {/* ── MOBILE Top Bar ──────────────────────────────────── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 px-4 py-3 flex items-center justify-between glass"
-        style={{ background: 'var(--bg-surface)', borderBottom: '1.5px solid var(--border)' }}>
+        style={{ 
+          background: 'var(--bg-surface)', 
+          borderBottom: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg overflow-hidden bg-white p-1 shadow-sm border border-[var(--border)]">
             <img src="/CAKRAWALA LOGOMARK 2A.png" alt="Logo" className="w-full h-full object-contain" />
@@ -181,7 +190,11 @@ export default function Layout() {
 
       {/* ── MOBILE Bottom Nav ────────────────────────────────── */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40"
-        style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
+        style={{ 
+          background: 'var(--bg-surface)', 
+          borderTop: '1px solid var(--border)',
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.05)'
+        }}>
         <div className="flex">
           {NAV.map(({ to, icon: Icon, labelShort }) => (
             <NavLink key={to} to={to} end={to === '/'}

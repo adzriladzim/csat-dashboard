@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Star, BookOpen, Activity, Download, TrendingUp,
-  ChevronRight, ChevronLeft, FileDown, Award, AlertTriangle, AlertCircle
+  ChevronRight, ChevronLeft, FileDown, Award, AlertTriangle, AlertCircle,
+  CheckCircle2
 } from 'lucide-react'
 import useStore from '@/lib/store'
 import { aggregateByDosen, avg, fmt, scoreColor, scoreBadgeClass, scoreLabel, detectAnomalies } from '@/utils/analytics'
@@ -16,7 +17,7 @@ import clsx from 'clsx'
 const PAGE_SIZE = 15
 
 export default function DashboardPage() {
-  const { getFiltered, fileName } = useStore()
+  const { getFiltered, fileName, mappingAccuracy, rawCount, removedCount } = useStore()
   const navigate   = useNavigate()
   const [page, setPage]           = useState(1)
   const [exportingAll, setExportingAll] = useState(false)
@@ -60,9 +61,20 @@ export default function DashboardPage() {
           <h1 className="font-serif-accent text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
             Dashboard <span style={{ color: 'var(--brand)' }}>Overview</span>
           </h1>
-          <p className="text-sm mt-1.5 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
-            {filtered.length.toLocaleString('id-ID')} Responden · {dosenList.length} Dosen · {fileName}
-          </p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <p className="text-sm font-medium opacity-60" style={{ color: 'var(--muted)' }}>
+              {filtered.length.toLocaleString('id-ID')} Responden Valid
+            </p>
+            {removedCount > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold uppercase">
+                {removedCount} Data Junk/Duplikat Terfilter
+              </span>
+            )}
+            <span className="text-sm opacity-30" style={{ color: 'var(--muted)' }}>·</span>
+            <p className="text-sm font-medium opacity-60" style={{ color: 'var(--muted)' }}>
+              {dosenList.length} Dosen · {fileName}
+            </p>
+          </div>
         </div>
         <div className="flex gap-2.5 flex-shrink-0">
           <button onClick={() => exportDosenExcel(dosenList)} className="btn-secondary">
@@ -85,9 +97,10 @@ export default function DashboardPage() {
         <StatCard label="Interaktivitas"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   color={scoreColor(globalInteraktif)} />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Total Responden"    value={filtered.length.toLocaleString('id-ID')} icon={Users}         color="var(--brand)" size="sm" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Responden Valid"    value={filtered.length.toLocaleString('id-ID')} icon={Users}         color="var(--brand)" size="sm" />
         <StatCard label="Jumlah Dosen"       value={dosenList.length}                        icon={Award}         color="#34d399" size="sm" />
+        <StatCard label="Mapping Data"       value={`${mappingAccuracy.toFixed(1)}%`} icon={CheckCircle2} color="#10b981" size="sm" />
         <StatCard label="Perhatian"            value={anomalies.filter(a=>a.type==='concern').length} icon={AlertCircle} color="#f59e0b" size="sm" />
       </div>
 

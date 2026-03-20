@@ -7,10 +7,10 @@ export function avg(arr) {
 }
 export function scoreColor(s) {
   if (!s) return 'var(--muted-2)'
-  if (s >= 4.5) return 'var(--color-excellent)'
-  if (s >= 4.0) return 'var(--color-good)'
-  if (s >= 3.0) return 'var(--color-avg)'
-  return 'var(--color-poor)'
+  if (s >= 4.5) return 'var(--positive)'
+  if (s >= 4.0) return 'var(--info)'
+  if (s >= 3.0) return 'var(--warning)'
+  return 'var(--negative)'
 }
 export function scoreColorHex(s) {
   if (!s) return '#64748b'
