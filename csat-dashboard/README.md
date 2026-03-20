@@ -3,7 +3,7 @@
 **Client-Side Analytics · React + Vite + Tailwind · No-DB Architecture**
 
 Dashboard analisis kinerja dosen berbasis feedback mahasiswa yang bekerja sepenuhnya di sisi client.  
-Data diimpor melalui file XLSX/CSV hasil export Google Forms, diproses secara instan di browser, dan divisualisasikan tanpa memerlukan database atau server backend. bb
+Data diimpor melalui file XLSX/CSV hasil export Google Forms, diproses secara instan di browser, dan divisualisasikan tanpa memerlukan database atau server backend.
 
 ---
 
