@@ -19,7 +19,7 @@ function parseScore(val) {
 }
 function computeCsat(a, b, c) {
   const vals = [a, b, c].filter(v => v != null)
-  return vals.length ? Math.round(vals.reduce((x,y)=>x+y,0)/vals.length*100)/100 : null
+  return vals.length ? vals.reduce((x,y)=>x+y,0)/vals.length : null
 }
 function cleanText(val) {
   if (!val) return null
@@ -173,5 +173,7 @@ export function parseRow(row, headers) {
     feedback_dosen:      (fbClean && isValidFeedback(fbClean)) ? fbClean : null,
     faktor_performa:     fp1,
     faktor_interaktif:   fp2,
+    moda:                cleanText(getExact(row, headers, 'Moda')) || cleanText(getVal(row, headers, 'Delivery')) || null,
+    sesi:                cleanText(getExact(row, headers, 'Sesi')) || cleanText(getExact(row, headers, 'Shift')) || cleanText(getExact(row, headers, 'Waktu')) || null,
   }
 }

@@ -10,6 +10,8 @@ import AnomalyPage from '@/components/pages/AnomalyPage'
 import StudentAnalysisPage from './components/pages/StudentAnalysisPage'
 import FactorAnalysisPage from './components/pages/FactorAnalysisPage'
 import CorrelationPage from './components/pages/CorrelationPage'
+import StrategicAnalysisPage from './components/pages/StrategicAnalysisPage'
+import WeeklyAnalysisPage from './components/pages/WeeklyAnalysisPage'
 import PlaceholderPage from './components/pages/PlaceholderPage'
 
 export default function App() {
@@ -27,9 +29,9 @@ export default function App() {
         <Route path="/sentimen"           element={isLoaded ? <SentimenPage />         : <Navigate to="/upload" />} />
         <Route path="/anomali"            element={isLoaded ? <AnomalyPage />          : <Navigate to="/upload" />} />
         <Route path="/matriks-korelasi"   element={isLoaded ? <CorrelationPage />      : <Navigate to="/upload" />} />
+        <Route path="/analisis-strategis" element={isLoaded ? <StrategicAnalysisPage /> : <Navigate to="/upload" />} />
         
-        <Route path="/analisis-strategis" element={<PlaceholderPage title="Analisis Strategis" />} />
-        <Route path="/analisis-mingguan"  element={<PlaceholderPage title="Analisis Mingguan" />} />
+        <Route path="/analisis-mingguan"  element={isLoaded ? <WeeklyAnalysisPage /> : <Navigate to="/upload" />} />
         <Route path="/analisis-pertemuan" element={<PlaceholderPage title="Analisis per Pertemuan" />} />
         <Route path="/pembersihan"        element={<PlaceholderPage title="Masalah Mapping" />} />
         <Route path="*"                   element={<Navigate to="/" />} />

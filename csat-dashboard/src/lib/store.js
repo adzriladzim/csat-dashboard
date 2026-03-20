@@ -46,6 +46,8 @@ const useStore = create((set, get) => ({
       feedbackDosen:   r.feedback_dosen,
       faktorPerforma:  r.faktor_performa,
       faktorInteraktif: r.faktor_interaktif,
+      moda:            r.moda,
+      sesi:            r.sesi,
     }))
 
     const accuracy = rawTotal > 0 ? (parsed.length / rawTotal) * 100 : 0
