@@ -1,0 +1,24 @@
+NIM matches Nama Mahasiswa: 5 
+Nama Mahasiswa matches Nama Dosen: 0 
+Gmail and Short NIM: 17 
+Blank Pertemuan but has Score: 0 
+Score is 0 or > 5: 0 
+Duplicates (Ts+Email+Dosen): 0
+NIM contains letters: 13
+Non-numeric Pertemuan: 0
+NIM length 1: 14 
+NIM length 2: 1 
+NIM length 3: 23 
+NIM length 4: 3 
+NIM length 8: 4 
+NIM length 9: 12 
+NIM length 10: 110 
+NIM length 11: 7036 
+NIM length 12: 28 
+NIM length 13: 5 
+NIM length 14: 2 
+NIM length 15: 1 
+NIM length 16: 2 
+NIM length 19: 1 
+Empty Angkatan: 0 
+Empty Fakultas: 0 

@@ -1,0 +1,17 @@
+=== MATA KULIAH 1 COUNTS ===
+  69: psd1209 - text mining
+  60: sda2133 - database systems
+  58: sti2155 - visualization
+  58: ikr2131 - programming fundamentals (python)
+  27: sti2138 - programming for business
+  40: sda2141 - foundations of data science
+
+=== MATA KULIAH 2 COUNTS ===
+  57: ceb1105 - financial markets and fintech
+  52: ekp2154 - financial management
+  87: ceb1102 - introduction to economics
+  63: bdl2146 - consumer behavior
+  43: ekp2169 - portfolio theory and investment management
+  70: ceb1104 - introduction to accounting
+  41: ekp2170 - auditing ii
+  18: ekp2162 - algorithmic trading

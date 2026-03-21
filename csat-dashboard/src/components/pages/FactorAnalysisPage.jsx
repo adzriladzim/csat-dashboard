@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { fmt } from '@/utils/analytics'
 import useStore from '@/lib/store'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Text
@@ -57,8 +58,8 @@ export default function FactorAnalysisPage() {
     if (active && payload && payload.length) {
       return (
         <div className="bg-[var(--bg-dropdown)] border border-[var(--brand-border)] p-4 rounded-2xl shadow-2xl max-w-[calc(100vw-40px)] sm:max-w-[400px] glass">
-          <p className="text-xs font-bold text-white mb-2 leading-relaxed">{label}</p>
-          <p className="text-[var(--brand)] font-mono font-bold text-sm">{payload[0].value} Responden</p>
+          <p className="text-xs font-bold mb-2 leading-relaxed" style={{ color: 'var(--foreground)' }}>{label}</p>
+          <p className="text-[var(--brand)] font-mono font-bold text-sm">{fmt(payload[0].value)} Responden</p>
         </div>
       )
     }
@@ -74,7 +75,7 @@ export default function FactorAnalysisPage() {
           <div className="h-[350px] md:h-[450px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={performaFactors} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
                 <XAxis type="number" hide />
                 <YAxis 
                   dataKey="name" 
@@ -84,7 +85,7 @@ export default function FactorAnalysisPage() {
                 />
                 <Tooltip 
                   content={<CustomTooltip />} 
-                  cursor={{ fill: 'rgba(255,255,255,0.02)' }} 
+                  cursor={{ fill: 'var(--table-hover)' }} 
                 />
                 <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={isMobile ? 14 : 20} className="hover:opacity-80 transition-opacity cursor-pointer" />
               </BarChart>
@@ -98,7 +99,7 @@ export default function FactorAnalysisPage() {
           <div className="h-[350px] md:h-[450px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={interaktivitasFactors} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
                 <XAxis type="number" hide />
                 <YAxis 
                   dataKey="name" 
@@ -108,7 +109,7 @@ export default function FactorAnalysisPage() {
                 />
                 <Tooltip 
                   content={<CustomTooltip />} 
-                  cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                  cursor={{ fill: 'var(--table-hover)' }}
                 />
                 <Bar dataKey="value" fill="#10b981" radius={[0, 4, 4, 0]} barSize={isMobile ? 14 : 20} className="hover:opacity-80 transition-opacity cursor-pointer" />
               </BarChart>

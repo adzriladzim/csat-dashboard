@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import useStore from '@/lib/store'
+import { fmt as globalFmt } from '@/utils/analytics'
 import clsx from 'clsx'
 
 const PAGE_SIZE = 50
@@ -21,7 +22,7 @@ export default function StudentAnalysisPage() {
   const totalPages = Math.ceil(criticalFeedbacks.length / PAGE_SIZE)
   const paginated = criticalFeedbacks.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE)
 
-  const fmt = (v) => v != null ? Number(v).toFixed(2) : '-'
+  const fmt = globalFmt
 
   return (
     <div className="p-4 md:p-8 animate-enter">
@@ -38,7 +39,7 @@ export default function StudentAnalysisPage() {
         <div className="table-scroll-container no-scrollbar">
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead className="sticky-header">
-              <tr className="bg-white/5 border-b border-[var(--border)] text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+              <tr className="bg-[var(--bg-dropdown)] border-b border-[var(--border)] text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
                 <th className="px-6 py-4">Nama Mahasiswa</th>
                 <th className="px-6 py-4">Dosen</th>
                 <th className="px-6 py-4">Mata Kuliah</th>
@@ -58,7 +59,7 @@ export default function StudentAnalysisPage() {
                 </tr>
               ) : (
                 paginated.map((r, i) => (
-                  <tr key={i} className="hover:bg-white/5 transition-colors">
+                  <tr key={i} className="hover:bg-[var(--table-hover)] transition-colors">
                     <td className="px-6 py-4 text-sm font-bold text-[var(--foreground)]">{r.namaMahasiswa || 'Anonim'}</td>
                     <td className="px-6 py-4 text-[13px] text-[var(--muted)] max-w-[200px] truncate">{r.namaDosen}</td>
                     <td className="px-6 py-4 text-[11px] font-mono text-[var(--brand)]">{r.mataKuliah}</td>
@@ -66,12 +67,12 @@ export default function StudentAnalysisPage() {
                     <td className="px-6 py-4 text-sm font-mono font-bold" style={{ color: (r.skorPemahaman !== null && r.skorPemahaman <= 3) ? '#f87171' : 'inherit' }}>{fmt(r.skorPemahaman)}</td>
                     <td className="px-6 py-4 text-sm font-mono font-bold" style={{ color: (r.skorInteraktif !== null && r.skorInteraktif <= 3) ? '#f87171' : 'inherit' }}>{fmt(r.skorInteraktif)}</td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-[var(--foreground-2)] leading-relaxed max-w-[400px] bg-[var(--bg-base)]/50 p-3 rounded-lg border border-[var(--border)] min-w-[200px]">
+                      <div className="text-sm font-medium text-[var(--foreground-2)] leading-relaxed max-w-[400px] bg-[var(--bg-input)] p-3 rounded-lg border border-[var(--border)] min-w-[200px]">
                         {r.feedbackDosen || '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-[var(--foreground-2)] leading-relaxed max-w-[400px] bg-[var(--brand-dim)]/20 p-3 rounded-lg border border-[var(--brand-border)]/20 min-w-[200px]">
+                      <div className="text-sm font-medium text-[var(--foreground-2)] leading-relaxed max-w-[400px] bg-[var(--brand-dim)] p-3 rounded-lg border border-[var(--brand-border)] min-w-[200px]">
                         {r.topikBelumPaham || '-'}
                       </div>
                     </td>
@@ -85,9 +86,9 @@ export default function StudentAnalysisPage() {
 
         {/* Pagination Professional Style */}
         {totalPages > 1 && (
-          <div className="flex flex-col lg:flex-row items-center justify-between p-6 border-t border-[var(--border)] bg-white/5 gap-6">
+          <div className="flex flex-col lg:flex-row items-center justify-between p-6 border-t border-[var(--border)] bg-[var(--bg-surface)] gap-6">
             <div className="text-xs sm:text-sm font-medium text-[var(--muted)] text-center lg:text-left">
-              Menampilkan <span className="text-[var(--foreground)] font-bold">{(page-1)*PAGE_SIZE + 1}</span> - <span className="text-[var(--foreground)] font-bold">{Math.min(page*PAGE_SIZE, criticalFeedbacks.length)}</span> dari <span className="text-[var(--foreground)] font-bold">{criticalFeedbacks.length}</span> baris
+              Menampilkan <span className="text-[var(--foreground)] font-bold">{fmt((page-1)*PAGE_SIZE + 1)}</span> - <span className="text-[var(--foreground)] font-bold">{fmt(Math.min(page*PAGE_SIZE, criticalFeedbacks.length))}</span> dari <span className="text-[var(--foreground)] font-bold">{fmt(criticalFeedbacks.length)}</span> baris
             </div>
             
             <div className="flex flex-wrap items-center justify-center gap-2">
@@ -147,7 +148,7 @@ export default function StudentAnalysisPage() {
                         onClick={() => setPage(p)}
                         className={clsx('w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 rounded-lg text-xs font-bold transition-all border',
                           p===page 
-                            ? 'bg-[var(--brand)] text-white dark:text-[var(--u-navy)] border-[var(--brand)] shadow-lg shadow-brand/20' 
+                            ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20' 
                             : 'text-[var(--muted)] hover:bg-[var(--brand-dim)] border-transparent'
                         )}
                       >

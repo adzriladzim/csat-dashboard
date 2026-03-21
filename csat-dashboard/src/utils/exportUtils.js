@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import * as XLSX from 'xlsx'
-import { fmt, scoreLabel, analyzeSentiment } from './analytics'
+import { fmt, scoreLabel, analyzeSentiment, avg } from './analytics'
 
 const C = {
   brand: [61,78,232], dark:[15,23,42], muted:[100,116,139],
@@ -35,9 +35,9 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
   pdf.setFontSize(9); pdf.setFont('helvetica','normal'); pdf.setTextColor(210,218,255)
   if (!isAll) {
     pdf.text(`Kelas: ${data.kodeKelas || '–'}   ·   Mata Kuliah: ${data.mataKuliah || '–'}`, 12, 31)
-    pdf.text(`Prodi: ${data.prodi || dosenData.prodi || '–'}   ·   ${data.totalRespon} responden`, 12, 38)
+    pdf.text(`Prodi: ${data.prodi || dosenData.prodi || '–'}   ·   ${fmt(data.totalRespon)} responden`, 12, 38)
   } else {
-    pdf.text(`Program Studi: ${dosenData.prodi || '–'}   ·   ${dosenData.totalRespon} responden`, 12, 31)
+    pdf.text(`Program Studi: ${dosenData.prodi || '–'}   ·   ${fmt(dosenData.totalRespon)} responden`, 12, 31)
     pdf.text(`Mata Kuliah: ${dosenData.mataKuliah || '–'}`, 12, 38)
   }
   pdf.setTextColor(180,200,255)
@@ -70,7 +70,7 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
     y += 12
   })
   pdf.setFontSize(9); pdf.setTextColor(...C.muted)
-  pdf.text(`Total Responden: ${data.totalRespon}`, 14, y+4); y += 14
+  pdf.text(`Total Responden: ${fmt(data.totalRespon)}`, 14, y+4); y += 14
 
   // Perbandingan kelas (hanya untuk laporan semua kelas)
   if (isAll && dosenData.kelasList && dosenData.kelasList.length > 1) {
@@ -79,7 +79,7 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
     // Header tabel
     pdf.setFillColor(...C.brand); pdf.rect(14,y,W-28,8,'F')
     pdf.setFontSize(8); pdf.setFont('helvetica','bold'); pdf.setTextColor(...C.white)
-    const hc = [[14+4,'Kode Kelas'],[14+36,'Mata Kuliah'],[14+100,'CSAT'],[14+120,'Performa'],[14+140,'Pemahaman'],[14+160,'Interaktif'],[14+180,'Respon']]
+    const hc = [[14+4,'Kode Kelas'],[14+36,'Mata Kuliah'],[14+100,'CSAT'],[14+120,'Performa'],[14+140,'Pemahaman'],[14+160,'Interaktif'],[14+180,'Jumlah Responden']]
     hc.forEach(([x,l]) => pdf.text(l,x,y+5.5)); y += 9
     dosenData.kelasList.sort((a,b)=>(b.csatGabungan||0)-(a.csatGabungan||0)).forEach((k,i) => {
       if (y > 272) { pdf.addPage(); y = 20 }
@@ -89,51 +89,126 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
       [[k.csatGabungan,14+100],[k.skorPerforma,14+120],[k.skorPemahaman,14+140],[k.skorInteraktif,14+160]].forEach(([s,x]) => {
         pdf.setFont('helvetica','bold'); pdf.setTextColor(...sRgb(s)); pdf.text(fmt(s),x,y+5.5)
       })
-      pdf.setFont('helvetica','normal'); pdf.setTextColor(51,65,85); pdf.text(String(k.totalRespon),14+180,y+5.5)
+      pdf.setFont('helvetica','normal'); pdf.setTextColor(51,65,85); pdf.text(fmt(k.totalRespon),14+180,y+5.5)
       y += 9
     }); y += 5
   }
 
-  // Tren pertemuan
+  // ── Tren CSAT per Pertemuan (Grafik Garis Dinamis) ─────────────────────
   if (data.pertemuanTrend?.length) {
-    if (y > 228) { pdf.addPage(); y = 20 }
-    secTitle(pdf, 'Tren CSAT per Pertemuan', y); y += 9
-    data.pertemuanTrend.forEach(({pertemuan,csat,count}) => {
-      if (y > 272) { pdf.addPage(); y = 20 }
-      const bw = csat ? (csat/5)*(W-78) : 0, rgb = sRgb(csat)
-      pdf.setFillColor(...C.mid); pdf.roundedRect(42,y+2,W-78,5,1,1,'F')
-      if (bw>0) { pdf.setFillColor(...rgb); pdf.roundedRect(42,y+2,bw,5,1,1,'F') }
-      pdf.setFontSize(9); pdf.setFont('helvetica','bold'); pdf.setTextColor(30,41,59); pdf.text(pertemuan,14,y+6)
-      pdf.setFont('helvetica','bold'); pdf.setTextColor(...rgb); pdf.text(fmt(csat),W-38,y+6)
-      pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(...C.muted); pdf.text(`(${count} resp.)`,W-28,y+6)
-      y += 10
-    }); y += 4
+    if (y > 210) { pdf.addPage(); y = 20 }
+    secTitle(pdf, 'Grafik Tren Kinerja per Pertemuan', y); y += 15
+    
+    const chartX = 25, chartY = y, chartW = W - 50, chartH = 50
+    pdf.setDrawColor(226, 232, 240); pdf.setLineWidth(0.1)
+    
+    // Grid horizontal (setiap 0.5) & Label Y
+    for (let i = 0; i <= 10; i++) {
+      const val = i * 0.5
+      const yy = chartY + chartH - (val / 5) * chartH
+      pdf.setDrawColor(226, 232, 240)
+      pdf.line(chartX, yy, chartX + chartW, yy)
+      pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(val.toFixed(1), chartX - 8, yy + 1)
+    }
+
+    // Sumbu Y & Grid Horizontal (Dashed)
+    pdf.setDrawColor(226, 232, 240); pdf.setLineWidth(0.1)
+    for (let i = 1; i <= 5; i++) {
+        const yy = chartY + chartH - ((i - 1) / 4) * chartH
+        pdf.setLineDash([1, 1], 0) // Dashed lines like in 1461
+        pdf.line(chartX, yy, chartX + chartW, yy)
+        pdf.setLineDash([], 0) // Reset
+        pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(i.toString(), chartX - 8, yy + 1)
+    }
+
+    // Timeline Context (P1 to P{max})
+    const maxP_in_data = data.pertemuanTrend.length
+    const timelineLen = Math.max(maxP_in_data, 6)
+    
+    // Grid Vertikal (tiap pertemuan dalam timeline)
+    pdf.setDrawColor(241, 245, 249); pdf.setLineWidth(0.05)
+    for (let i = 0; i < timelineLen; i++) {
+        const px = chartX + (i / (timelineLen - 1 || 1)) * chartW
+        pdf.line(px, chartY, px, chartY + chartH)
+        
+        // Label X (P1, P2...) - Single Digit
+        const label = `P${i+1}`
+        pdf.setFontSize(7); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(148, 163, 184)
+        pdf.text(label, px, chartY + chartH + 6, { align: 'center' })
+    }
+
+    const points = data.pertemuanTrend.map((t, i) => {
+      const px = chartX + (i / (timelineLen - 1 || 1)) * chartW
+      const py = t.csat != null ? (chartY + chartH - ((t.csat - 1) / 4) * chartH) : null
+      return { x: px, y: py, val: t.csat }
+    })
+
+    const validPoints = points.filter(p => p.y != null)
+    
+    // Trend Line (Dark Slate Thick)
+    if (validPoints.length > 1) {
+      pdf.setDrawColor(15, 52, 62); pdf.setLineWidth(1.2) // Dark Teal/Slate from 1461
+      for (let i = 0; i < validPoints.length - 1; i++) {
+        pdf.line(validPoints[i].x, validPoints[i].y, validPoints[i+1].x, validPoints[i+1].y)
+      }
+    }
+
+    // Solid Dots
+    points.forEach((p, idx) => {
+      if (p.y != null) {
+        pdf.setFillColor(15, 52, 62)
+        pdf.circle(p.x, p.y, 1, 'F')
+        
+        // Floating label (Last point only to keep it clean)
+        if (idx === points.length - 1) {
+           pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(16, 185, 129) // Green like dashboard
+           pdf.text(fmt(p.val), p.x, p.y - 4, { align: 'center' })
+        }
+      }
+    })
+    
+    y += chartH + 22
   }
 
-  // Komentar
-  const fbs = data.feedbacks || []
-  if (fbs.length) {
+  // ── Ringkasan Umpan Balik Kualitatif (Tabel Selengkapnya) ───────────────
+  const feedbackRows = data.rows || [] // SHOW ALL 18 ROWS
+  
+  if (feedbackRows.length) {
     if (y > 220) { pdf.addPage(); y = 20 }
-    secTitle(pdf, `Komentar Mahasiswa (${fbs.length})`, y); y += 9
-    fbs.slice(0,12).forEach(fb => {
-      if (y > 268) { pdf.addPage(); y = 20 }
-      const sent = analyzeSentiment(fb)
-      const dc = sent==='positive'?C.green:sent==='negative'?C.red:C.muted
-      pdf.setFillColor(...dc); pdf.circle(17,y+2,1.2,'F')
-      pdf.setFontSize(8.5); pdf.setFont('helvetica','normal'); pdf.setTextColor(71,85,105)
-      const lines = pdf.splitTextToSize(fb, W-34); pdf.text(lines,21,y+3); y += lines.length*4.5+3
-    }); y += 3
-  }
+    secTitle(pdf, `Ringkasan Umpan Balik Kualitatif (${feedbackRows.length} Responden)`, y); y += 9
 
-  // Topik
-  const topik = data.topikBelum || []
-  if (topik.length) {
-    if (y > 228) { pdf.addPage(); y = 20 }
-    secTitle(pdf, `Topik yang Perlu Penguatan (${topik.length})`, y); y += 9
-    topik.slice(0,15).forEach(t => {
-      if (y > 268) { pdf.addPage(); y = 20 }
-      pdf.setFontSize(8.5); pdf.setFont('helvetica','normal'); pdf.setTextColor(71,85,105)
-      const lines = pdf.splitTextToSize(`• ${t}`, W-30); pdf.text(lines,18,y+3); y += lines.length*4.5+2
+    const tableCols = [['Mata Kuliah', 55], ['Feedback Dosen', 65], ['Topik Belum Dipahami', 62]]
+    const drawTableHdr = (yy) => {
+      pdf.setFillColor(...C.brand); pdf.rect(14, yy, W - 28, 9, 'F')
+      pdf.setFontSize(8.5); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...C.white)
+      let cx = 16; tableCols.forEach(([l, w]) => { pdf.text(l, cx, yy + 6); cx += w })
+    }
+
+    drawTableHdr(y); y += 10
+    feedbackRows.forEach((r, i) => {
+      const mkShort = `${r.kodeKelas || ''} - ${r.mataKuliah || ''}`
+      const mkLines = pdf.splitTextToSize(mkShort, 50)
+      const fbLines = pdf.splitTextToSize(r.feedbackDosen && r.feedbackDosen.trim() ? r.feedbackDosen : '-', 60)
+      const tpLines = pdf.splitTextToSize(r.topikBelumPaham && r.topikBelumPaham.trim() ? r.topikBelumPaham : '-', 58)
+      const rowHH = Math.max(mkLines.length, fbLines.length, tpLines.length) * 4.5 + 4
+
+      if (y + rowHH > 275) {
+        pdf.addPage(); y = 20; drawTableHdr(y); y += 10
+      }
+
+      // Zebra striping for better readability
+      pdf.setFillColor(i % 2 === 0 ? 255 : 248, i % 2 === 0 ? 255 : 250, i % 2 === 0 ? 255 : 252)
+      pdf.rect(14, y, W - 28, rowHH, 'F')
+      
+      pdf.setDrawColor(...C.mid); pdf.rect(14, y, W - 28, rowHH, 'D')
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(71, 85, 105)
+      
+      let cx = 16; 
+      pdf.setFont('helvetica', 'bold'); pdf.text(mkLines, cx, y + 4.5); cx += 55; 
+      pdf.setFont('helvetica', 'normal'); pdf.text(fbLines, cx, y + 4.5); cx += 65; 
+      pdf.text(tpLines, cx, y + 4.5)
+      
+      y += rowHH
     })
   }
 
@@ -175,27 +250,103 @@ export async function exportDashboardPDF(dosenList) {
   pdf.setFontSize(16); pdf.setFont('helvetica','bold'); pdf.setTextColor(...C.white); pdf.text('Laporan Kinerja Dosen — Cakrawala University',14,14)
   pdf.setFontSize(9); pdf.setFont('helvetica','normal'); pdf.setTextColor(200,210,255)
   pdf.text(`${new Date().toLocaleDateString('id-ID',{dateStyle:'full'})}   ·   Total Dosen: ${dosenList.length}`,14,22)
-  pdf.setTextColor(180,200,255); pdf.text('Dibuat oleh Adzril Adzim Hendrynov',14,28)
-  y=40
-  const cols=[['#',10],['Nama Dosen',72],['Program Studi',52],['CSAT',18],['Performa',20],['Pemahaman',22],['Interaktif',20],['Respon',15]]
-  const drawHdr = (yy) => {
-    pdf.setFillColor(...C.brand); pdf.rect(14,yy,W-28,9,'F')
-    pdf.setFontSize(8); pdf.setFont('helvetica','bold'); pdf.setTextColor(...C.white)
-    let cx=16; cols.forEach(([l,w])=>{ pdf.text(l,cx,yy+6); cx+=w })
-  }
-  drawHdr(y); y+=10
-  dosenList.forEach((d,i) => {
-    if (y>H-18) {
-      pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(`Hal. ${pdf.internal.getNumberOfPages()}`,W/2,H-4,{align:'center'})
-      pdf.addPage(); y=20; drawHdr(y); y+=10
+  pdf.setTextColor(180,200,255); pdf.text('Dibuat oleh Adzril Adzim Hendrynov - Ilkom24',14,28)
+  // Ringkasan Metrik (Global)
+    const allCsat = dosenList.map(d => d.csatGabungan).filter(Boolean)
+    const allPerforma = dosenList.map(d => d.skorPerforma).filter(Boolean)
+    const allPemahaman = dosenList.map(d => d.skorPemahaman).filter(Boolean)
+    const allInteraktif = dosenList.map(d => d.skorInteraktif).filter(Boolean)
+    const totalResp = dosenList.reduce((acc, d) => acc + (d.totalRespon || 0), 0)
+
+    pdf.setFontSize(11); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 41, 59)
+    pdf.text('Ringkasan Metrik:', 14, 42)
+    
+    pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85)
+    
+    // Kolom 1
+    pdf.text(`CSAT Gabungan: ${avg(allCsat).toFixed(2)}`, 14, 50)
+    pdf.text(`Performa Dosen: ${avg(allPerforma).toFixed(2)}`, 14, 56)
+    pdf.text(`Pemahaman Materi: ${avg(allPemahaman).toFixed(2)}`, 14, 62)
+    pdf.text(`Interaktivitas: ${avg(allInteraktif).toFixed(2)}`, 14, 68)
+    
+    // Kolom 2
+    pdf.text(`Total Respon: ${Math.round(totalResp).toLocaleString('id-ID')}`, W - 60, 50)
+    pdf.text(`Jumlah Dosen: ${dosenList.length.toLocaleString('id-ID')}`, W - 60, 56)
+
+    y = 80
+    
+    // ── Bagian: Top 10 Dosen ──────────────────────────────────────────────
+    pdf.setFontSize(11); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...C.brand)
+    pdf.text('Top 10 Performa Dosen Teratas', 14, y); y += 6
+    pdf.setDrawColor(...C.brand); pdf.setLineWidth(0.5); pdf.line(14, y, 65, y); y += 6
+
+    const top10 = dosenList.slice(0, 10).sort((a,b)=>(b.csatGabungan||0)-(a.csatGabungan||0))
+    const cols = [['Rank', 10], ['Nama Dosen', 75], ['Program Studi', 75], ['CSAT', 18], ['Performa', 20], ['Pemahaman', 22], ['Interaktif', 20], ['Jumlah Responden', 15]]
+    
+    const drawHdr = (yy) => {
+      pdf.setFillColor(...C.brand); pdf.rect(14, yy, W - 28, 9, 'F')
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...C.white)
+      let cx = 16; cols.forEach(([l, w]) => { pdf.text(l, cx, yy + 6); cx += w })
     }
-    pdf.setFillColor(i%2===0?248:242,i%2===0?250:246,i%2===0?252:250); pdf.rect(14,y,W-28,8,'F')
-    pdf.setFontSize(8); pdf.setFont('helvetica','normal'); pdf.setTextColor(51,65,85)
-    let cx=16; pdf.text(String(i+1),cx,y+5.5); cx+=10; pdf.text(d.namaDosen.slice(0,32),cx,y+5.5); cx+=72; pdf.text((d.prodi||'–').slice(0,24),cx,y+5.5); cx+=52
-    ;[d.csatGabungan,d.skorPerforma,d.skorPemahaman,d.skorInteraktif].forEach((s,si)=>{pdf.setFont('helvetica','bold');pdf.setTextColor(...sRgb(s));pdf.text(fmt(s),cx,y+5.5);cx+=[18,20,22,20][si]})
-    pdf.setFont('helvetica','normal'); pdf.setTextColor(51,65,85); pdf.text(String(d.totalRespon),cx,y+5.5)
-    y+=8.5
-  })
+
+    drawHdr(y); y += 10
+    top10.forEach((d, i) => {
+      const namaLines = pdf.splitTextToSize(d.namaDosen || '–', 72)
+      const prodiLines = pdf.splitTextToSize(d.prodi || '–', 72)
+      const rowH = Math.max(namaLines.length, prodiLines.length) * 4 + 4
+      
+      pdf.setFillColor(255,255,255); pdf.rect(14, y, W - 28, rowH, 'F')
+      if (i < 3) { // Highlight top 3
+        pdf.setFillColor(...C.brand); pdf.rect(14, y, 1, rowH, 'F')
+        pdf.setFont('helvetica', 'bold')
+      } else {
+        pdf.setFont('helvetica', 'normal')
+      }
+      pdf.setFontSize(8); pdf.setTextColor(51, 65, 85)
+      let cx = 16; 
+      pdf.text(String(i + 1), cx, y + 5); cx += 10; 
+      pdf.text(namaLines, cx, y + 5); cx += 75; 
+      pdf.text(prodiLines, cx, y + 5); cx += 75
+      ;[d.csatGabungan, d.skorPerforma, d.skorPemahaman, d.skorInteraktif].forEach((s, si) => {
+        pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...sRgb(s)); 
+        pdf.text(fmt(s), cx, y + 5); cx += [18, 20, 22, 20][si]
+      })
+      pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85); 
+      pdf.text(fmt(d.totalRespon), cx, y + 5)
+      y += rowH
+    })
+
+    y += 10
+    if (y > H - 40) { pdf.addPage(); y = 20 }
+
+    // ── Bagian: Tabel Seluruh Dosen ──────────────────────────────────────
+    pdf.setFontSize(11); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 41, 59)
+    pdf.text('Daftar Seluruh Kinerja Dosen', 14, y); y += 8
+    
+    drawHdr(y); y += 10
+    dosenList.forEach((d, i) => {
+      const namaLines = pdf.splitTextToSize(d.namaDosen || '–', 72)
+      const prodiLines = pdf.splitTextToSize(d.prodi || '–', 72)
+      const rowH = Math.max(namaLines.length, prodiLines.length) * 4 + 4
+
+      if (y + rowH > H - 15) {
+        pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(`Hal. ${pdf.internal.getNumberOfPages()}`,W/2,H-4,{align:'center'})
+        pdf.addPage(); y = 20; drawHdr(y); y += 10
+      }
+      pdf.setFillColor(i % 2 === 0 ? 248 : 242, i % 2 === 0 ? 250 : 246, i % 2 === 0 ? 252 : 250); pdf.rect(14, y, W - 28, rowH, 'F')
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85)
+      let cx = 16; 
+      pdf.text(String(i + 1), cx, y + 5); cx += 10; 
+      pdf.text(namaLines, cx, y + 5); cx += 75; 
+      pdf.text(prodiLines, cx, y + 5); cx += 75
+      ;[d.csatGabungan, d.skorPerforma, d.skorPemahaman, d.skorInteraktif].forEach((s, si) => {
+        pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...sRgb(s)); 
+        pdf.text(fmt(s), cx, y + 5); cx += [18, 20, 22, 20][si]
+      })
+      pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85); 
+      pdf.text(fmt(d.totalRespon), cx, y + 5)
+      y += rowH
+    })
   const pages=pdf.internal.getNumberOfPages()
   for (let i=1;i<=pages;i++) { pdf.setPage(i); pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(`Laporan CSAT · Cakrawala University · Adzril Adzim Hendrynov · Hal. ${i}/${pages}`,W/2,H-4,{align:'center'}) }
   pdf.save(`Laporan_CSAT_Semua_Dosen_${new Date().toISOString().slice(0,10)}.pdf`)

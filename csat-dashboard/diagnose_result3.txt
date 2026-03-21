@@ -1,0 +1,29 @@
+=== DUPLICATE ANALYSIS ===
+Duplicates by Timestamp+Email: 0 (unique: 7244)
+Duplicates by Timestamp+NIM: 0 (unique: 7244)
+Duplicates by Email+Dosen+Pertemuan: 237 (unique: 7007)
+Duplicates by NIM+Dosen+Pertemuan: 240 (unique: 7004)
+Duplicates by Email+Dosen+MataKuliah+Pertemuan: 168 (unique: 7076)
+
+=== MISSING FIELD ANALYSIS ===
+  "Program Studi": 4095 empty
+  "Mata Kuliah": 4095 empty
+  "Kode Kelas": 4095 empty
+  Short NIM (<3 chars): 15
+  Short Nama (<2 chars): 0
+
+=== EMAIL DOMAINS ===
+  cakrawala.ac.id: 4680
+  gmail.com: 2545
+  bankneo.co.id: 13
+  samudera.id: 5
+  lazuardicordova.sch.id: 1
+
+Exact duplicate rows (all fields): 0
+  DUP: row 188 same as row 174: 25110500003|ferdian aditya pratama|2|cik2108 - object-oriented programming
+  DUP: row 192 same as row 177: 25110100011|ms. sabila nurwardani, s.kom., m.t.i|1|bdl2144 - basics of user inte
+  DUP: row 216 same as row 209: 24120310010|hedy pamungkas, s.t., m.t.i|1|wuc1115 - technical/professional writi
+  DUP: row 249 same as row 248: 25110300030|adam puspabhuana, m.kom|1|ikr2125 - database systems
+  DUP: row 301 same as row 254: 25110300017|adam puspabhuana, m.kom|1|ikr2125 - database systems
+
+Duplicates by NIM+Dosen+Pertemuan+MataKuliah: 154

@@ -93,7 +93,7 @@ export default function ExportMenu({ dosenData, buttonClass }) {
           'w-[116px] rounded-lg border flex items-center justify-center gap-1.5 h-[30px] text-[10px] font-bold uppercase transition-all whitespace-nowrap',
           exporting === 'all'
             ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
-            : buttonClass || 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border-red-500/20'
+            : buttonClass || 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-red-500/30 font-extrabold'
         )}
       >
         <FileDown size={12} />
@@ -165,12 +165,12 @@ export default function ExportMenu({ dosenData, buttonClass }) {
           <div className="p-1.5">
             <button
               onClick={handleExportAll}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-left hover:bg-[var(--brand)] hover:text-white dark:hover:text-[var(--u-navy)] rounded-xl transition-all group"
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-left hover:bg-[var(--brand)] hover:text-white rounded-xl transition-all group"
             >
               <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-black/10">
                 <Download size={14} />
               </div>
-              <span className="dark:text-white">Agregat Semua Kelas</span>
+              <span className="text-[var(--foreground)] group-hover:text-white">Agregat Semua Kelas</span>
             </button>
             <div className="my-1.5 mx-2 border-t border-white/5" />
             <div className="max-h-[300px] overflow-y-auto px-1 custom-scrollbar">
@@ -179,9 +179,9 @@ export default function ExportMenu({ dosenData, buttonClass }) {
                   key={k.kodeKelas}
                   onClick={(e) => handleExportKelas(e, k)}
                   disabled={exporting === k.kodeKelas}
-                  className="w-full flex items-center gap-3 px-3 py-3 text-xs font-medium text-left hover:bg-[var(--brand)] hover:text-white dark:hover:text-[var(--u-navy)] rounded-xl transition-all group mb-1"
+                  className="w-full flex items-center gap-3 px-3 py-3 text-xs font-medium text-left hover:bg-[var(--brand)] hover:text-white rounded-xl transition-all group mb-1"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-black/10 transition-colors text-[var(--brand)] group-hover:text-white dark:group-hover:text-[var(--u-navy)]">
+                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-black/10 transition-colors text-[var(--brand)] group-hover:text-white">
                     <FileText size={14} />
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">

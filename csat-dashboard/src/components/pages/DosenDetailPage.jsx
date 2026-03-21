@@ -31,10 +31,10 @@ export default function DosenDetailPage() {
   const dosenRows = parsedData.filter(r => r.namaDosen === decodedName)
 
   // Agregasi SEMUA kelas
-  const [dosenAll] = useMemo(() => aggregateByDosen(dosenRows), [dosenRows])
-
+  const [dosenAll] = useMemo(() => aggregateByDosen(dosenRows, parsedData), [dosenRows, parsedData])
+  
   // Agregasi PER KELAS (kode_kelas sebagai pemisah)
-  const kelasList = useMemo(() => aggregateByDosenKelas(dosenRows), [dosenRows])
+  const kelasList = useMemo(() => aggregateByDosenKelas(dosenRows, parsedData), [dosenRows, parsedData])
   const hasMultiKelas = kelasList.length > 1
 
   // Inject kelasList ke dosenAll untuk export PDF semua kelas
@@ -118,10 +118,10 @@ export default function DosenDetailPage() {
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <ScoreBadge score={dosenData.csatGabungan} />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-700 hidden sm:inline" />
+              <span className="w-1 h-1 rounded-full opacity-20 bg-current hidden sm:inline" style={{ color: 'var(--foreground)' }} />
               <span className="text-xs font-bold uppercase tracking-wide opacity-60" style={{ color: 'var(--muted)' }}>{dosenData.prodi || 'Fakultas Utama'}</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-700 hidden sm:inline" />
-              <span className="text-xs font-bold" style={{ color: 'var(--brand)' }}>{dosenData.totalRespon} <span className="opacity-60 text-white lowercase">responden</span></span>
+              <span className="w-1 h-1 rounded-full opacity-20 bg-current hidden sm:inline" style={{ color: 'var(--foreground)' }} />
+              <span className="text-xs font-bold" style={{ color: 'var(--brand)' }}>{fmt(dosenData.totalRespon)} <span className="opacity-60 lowercase" style={{ color: 'var(--muted)' }}>responden</span></span>
             </div>
           </div>
         </div>
@@ -201,12 +201,15 @@ export default function DosenDetailPage() {
               className={clsx(
                 'px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all border',
                 activeTab === 'semua'
-                  ? 'bg-[var(--brand)] text-[var(--u-navy)] border-[var(--brand)] shadow-lg shadow-brand/20'
+                  ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20'
                   : 'bg-[var(--bg-input)] text-[var(--muted)] border-[var(--border)] hover:border-[var(--brand-border)]'
               )}
             >
               Agregat Semua
-              <span className="ml-2 px-1.5 py-0.5 rounded-md bg-black/10 text-[10px]">{dosenData.totalRespon}</span>
+              <span className={clsx(
+                "ml-2 px-1.5 py-0.5 rounded-md text-[10px]",
+                activeTab === 'semua' ? "bg-white/20 text-white" : "bg-black/10 text-muted"
+              )}>{fmt(dosenData.totalRespon)}</span>
             </button>
 
             {/* Tab per kelas */}
@@ -217,12 +220,15 @@ export default function DosenDetailPage() {
                 className={clsx(
                   'px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all border',
                   activeTab === k.kodeKelas
-                    ? 'bg-[var(--brand)] text-[var(--u-navy)] border-[var(--brand)] shadow-lg shadow-brand/20'
+                    ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20'
                     : 'bg-[var(--bg-input)] text-[var(--muted)] border-[var(--border)] hover:border-[var(--brand-border)]'
                 )}
               >
                 Kelas <span className="font-mono">{k.kodeKelas}</span>
-                <span className="ml-2 px-1.5 py-0.5 rounded-md bg-black/10 text-[10px]">{k.totalRespon}</span>
+                <span className={clsx(
+                  "ml-2 px-1.5 py-0.5 rounded-md text-[10px]",
+                  activeTab === k.kodeKelas ? "bg-white/20 text-white" : "bg-black/10 text-muted"
+                )}>{fmt(k.totalRespon)}</span>
               </button>
             ))}
           </div>
@@ -240,7 +246,7 @@ export default function DosenDetailPage() {
                     Analisis Kelas {activeKelasData.kodeKelas}
                   </p>
                   <p className="text-xs mt-1 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
-                    {activeKelasData.mataKuliah} · {activeKelasData.totalRespon} Responden Valid
+                    {activeKelasData.mataKuliah} · {fmt(activeKelasData.totalRespon)} Responden Valid
                   </p>
                 </div>
               </div>
@@ -303,7 +309,7 @@ export default function DosenDetailPage() {
                     <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: scoreColor(k.skorPerforma) }}>{fmt(k.skorPerforma)}</td>
                     <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: scoreColor(k.skorPemahaman) }}>{fmt(k.skorPemahaman)}</td>
                     <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: scoreColor(k.skorInteraktif) }}>{fmt(k.skorInteraktif)}</td>
-                    <td className="font-bold text-sm opacity-60">{k.totalRespon}</td>
+                    <td className="font-bold text-sm opacity-60">{fmt(k.totalRespon)}</td>
                     <td>
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -414,7 +420,7 @@ export default function DosenDetailPage() {
               <h2 className="section-title">Arsip Masukan Mahasiswa</h2>
             </div>
             <span className="badge px-4 py-1.5 font-bold uppercase tracking-widest text-[10px] bg-u-navy text-brand border border-[var(--brand-border)]">
-              {activeData.feedbacks.length} Respon
+              {fmt(activeData.feedbacks.length)} Respon
             </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar">
@@ -479,7 +485,7 @@ export default function DosenDetailPage() {
                 <tr key={pertemuan}>
                   <td className="font-serif-accent font-extrabold text-lg text-[var(--brand)]">{pertemuan}</td>
                   <td><span className={clsx('badge px-4 py-1.5', scoreBadgeClass(csat))}>{fmt(csat)}</span></td>
-                  <td className="font-bold text-sm opacity-60">{count} Mahasiswa</td>
+                  <td className="font-bold text-sm opacity-60">{fmt(count)} Mahasiswa</td>
                   <td>
                     <div className="w-full max-w-[200px] h-2.5 rounded-full overflow-hidden shadow-inner border border-[var(--border)]" style={{ background: 'var(--bg-input)' }}>
                       <div className="h-full rounded-full transition-all duration-700" 

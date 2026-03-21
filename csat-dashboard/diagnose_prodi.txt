@@ -1,0 +1,10 @@
+=== PROGRAM STUDI 1 DISTRIBUTION ===
+  Sistem dan Teknologi Informasi: 968 
+  Sains Data: 879 
+  Ilmu Komputer: 1302 
+
+=== PROGRAM STUDI 2 DISTRIBUTION ===
+  Bisnis Digital: 3009 
+  Ekonomi Keuangan dan Perbankan: 1086 
+
+Both Empty: 0 

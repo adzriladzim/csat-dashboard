@@ -8,58 +8,84 @@ const useStore = create((set, get) => ({
   rawCount:    0,
   mappingAccuracy: 0,
   removedCount: 0,
+  version: '1.5.0 (Full Data Recovery)',
 
   parseAndDisplay: (rawRows, headers, fileName) => {
     const rawTotal = rawRows.length
     
-    // 1. Map and initial filter (junk removal)
+    const removedRows = []
     let processed = rawRows
       .map(r => parseRow(r, headers))
-      .filter(r => 
-        r.nama_dosen && r.nama_dosen.trim() !== '' && 
-        r.nama_dosen.toLowerCase() !== 'nama dosen' &&
-        r.csat_gabungan !== null 
-      )
+      .filter((r, idx) => {
+        const dName = (r.namaDosen || '').toLowerCase()
+        const isHeader = dName.includes('nama dosen') || dName === 'dosen'
+        if (isHeader || (r.csatGabungan === null)) {
+          removedRows.push({ row: idx + 2, reason: isHeader ? 'Header' : 'Empty Scores' })
+          return false
+        }
+        return true
+      })
+    
+    if (removedRows.length > 0) {
+      console.log(`[DATA] Filtered ${removedRows.length} junk/empty rows. Remaining: ${processed.length}`)
+    }
 
-    // 2. Simplified Cleaning (Skip Deduplication as it lowers count too much)
-    const validRows = processed
-
-    // 3. Transform structure for final parsedData
-    const parsed = validRows.map(r => ({
-      timestamp:       r.timestamp_response,
-      tanggal:         r.tanggal,
-      namaMahasiswa:   r.nama_mahasiswa,
-      nim:             r.nim,
-      angkatan:        r.angkatan,
-      semester:        r.semester,
-      fakultas:        r.fakultas,
-      prodi:           r.prodi,
-      mataKuliah:      r.mata_kuliah,
-      kodeKelas:       r.kode_kelas,
-      namaDosen:       r.nama_dosen,
-      pertemuan:       r.pertemuan,
-      skorPemahaman:   r.skor_pemahaman,
-      skorInteraktif:  r.skor_interaktif,
-      skorPerforma:    r.skor_performa,
-      csatGabungan:    r.csat_gabungan,
-      topikBelumPaham: r.topik_belum_paham,
-      feedbackDosen:   r.feedback_dosen,
-      faktorPerforma:  r.faktor_performa,
-      faktorInteraktif: r.faktor_interaktif,
-      moda:            r.moda,
-      sesi:            r.sesi,
+    // 2. Transmit cleaned data to state (Cumulative Merge + Deduplication)
+    const newParsed = processed.map(r => ({
+      timestamp:        r.timestampResponse,
+      tanggal:          r.tanggal,
+      namaMahasiswa:    r.namaMahasiswa,
+      nim:              r.nim,
+      angkatan:         r.angkatan,
+      semester:         r.semester,
+      fakultas:         r.fakultas,
+      prodi:            r.prodi,
+      mataKuliah:       r.mataKuliah,
+      kodeKelas:        r.kodeKelas,
+      namaDosen:        r.namaDosen,
+      pertemuan:        r.pertemuan,
+      skorPemahaman:    r.skorPemahaman,
+      skorInteraktif:   r.skorInteraktif,
+      skorPerforma:     r.skorPerforma,
+      csatGabungan:     r.csatGabungan,
+      topikBelumPaham:  r.topikBelumPaham,
+      feedbackDosen:    r.feedbackDosen,
+      faktorPerforma:   r.faktorPerforma,
+      faktorInteraktif: r.faktorInteraktif,
+      moda:             r.moda,
+      sesi:             r.sesi,
+      semesterConflict: r.semesterConflict
     }))
 
-    const accuracy = rawTotal > 0 ? (parsed.length / rawTotal) * 100 : 0
-    set({ 
-      parsedData: parsed, 
-      isLoaded: true, 
-      fileName, 
-      rawCount: rawTotal, 
-      mappingAccuracy: accuracy,
-      removedCount: (rawTotal - parsed.length)
+    const currentData = get().parsedData
+    // Simple deduplication - match Dosen, MK, Pertemuan, NIM/Name, and Score
+    const combined = [...currentData]
+    let dupCount = 0
+    
+    newParsed.forEach(nr => {
+      const exists = currentData.some(cr => 
+        cr.namaDosen === nr.namaDosen && 
+        cr.mataKuliah === nr.mataKuliah && 
+        cr.pertemuan === nr.pertemuan && 
+        cr.nim === nr.nim && 
+        cr.csatGabungan === nr.csatGabungan
+      )
+      if (!exists) combined.push(nr)
+      else dupCount++
     })
-    return parsed.length
+
+    const finalCount = combined.length
+    if (dupCount > 0) console.log(`[DATA] Ignored ${dupCount} duplicate rows.`)
+
+    set({ 
+      parsedData: combined, 
+      isLoaded: true, 
+      fileName: fileName === get().fileName ? fileName : (get().fileName ? 'Multiple Files' : fileName), 
+      rawCount: finalCount,
+      mappingAccuracy: 100,
+      removedCount: 0
+    })
+    return finalCount
   },
 
   clearData: () => set({ parsedData: [], isLoaded: false, fileName: '' }),

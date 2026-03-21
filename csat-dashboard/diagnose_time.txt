@@ -1,0 +1,9 @@
+=== SEMESTER DISTRIBUTION ===
+  1621: IV (Genap) 
+  4717: II (Genap) 
+  550: I (Ganjil) 
+  356: III (Ganjil) 
+
+=== ANGKATAN DISTRIBUTION ===
+  1643: 2024 
+  5601: 2025 

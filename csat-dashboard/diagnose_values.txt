@@ -1,0 +1,20 @@
+=== PEMAHAMAN VALUE DISTRIBUTION ===
+  4517: "(5) Saya memahami seluruh materi dari kelas hari ini (80-100%)"
+  2143: "(4) Saya memahami sebagian besar dari kelas hari ini (60-79%)"
+  436: "(3) Saya hanya memahami sebagian dari kelas hari ini (50-59%)"
+  109: "(2) Saya memahami sebagian kecil materi dari kelas hari ini (25-49%)"
+  39: "(1) Saya tidak memahami sedikitpun materi dari kelas hari ini (0-24%)"
+
+=== INTERAKTIF VALUE DISTRIBUTION ===
+  4506: "(5) Keberjalanan kelas sangat menarik dan tidak membosankan sama sekali (semua aspek sangat bagus)"
+  2371: "(4) Keberjalanan kelas cukup menarik dan tidak membosankan. (penjelasan dua arah dari mentor, terdapat kegiatan tanya jawab, dan ada sesi praktik)"
+  282: "(3) Keberjalanan kelas kurang menarik, tetapi kegiatan kelas tidak membosankan (penjelasan satu arah dari mentor, terdapat beberapa kegiatan tanya jawab, dan ada sesi praktik)"
+  55: "(2) Keberjalanan kelas sedikit menarik, tetapi masih membosankan. (penjelasan satu arah dari mentor, terdapat beberapa kegiatan tanya jawab tapi kurang interaksi, tidak ada sesi praktik)"
+  30: "(1) Keberjalanan kelas tidak menarik dan membosankan (hanya penjelasan satu arah dari mentor, minim tanya jawab, tidak ada sesi praktek)"
+
+=== PERFORMA VALUE DISTRIBUTION ===
+  4742: "(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi"
+  2219: "(4) dosen menyampaikan materi dari deck, memfasilitasi diskusi & tanya jawab, serta menciptakan suasana belajar yang menyenangkan"
+  225: "(3) dosen hanya menyampaikan materi dari deck, tetapi memfasilitasi diskusi & tanya jawab"
+  30: "(2) dosen hanya menyampaikan materi dari deck/ppt dan tidak menciptakan suasana interaktif"
+  28: "(1) dosen kurang baik dalam menyampaikan materi dari deck/ppt sehingga saya tidak begitu memahami materi"

@@ -1,0 +1,25 @@
+Gmail: 2545, Academic: 4680, Other: 19
+Empty BOTH Prodi AND MataKuliah (both blocks): 0
+Empty/Short Nama Dosen: 0
+Empty Pertemuan: 0
+Duplicates by Email+Dosen: 4120
+Duplicates by Email+Dosen+KodeKelas: 4009
+Duplicates by Email+MataKuliah+Pertemuan: 181
+Duplicates by Email+KodeKelas+Pertemuan: 174
+Duplicates by NIM+MataKuliah+Pertemuan: 177
+Duplicates by NIM+KodeKelas+Pertemuan: 171
+
+=== SEARCHING FOR EXACT 43 MATCH ===
+  Email+Dosen+Pertemuan: 237 
+  NIM+Dosen+Pertemuan: 240 
+  Email+Dosen+MK+Pertemuan: 168 
+  Email+Dosen: 4120 
+  Email+Dosen+KodeKelas: 4009 
+  Email+MK+Pertemuan: 181 
+  Email+KodeKelas+Pertemuan: 174 
+  NIM+MK+Pertemuan: 177 
+  NIM+KodeKelas+Pertemuan: 171 
+  NIM+Dosen+Pertemuan+MK: 154 
+  EmptyDosen: 0 
+  EmptyPertemuan: 0 
+  ShortNim: 15 

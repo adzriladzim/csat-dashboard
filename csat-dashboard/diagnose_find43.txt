@@ -1,0 +1,4 @@
+Analysing file 1: d:/TWM KERJAAN/csat-dashboard-fullstack/csat-dashboard/Blok A _ Form Feedback Perkuliahan - Semester Genap 2025_2026 (Jawaban) (6).xlsx
+Total rows: 7244
+[EXACT 43] Column "Mata Kuliah 2" has value "ekp2169 - portfolio theory and investment management" exactly 43 times.
+Invalid scores: P=0, I=0, F=0, Any=0

@@ -4,8 +4,7 @@ export { isValidTopik, isValidFeedback }
 export function avg(arr) {
   const v = arr.filter(x => x != null && !isNaN(x))
   if (!v.length) return null
-  const res = v.reduce((a,b)=>a+b,0)/v.length
-  return Math.round(res * 1000) / 1000
+  return v.reduce((a,b)=>a+b,0)/v.length
 }
 export function scoreColor(s) {
   if (!s) return '#94a3b8'
@@ -33,14 +32,22 @@ export function scoreBadgeClass(s) {
 }
 export function fmt(s) { 
   if (s == null) return '–'
-  return s.toString()
+  if (typeof s !== 'number') return s.toString()
+  // No thousands separator, use dot for decimal, max 3 places
+  if (Number.isInteger(s)) return s.toString()
+  return parseFloat(s.toFixed(3)).toString()
 }
 export function fmtPct(v, t) { return t ? `${Math.round(v/t*100)}%` : '0%' }
 
-function newBucket(namaDosen) {
-  return { namaDosen, prodiSet:new Set(), mataKuliahSet:new Set(), kodeKelasSet:new Set(),
+function newBucket(namaDosen, overrides = {}) {
+  return { 
+    namaDosen, 
+    prodiSet:new Set(), mataKuliahSet:new Set(), kodeKelasSet:new Set(),
     rows:[], csatList:[], pemahamanList:[], interaktifList:[], performaList:[],
-    feedbacks:[], topikBelum:[], pertemuanMap:{}, kodeKelas:null, mataKuliah:null, prodi:null, tanggal:null }
+    feedbacks:[], topikBelum:[], pertemuanMap:{}, 
+    kodeKelas:null, mataKuliah:null, prodi:null, tanggal:null,
+    ...overrides
+  }
 }
 function pushRow(d, r) {
   d.rows.push(r)
@@ -53,32 +60,111 @@ function pushRow(d, r) {
   if (r.skorPerforma)    d.performaList.push(r.skorPerforma)
   if (r.feedbackDosen && isValidFeedback(r.feedbackDosen))   d.feedbacks.push(r.feedbackDosen.trim())
   if (r.topikBelumPaham && isValidTopik(r.topikBelumPaham)) d.topikBelum.push(r.topikBelumPaham.trim())
-  if (r.pertemuan) { if (!d.pertemuanMap[r.pertemuan]) d.pertemuanMap[r.pertemuan]=[]; d.pertemuanMap[r.pertemuan].push(r.csatGabungan) }
+  if (r.pertemuan != null) {
+    const pNum = typeof r.pertemuan === 'number' ? r.pertemuan : parseInt(r.pertemuan.toString().replace(/[^0-9]/g, ''))
+    if (!isNaN(pNum)) {
+      if (!d.pertemuanMap[pNum]) d.pertemuanMap[pNum] = []
+      d.pertemuanMap[pNum].push(r.csatGabungan)
+    }
+  }
 }
 function finalize(d) {
-  const trend = Object.entries(d.pertemuanMap).sort(([a],[b])=>+a-+b).map(([p,vals])=>({ pertemuan:`P${p}`, csat:avg(vals), count:vals.length }))
+  const pKeys = Object.keys(d.pertemuanMap).map(Number).filter(n => !isNaN(n))
+  const maxP = pKeys.length ? Math.max(...pKeys) : 0
+  const trend = []
+  for (let i = 1; i <= maxP; i++) {
+    const vals = d.pertemuanMap[i] || []
+    trend.push({ 
+      pertemuan: `P${i.toString().padStart(2, '0')}`, 
+      csat: vals.length ? avg(vals) : null, 
+      count: vals.length 
+    })
+  }
   let trendDir='stable'
-  if (trend.length>=2) { const diff=trend[trend.length-1].csat-trend[0].csat; if (diff>=0.3) trendDir='up'; else if (diff<=-0.3) trendDir='down' }
+  const valid = trend.filter(t=>t.csat!=null)
+  if (valid.length >= 2) {
+    const diff = valid[valid.length-1].csat - valid[0].csat
+    if (diff>=0.3) trendDir='up'; else if (diff<=-0.3) trendDir='down'
+  }
   return { namaDosen:d.namaDosen, prodi:d.prodi||[...d.prodiSet].filter(Boolean).join(', '), mataKuliah:d.mataKuliah||[...d.mataKuliahSet].filter(Boolean).join(', '), kodeKelas:d.kodeKelas||[...d.kodeKelasSet].filter(Boolean).join(', '), tanggal:d.tanggal, totalRespon:d.rows.length, csatGabungan:avg(d.csatList), skorPemahaman:avg(d.pemahamanList), skorInteraktif:avg(d.interaktifList), skorPerforma:avg(d.performaList), feedbacks:[...new Set(d.feedbacks)], topikBelum:[...new Set(d.topikBelum)], pertemuanTrend:trend, trend:trendDir, rows:d.rows }
 }
 
 /** Agregasi semua kelas digabung */
-export function aggregateByDosen(rows) {
-  const map={}
-  rows.forEach(r=>{ if (!r.namaDosen) return; if (!map[r.namaDosen]) map[r.namaDosen]=newBucket(r.namaDosen); pushRow(map[r.namaDosen],r) })
+export function aggregateByDosen(rows, fullRows = null) {
+  const map = {}
+  rows.forEach(r => { 
+    if (!r.namaDosen) return
+    if (!map[r.namaDosen]) map[r.namaDosen] = newBucket(r.namaDosen)
+    pushRow(map[r.namaDosen], r)
+  })
+
+  // Recovery: If filtered, pull full trend from allRows for each lecturer in map
+  if (fullRows && fullRows.length > 0) {
+    // We'll rebuild the trend map for these specific lecturers from scratch using fullRows
+    const trendRecoveryMap = {}
+    // Pre-create an uppercase map for case-insensitive matching if needed
+    const nameToCanonical = {}
+    Object.keys(map).forEach(n => nameToCanonical[n.toUpperCase()] = n)
+
+    fullRows.forEach(r => {
+      if (!r.namaDosen || r.pertemuan == null) return
+      const rNameUpper = r.namaDosen.toUpperCase()
+      const canonicalName = nameToCanonical[rNameUpper]
+      if (!canonicalName) return // Lecturer not in the current set
+      
+      const pNum = typeof r.pertemuan === 'number' ? r.pertemuan : parseInt(r.pertemuan.toString().replace(/[^0-9]/g, ''))
+      if (!isNaN(pNum)) {
+        if (!trendRecoveryMap[canonicalName]) trendRecoveryMap[canonicalName] = {}
+        if (!trendRecoveryMap[canonicalName][pNum]) trendRecoveryMap[canonicalName][pNum] = []
+        trendRecoveryMap[canonicalName][pNum].push(r.csatGabungan)
+      }
+    })
+    
+    Object.keys(map).forEach(name => {
+      if (trendRecoveryMap[name]) map[name].pertemuanMap = trendRecoveryMap[name]
+    })
+  }
+
   return Object.values(map).map(finalize).sort((a,b)=>(b.csatGabungan||0)-(a.csatGabungan||0))
 }
 
 /** Agregasi per kelas (semua tanggal digabung) */
-export function aggregateByDosenKelas(rows) {
+export function aggregateByDosenKelas(rows, fullRows = null) {
   const map={}
   rows.forEach(r=>{
     const kelas=r.kodeKelas||r.mataKuliah||'Kelas Tidak Diketahui'
     const key=`${r.namaDosen}|||${kelas}`
     if (!r.namaDosen) return
-    if (!map[key]) { map[key]=newBucket(r.namaDosen); map[key].kodeKelas=kelas; map[key].mataKuliah=r.mataKuliah||''; map[key].prodi=r.prodi||'' }
+    if (!map[key]) map[key]=newBucket(r.namaDosen, { mataKuliah:r.mataKuliah, kodeKelas:r.kodeKelas, prodi:r.prodi })
     pushRow(map[key],r)
   })
+
+  // Recovery: If filtered, pull full trend from allRows for each specific (lecturer+class) in map
+  if (fullRows && fullRows.length > 0) {
+    const trendRecoveryMap = {}
+    const keyToCanonical = {}
+    Object.keys(map).forEach(k => keyToCanonical[k.toUpperCase()] = k)
+
+    fullRows.forEach(r => {
+      const kelas=r.kodeKelas||r.mataKuliah||'Kelas Tidak Diketahui'
+      const rawKey = `${r.namaDosen}|||${kelas}`
+      const keyUpper = rawKey.toUpperCase()
+      const canonicalKey = keyToCanonical[keyUpper]
+      if (!canonicalKey || r.pertemuan == null) return
+
+      const pNum = typeof r.pertemuan === 'number' ? r.pertemuan : parseInt(r.pertemuan.toString().replace(/[^0-9]/g, ''))
+      if (!isNaN(pNum)) {
+        if (!trendRecoveryMap[canonicalKey]) trendRecoveryMap[canonicalKey] = {}
+        if (!trendRecoveryMap[canonicalKey][pNum]) trendRecoveryMap[canonicalKey][pNum] = []
+        trendRecoveryMap[canonicalKey][pNum].push(r.csatGabungan)
+      }
+    })
+
+    Object.keys(map).forEach(key => {
+      if (trendRecoveryMap[key]) map[key].pertemuanMap = trendRecoveryMap[key]
+    })
+  }
+
   return Object.values(map).map(finalize).sort((a,b)=>(b.csatGabungan||0)-(a.csatGabungan||0))
 }
 

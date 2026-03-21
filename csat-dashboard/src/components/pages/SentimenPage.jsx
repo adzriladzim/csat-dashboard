@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { MessageSquareText, TrendingUp, TrendingDown, Minus, Search } from 'lucide-react'
 import useStore from '@/lib/store'
-import { buildWordCloud, analyzeSentiment, aggregateByDosen } from '@/utils/analytics'
+import { buildWordCloud, analyzeSentiment, aggregateByDosen, fmt } from '@/utils/analytics'
 import FilterBar from '@/components/filters/FilterBar'
 import clsx from 'clsx'
 
@@ -83,28 +83,28 @@ export default function SentimenPage() {
           Analisis <span style={{ color: 'var(--brand)' }}>Sentimen & Komentar</span>
         </h1>
         <p className="text-sm mt-1.5 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
-          Mengekstrak wawasan dari {allFeedbacks.length} masukan mahasiswa · Universitas Cakrawala
+          Mengekstrak wawasan dari {fmt(allFeedbacks.length)} masukan mahasiswa · Universitas Cakrawala
         </p>
       </div>
 
       <FilterBar />
 
       {/* Sentiment summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { key: 'positive', label: 'Positif',  icon: TrendingUp,   color: '#34d399', bg: 'bg-emerald-500/5 border-emerald-500/10' },
-          { key: 'neutral',  label: 'Netral',   icon: Minus,         color: 'var(--muted)', bg: 'bg-u-navy border-[var(--brand-border)]' },
+          { key: 'neutral',  label: 'Netral',   icon: Minus,         color: '#64748b', bg: 'bg-slate-500/5 border-slate-500/10' },
           { key: 'negative', label: 'Negatif',  icon: TrendingDown,  color: '#f87171', bg: 'bg-red-500/5 border-red-500/10' },
         ].map(({ key, label, icon: Icon, color, bg }) => (
-          <div key={key} className={clsx('card p-6 border', bg)}>
+          <div key={key} className={clsx('card p-6 border transition-all flex flex-col', bg)}>
             <div className="flex items-center justify-between">
               <Icon size={20} style={{ color }} />
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60" style={{ color: 'var(--muted)' }}>
                 {counts.total ? Math.round((counts[key] / counts.total) * 100) : 0}% Distribusi
               </span>
             </div>
-            <p className="font-serif-accent text-4xl font-extrabold mt-4" style={{ color }}>{counts[key]}</p>
-            <p className="text-[11px] font-bold uppercase tracking-wider mt-1 opacity-70">Sentimen {label}</p>
+            <p className="font-serif-accent text-4xl font-extrabold mt-4" style={{ color }}>{fmt(counts[key])}</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider mt-1 opacity-70" style={{ color: 'var(--muted)' }}>Sentimen {label}</p>
           </div>
         ))}
       </div>
@@ -112,7 +112,7 @@ export default function SentimenPage() {
       {/* Word clouds */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <WordCloudCard title="💬 Kata Kunci Unggulan" words={feedbackWords} color="var(--brand)" />
-        <WordCloudCard title="📚 Evaluasi Materi" words={topicWords} color="#fbbf24" />
+        <WordCloudCard title="📚 Evaluasi Materi" words={topicWords} color="#d97706" />
       </div>
 
       {/* Per-dosen sentiment */}
@@ -129,7 +129,7 @@ export default function SentimenPage() {
               </div>
               <div className="flex items-baseline gap-2 w-28 justify-end flex-shrink-0">
                 <span className="text-xs font-mono font-bold text-emerald-400">{positiveRate}%</span>
-                <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">{total} Respon</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">{fmt(total)} Respon</span>
               </div>
             </div>
           ))}
@@ -141,21 +141,21 @@ export default function SentimenPage() {
         <div className="flex flex-wrap items-center gap-5 mb-6">
           <div className="flex-1 min-w-[200px]">
             <h2 className="section-title">Log Masukan Mahasiswa</h2>
-            <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest mt-1">Total {shownFeedbacks.length} Masukan</p>
+            <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest mt-1">Total {fmt(shownFeedbacks.length)} Masukan</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Sentiment filter tabs */}
-            <div className="flex gap-1 bg-u-navy border border-[var(--brand-border)] rounded-xl p-1">
+            <div className="flex gap-1 bg-[var(--u-navy)] border border-[var(--brand-border)] rounded-xl p-1 shadow-inner">
               {SENTIMEN_FILTER.map(s => (
                 <button
                   key={s}
                   onClick={() => setSentimenFilter(s)}
                   className={clsx(
-                    'px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all',
+                    'px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all',
                     sentimenFilter === s
-                      ? 'bg-[var(--brand)] text-[var(--u-navy)] shadow-sm'
-                      : 'text-[var(--muted)] hover:text-white'
+                      ? 'bg-[var(--brand)] text-white shadow-md scale-[1.02]'
+                      : 'text-white/40 hover:text-white/90'
                   )}
                 >
                   {s === 'all' ? 'Semua' : s === 'positive' ? 'Positif' : s === 'negative' ? 'Negatif' : 'Netral'}
@@ -183,7 +183,7 @@ export default function SentimenPage() {
             <p className="col-span-full text-slate-500 text-sm text-center py-12 font-medium">Tidak ditemukan komentar yang sesuai dengan filter pencarian.</p>
           )}
           {shownFeedbacks.map((f, i) => (
-            <div key={i} className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-[var(--brand-border)] transition-all flex gap-4 group">
+            <div key={i} className="p-4 rounded-2xl bg-[var(--bg-input)] border border-[var(--border)] hover:border-[var(--brand-border)] transition-all flex gap-4 group">
               <div
                 className="w-1.5 flex-shrink-0 rounded-full self-stretch shadow-sm"
                 style={{ backgroundColor: sentimentColor(f.sentiment) }}
@@ -191,11 +191,11 @@ export default function SentimenPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-[11px] font-bold uppercase tracking-wide opacity-80" style={{ color: 'var(--foreground)' }}>{f.dosen}</span>
-                  <span className="w-1 h-1 rounded-full bg-slate-700" />
+                  <span className="w-1 h-1 rounded-full opacity-20 bg-current" style={{ color: 'var(--foreground)' }} />
                   <span className="text-[10px] font-bold text-[var(--brand)] uppercase tracking-tight">{f.pertemuan ? `P${f.pertemuan}` : 'Umum'}</span>
                 </div>
-                <p className="text-sm text-slate-300 leading-relaxed font-medium italic opacity-90">"{f.text}"</p>
-                <p className="text-[10px] font-bold mt-3 opacity-40 uppercase tracking-widest">{f.mataKuliah}</p>
+                <p className="text-sm leading-relaxed font-medium italic opacity-90" style={{ color: 'var(--foreground-2)' }}>"{f.text}"</p>
+                <p className="text-[10px] font-bold mt-3 opacity-40 uppercase tracking-widest" style={{ color: 'var(--muted)' }}>{f.mataKuliah}</p>
               </div>
             </div>
           ))}
@@ -225,13 +225,14 @@ function WordCloudCard({ title, words, color }) {
           return (
             <span
               key={text}
-              className="px-2.5 py-1 rounded-lg border transition-all cursor-default hover:opacity-100"
+              className="px-2.5 py-1 rounded-lg border transition-all cursor-default hover:scale-110"
               style={{
                 fontSize: size,
                 color,
                 opacity,
-                backgroundColor: `${color}10`,
-                borderColor: `${color}25`,
+                backgroundColor: `${color}15`,
+                borderColor: `${color}40`,
+                fontWeight: ratio > 0.5 ? 900 : 700,
               }}
             >
               {text}

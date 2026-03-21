@@ -1,25 +1,54 @@
-function findCol(headers, keyword) {
-  if (!headers) return null
-  return headers.find(h => h && h.toLowerCase().includes(keyword.toLowerCase())) || null
+function findCols(headers, keyword, excludeKeyword = null) {
+  if (!headers) return []
+  return headers.filter(h => {
+    if (!h) return false
+    const lh = h.toLowerCase()
+    const lk = keyword.toLowerCase()
+    if (excludeKeyword && lh.includes(excludeKeyword.toLowerCase())) return false
+    return lh.includes(lk)
+  })
 }
-function getVal(row, headers, keyword) {
-  const col = findCol(headers, keyword)
-  return col ? (row[col] ?? '') : ''
+function getVal(row, headers, keyword, excludeKeyword = null) {
+  const cols = findCols(headers, keyword, excludeKeyword)
+  for (const col of cols) {
+    const val = (row[col] ?? '').toString().trim()
+    if (val !== '') return val
+  }
+  return ''
+}
+function getByKeywords(row, headers, keywords, excludeKeywords = []) {
+  if (!headers) return ''
+  const col = headers.find(h => {
+    if (!h) return false
+    const lh = h.toLowerCase()
+    const matchesAll = keywords.every(k => lh.includes(k.toLowerCase()))
+    const matchesAnyExclude = excludeKeywords.some(k => lh.includes(k.toLowerCase()))
+    return matchesAll && !matchesAnyExclude
+  })
+  return col ? (row[col] ?? '').toString().trim() : ''
 }
 function getExact(row, headers, exactName) {
   const col = headers?.find(h => h?.toLowerCase() === exactName.toLowerCase())
-  return col ? (row[col] ?? '') : ''
+  return col ? (row[col] ?? '').toString().trim() : ''
 }
 function parseScore(val) {
   if (!val) return null
-  const m = String(val).trim().match(/^\((\d+(?:\.\d+)?)\)/)
+  const s = String(val).trim()
+  // Match (5) Text...
+  const m = s.match(/^\((\d+(?:\.\d+)?)\)/)
   if (m) { const n = parseFloat(m[1]); if (!isNaN(n) && n >= 1 && n <= 5) return n }
-  const n = parseFloat(String(val))
-  return (!isNaN(n) && n >= 1 && n <= 5) ? n : null
+  
+  // Match PURE numbers only (avoids "1. Topic Name")
+  if (/^\d+(?:\.\d+)?$/.test(s)) {
+    const n = parseFloat(s)
+    return (!isNaN(n) && n >= 1 && n <= 5) ? n : null
+  }
+  return null
 }
 function computeCsat(a, b, c) {
-  const vals = [a, b, c].filter(v => v != null)
-  return vals.length ? vals.reduce((x,y)=>x+y,0)/vals.length : null
+  const scores = [a, b, c].filter(s => s !== null)
+  if (scores.length === 0) return null
+  return scores.reduce((sum, s) => sum + s, 0) / scores.length
 }
 function cleanText(val) {
   if (!val) return null
@@ -28,6 +57,23 @@ function cleanText(val) {
   if (['-','.','..','-','–','—','_','tidak ada','tdk ada','belum ada','tidak','tdk','belum',
        'n/a','na','none','nothing','no','nope','oke','ok','okay','baik','baik.','baik!'].includes(s.toLowerCase())) return null
   return s
+}
+
+function normalizeName(val) {
+  if (!val) return null
+  let s = String(val).trim().toUpperCase()
+  // Strip common academic titles
+  s = s.replace(/,\s*(S\..*|M\..*|PH\.D|DR\.|PROF\.).*/gi, '')
+  s = s.replace(/\s+(S\..*|M\..*|PH\.D|DR\.|PROF\.).*/gi, '')
+  // Strip common suffixes/prefixes like MK codes after a dash (e.g. "Dosen - MK101")
+  const parts = s.split(' - ')
+  if (parts.length > 1) s = parts[0].trim()
+  return s.replace(/\s+/g, ' ')
+}
+
+function normalizeMK(val) {
+  if (!val) return null
+  return String(val).trim().replace(/\s+/g, ' ')
 }
 
 function extractFaktor(val) {
@@ -135,10 +181,17 @@ export function parseRow(row, headers) {
   const kk1       = cleanText(getExact(row, headers, 'Kode Kelas'))
   const kk2       = cleanText(getExact(row, headers, 'Kode Kelas 2'))
   
-  // -- Blok A Keywords (questions) --
-  const hPemahaman = getVal(row, headers, 'tingkat pemahaman') || getVal(row, headers, 'materi')
-  const hInteraktif = getVal(row, headers, 'Interaktif yang dimaksud') || getVal(row, headers, 'interaktif')
-  const hPerforma = getVal(row, headers, 'kepuasan kamu terhadap performa') || getVal(row, headers, 'performa') || getVal(row, headers, 'kepuasan')
+  // -- ULTRA-STRICT KEYWORD-SET MATCHING (EXCLUDES FAKTOR/REASONING) --
+  const scoreExcludes = ['faktor', 'mengapa', 'alasan', 'sebutkan']
+  
+  const hPemahaman  = getByKeywords(row, headers, ['Seberapa','paham','materi'], scoreExcludes) ||
+                      getByKeywords(row, headers, ['bagaimana','pemahaman','kelas'], scoreExcludes)
+                      
+  const hInteraktif = getByKeywords(row, headers, ['Interaktif','komunikasi','dua arah'], scoreExcludes) ||
+                      getByKeywords(row, headers, ['Interaktif','interaksi','moderator'], scoreExcludes)
+                      
+  const hPerforma   = getByKeywords(row, headers, ['Sejauh mana','kepuasan','performa'], scoreExcludes) ||
+                      getByKeywords(row, headers, ['Bagaimana','kepuasan','performa','mengajar'], scoreExcludes)
   
   const pemahaman  = parseScore(hPemahaman)
   const interaktif = parseScore(hInteraktif)
@@ -153,27 +206,28 @@ export function parseRow(row, headers) {
   const fp1 = cleanText(getVal(row, headers, 'faktor pendorong skor performa')) || extractFaktor(hPerforma)
   const fp2 = cleanText(getVal(row, headers, 'faktor pendorong skor interaktif')) || extractFaktor(hInteraktif)
   return {
-    timestamp_response:  tsISO,
-    tanggal:             tsISO ? tsISO.slice(0, 10) : null,
-    semester:            cleanText(getVal(row, headers, 'Semester Berjalan')) || cleanText(getVal(row, headers, 'Semester')) || null,
-    angkatan:            cleanText(getVal(row, headers, 'Angkatan')) || null,
-    fakultas:            cleanText(getVal(row, headers, 'Fakultas')) || null,
-    nama_mahasiswa:      cleanText(getVal(row, headers, 'Nama Mahasiswa')) || null,
-    nim:                 cleanText(getVal(row, headers, 'NIM')) || null,
-    prodi:               prodi1 || prodi2 || null,
-    mata_kuliah:         mk1 || mk2 || null,
-    kode_kelas:          kk1 || kk2 || null,
-    nama_dosen:          (getVal(row, headers, 'Nama Dosen') || '').trim(),
-    pertemuan:           parseInt(pertemuanRaw) || null,
-    skor_pemahaman:      pemahaman,
-    skor_interaktif:     interaktif,
-    skor_performa:       performa,
-    csat_gabungan:       computeCsat(pemahaman, interaktif, performa),
-    topik_belum_paham:   (topikClean && isValidTopik(topikClean)) ? topikClean : null,
-    feedback_dosen:      (fbClean && isValidFeedback(fbClean)) ? fbClean : null,
-    faktor_performa:     fp1,
-    faktor_interaktif:   fp2,
-    moda:                cleanText(getExact(row, headers, 'Moda')) || cleanText(getVal(row, headers, 'Delivery')) || null,
-    sesi:                cleanText(getExact(row, headers, 'Sesi')) || cleanText(getExact(row, headers, 'Shift')) || cleanText(getExact(row, headers, 'Waktu')) || null,
+    timestampResponse:  tsISO,
+    tanggal:            tsISO ? tsISO.slice(0, 10) : null,
+    semester:           cleanText(getVal(row, headers, 'Semester Berjalan')) || cleanText(getVal(row, headers, 'Semester')) || null,
+    angkatan:           cleanText(getVal(row, headers, 'Angkatan')) || null,
+    fakultas:           cleanText(getVal(row, headers, 'Fakultas')) || null,
+    namaMahasiswa:      cleanText(getVal(row, headers, 'Nama Mahasiswa')) || null,
+    nim:                cleanText(getVal(row, headers, 'NIM')) || null,
+    prodi:              prodi1 || prodi2 || null,
+    mataKuliah:         normalizeMK(mk1 || mk2),
+    kodeKelas:          normalizeMK(kk1 || kk2),
+    namaDosen:          normalizeName(getVal(row, headers, 'Nama Dosen')),
+    pertemuan: parseInt(pertemuanRaw?.toString().replace(/[^0-9]/g, '')) || null,
+    skorPemahaman:      pemahaman,
+    skorInteraktif:     interaktif,
+    skorPerforma:       performa,
+    csatGabungan:       computeCsat(pemahaman, interaktif, performa),
+    topikBelumPaham:    (topikClean && isValidTopik(topikClean)) ? topikClean : null,
+    feedbackDosen:      (fbClean && isValidFeedback(fbClean)) ? fbClean : null,
+    faktorPerforma:     fp1,
+    faktorInteraktif:   fp2,
+    moda:               cleanText(getExact(row, headers, 'Moda')) || cleanText(getVal(row, headers, 'Delivery')) || null,
+    sesi:               cleanText(getExact(row, headers, 'Sesi')) || cleanText(getExact(row, headers, 'Shift')) || cleanText(getExact(row, headers, 'Waktu')) || null,
+    semesterConflict:   (String(tsRaw).toLowerCase().includes('genap') || true) && String(getVal(row, headers, 'Semester')).toLowerCase().includes('ganjil')
   }
 }

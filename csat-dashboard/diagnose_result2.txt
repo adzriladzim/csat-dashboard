@@ -1,0 +1,39 @@
+Pemahaman header [16]: "Bagaimana tingkat pemahaman kamu terhadap kelas hari ini?"
+Length: 57
+Char codes: 66,97,103,97,105,109,97,110,97,32,116,105,110,103,107,97,116,32,112,101,109,97,104,97,109,97,110,32,107,97,109,117,32,116,101,114,104,97,100,97,112,32,107,101,108,97,115,32,104,97,114,105,32,105,110,105,63
+  "bagaimana" in header? true
+  "pemahaman" in header? true
+  "kelas" in header? true
+  "Seberapa" in header? false
+  "paham" in header? false
+  "materi" in header? false
+
+=== SIMPLE KEYWORD TEST ===
+  "pemahaman" matches 1 columns:
+    "Bagaimana tingkat pemahaman kamu terhadap kelas hari ini?"
+  "paham" matches 1 columns:
+    "Topik apa yang masih belum kamu pahami dan adakah hal-hal ya"
+  "kelas" matches 5 columns:
+    "Kode Kelas"
+    "Kode Kelas 2"
+    "Bagaimana tingkat pemahaman kamu terhadap kelas hari ini?"
+    "Topik apa yang masih belum kamu pahami dan adakah hal-hal ya"
+    "Interaktif yang dimaksud adalah interaksi yang terjadi selam"
+  "bagaimana" matches 2 columns:
+    "Bagaimana tingkat pemahaman kamu terhadap kelas hari ini?"
+    "Bagaimana tingkat kepuasan kamu terhadap performa mengajar D"
+  "interaktif" matches 1 columns:
+    "Interaktif yang dimaksud adalah interaksi yang terjadi selam"
+  "performa" matches 1 columns:
+    "Bagaimana tingkat kepuasan kamu terhadap performa mengajar D"
+  "kepuasan" matches 1 columns:
+    "Bagaimana tingkat kepuasan kamu terhadap performa mengajar D"
+
+CORRECT COLUMNS:
+  P: "Bagaimana tingkat pemahaman kamu terhadap kelas hari ini?"
+  I: "Interaktif yang dimaksud adalah interaksi yang terjadi selam"
+  F: "Bagaimana tingkat kepuasan kamu terhadap performa mengajar D"
+
+VALID (all 3 scores): 7244
+EXPECTED: 7201
+MATCH: NO - diff=43

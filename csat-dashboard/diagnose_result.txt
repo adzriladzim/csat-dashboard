@@ -1,0 +1,61 @@
+Total rows: 7244
+Total columns: 21
+
+=== ALL HEADERS ===
+  [0] "Timestamp"
+  [1] "Email Address"
+  [2] "Nama Mahasiswa"
+  [3] "NIM"
+  [4] "NIM 2"
+  [5] "Angkatan Perkuliahan"
+  [6] "Semester Berjalan"
+  [7] "Fakultas"
+  [8] "Program Studi"
+  [9] "Mata Kuliah"
+  [10] "Kode Kelas"
+  [11] "Program Studi 2"
+  [12] "Mata Kuliah 2"
+  [13] "Kode Kelas 2"
+  [14] "Nama Dosen"
+  [15] "Pertemuan ke"
+  [16] "Bagaimana tingkat pemahaman kamu terhadap kelas hari ini?"
+  [17] "Topik apa yang masih belum kamu pahami dan adakah hal-hal yang masih ingin kamu ketahui dari kelas hari ini?"
+  [18] "Interaktif yang dimaksud adalah interaksi yang terjadi selama kelas berlangsung antara dosen, moderator dan mahasiswa. Beberapa aspek yang memengaruhi interaktifnya suatu kelas antara lain: \n1. Penyampaian materi satu atau dua arah dari dosen\n2. Sesi tanya jawab sedikit/banyak\n3. Suasana kelas yang membosankan/tidak\n4. Sesi praktek/hands-on di dalam kelas yang menyenangkan"
+  [19] "Bagaimana tingkat kepuasan kamu terhadap performa mengajar DOSEN hari ini?"
+  [20] "Apakah ada feedback untuk DOSEN hari ini? \nJika iya, boleh diceritakan sejelas-jelasnya dan sejujur-jujurnya."
+
+=== PEMAHAMAN candidates ===
+=== INTERAKTIF candidates ===
+  "Interaktif yang dimaksud adalah interaksi yang terjadi selama kelas berlangsung antara dosen, moderator dan mahasiswa. Beberapa aspek yang memengaruhi interaktifnya suatu kelas antara lain: \n1. Penyampaian materi satu atau dua arah dari dosen\n2. Sesi tanya jawab sedikit/banyak\n3. Suasana kelas yang membosankan/tidak\n4. Sesi praktek/hands-on di dalam kelas yang menyenangkan"
+=== PERFORMA candidates ===
+  "Bagaimana tingkat kepuasan kamu terhadap performa mengajar DOSEN hari ini?"
+
+=== FAKTOR columns (should be excluded) ===
+
+SELECTED: Pemahaman = undefined
+SELECTED: Interaktif = "Interaktif yang dimaksud adalah interaksi yang terjadi selama kelas berlangsung antara dosen, moderator dan mahasiswa. Beberapa aspek yang memengaruhi interaktifnya suatu kelas antara lain: \n1. Penyampaian materi satu atau dua arah dari dosen\n2. Sesi tanya jawab sedikit/banyak\n3. Suasana kelas yang membosankan/tidak\n4. Sesi praktek/hands-on di dalam kelas yang menyenangkan"
+SELECTED: Performa = "Bagaimana tingkat kepuasan kamu terhadap performa mengajar DOSEN hari ini?"
+
+=== RESULTS ===
+All 3 scores valid: 0
+Missing any score:  7244
+Target:             7201 (diff=43)
+
+=== SAMPLE MISSING ROWS ===
+  Row 2: P="" (null), I="(5) Keberjalanan kelas sangat menarik dan tidak membosankan sama sekali (semua aspek sangat bagus)" (5), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+  Row 3: P="" (null), I="(5) Keberjalanan kelas sangat menarik dan tidak membosankan sama sekali (semua aspek sangat bagus)" (5), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+  Row 4: P="" (null), I="(5) Keberjalanan kelas sangat menarik dan tidak membosankan sama sekali (semua aspek sangat bagus)" (5), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+  Row 5: P="" (null), I="(2) Keberjalanan kelas sedikit menarik, tetapi masih membosankan. (penjelasan satu arah dari mentor, terdapat beberapa kegiatan tanya jawab tapi kurang interaksi, tidak ada sesi praktik)" (2), F="(3) dosen hanya menyampaikan materi dari deck, tetapi memfasilitasi diskusi & tanya jawab" (3)
+  Row 6: P="" (null), I="(4) Keberjalanan kelas cukup menarik dan tidak membosankan. (penjelasan dua arah dari mentor, terdapat kegiatan tanya jawab, dan ada sesi praktik)" (4), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+  Row 7: P="" (null), I="(4) Keberjalanan kelas cukup menarik dan tidak membosankan. (penjelasan dua arah dari mentor, terdapat kegiatan tanya jawab, dan ada sesi praktik)" (4), F="(4) dosen menyampaikan materi dari deck, memfasilitasi diskusi & tanya jawab, serta menciptakan suasana belajar yang menyenangkan" (4)
+  Row 8: P="" (null), I="(3) Keberjalanan kelas kurang menarik, tetapi kegiatan kelas tidak membosankan (penjelasan satu arah dari mentor, terdapat beberapa kegiatan tanya jawab, dan ada sesi praktik)" (3), F="(4) dosen menyampaikan materi dari deck, memfasilitasi diskusi & tanya jawab, serta menciptakan suasana belajar yang menyenangkan" (4)
+  Row 9: P="" (null), I="(4) Keberjalanan kelas cukup menarik dan tidak membosankan. (penjelasan dua arah dari mentor, terdapat kegiatan tanya jawab, dan ada sesi praktik)" (4), F="(4) dosen menyampaikan materi dari deck, memfasilitasi diskusi & tanya jawab, serta menciptakan suasana belajar yang menyenangkan" (4)
+  Row 10: P="" (null), I="(4) Keberjalanan kelas cukup menarik dan tidak membosankan. (penjelasan dua arah dari mentor, terdapat kegiatan tanya jawab, dan ada sesi praktik)" (4), F="(4) dosen menyampaikan materi dari deck, memfasilitasi diskusi & tanya jawab, serta menciptakan suasana belajar yang menyenangkan" (4)
+  Row 11: P="" (null), I="(5) Keberjalanan kelas sangat menarik dan tidak membosankan sama sekali (semua aspek sangat bagus)" (5), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+  Row 12: P="" (null), I="(4) Keberjalanan kelas cukup menarik dan tidak membosankan. (penjelasan dua arah dari mentor, terdapat kegiatan tanya jawab, dan ada sesi praktik)" (4), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+  Row 13: P="" (null), I="(5) Keberjalanan kelas sangat menarik dan tidak membosankan sama sekali (semua aspek sangat bagus)" (5), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+  Row 14: P="" (null), I="(5) Keberjalanan kelas sangat menarik dan tidak membosankan sama sekali (semua aspek sangat bagus)" (5), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+  Row 15: P="" (null), I="(5) Keberjalanan kelas sangat menarik dan tidak membosankan sama sekali (semua aspek sangat bagus)" (5), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+  Row 16: P="" (null), I="(5) Keberjalanan kelas sangat menarik dan tidak membosankan sama sekali (semua aspek sangat bagus)" (5), F="(5) dosen dengan passionate menyampaikan materi dari deck, serta memfasilitasi diskusi & tanya jawab, sehingga suasana kelas terasa sangat hidup dan saya tidak hanya memperoleh ilmu baru, melainkan juga terinspirasi" (5)
+
+=== UNPARSEABLE VALUES (values that have text but fail parseScore) ===

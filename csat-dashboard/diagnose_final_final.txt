@@ -1,0 +1,7 @@
+EKP2169 (43 rows) Semester distribution:
+  III (Ganjil): 15
+  IV (Genap): 28
+
+SDA2141 (40 rows) Semester distribution:
+  I (Ganjil): 23
+  II (Genap): 17

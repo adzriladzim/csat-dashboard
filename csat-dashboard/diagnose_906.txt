@@ -1,0 +1,30 @@
+Total Ganjil detected: 550
+
+Courses with Ganjil entries:
+  81: CIK1107 - Discrete Mathematics
+  81: WUC1113 - Design Thinking
+  68: CEB1102 - Introduction to Economics
+  65: CIK1109 - Human-Computer Interaction
+  52: CEB1104 - Introduction to Accounting
+  39: CEB1105 - Financial Markets and FinTech
+  33: IKR2131 - Programming Fundamentals (Python)
+  23: SDA2141 - Foundations of Data Science
+  18: STI2138 - Programming for Business
+  12: CIK2109 - Data Structures
+  11: CIK2108 - Object-Oriented Programming
+  11: CEB1103 - Financial Management
+  8: BDL2144 - Basics of User Interface Design & User Experience (UI/UX)
+  7: IKR2130 - Human-Centered Design
+  7: WUC1116 - English
+  6: EKP2154 - Financial Management
+  6: BDL2108 - E-Commerce
+  5: BDL2148 - Basic Web Development
+  4: STI2136 - Business & Technology Modelling
+  3: EKP2152 - Microeconomics
+  2: SDA2138 - Data Wrangling
+  2: STI2131 - Database I: Data Modelling and Query Languages
+  2: EKP2150 - Banking and Non-Bank Financial Institutions
+  1: IKR2125 - Database Systems
+  1: BDL2146 - Consumer Behavior
+  1: SDA2133 - Database Systems
+  1: EKP2153 - Financial Accounting

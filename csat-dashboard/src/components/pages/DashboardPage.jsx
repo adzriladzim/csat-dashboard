@@ -25,8 +25,10 @@ export default function DashboardPage() {
   const [exportingAll, setExportingAll] = useState(false)
 
   const filtered  = getFiltered()
-  const dosenList = useMemo(() => aggregateByDosen(filtered), [filtered])
+  const { parsedData } = useStore()
+  const dosenList = useMemo(() => aggregateByDosen(filtered, parsedData), [filtered, parsedData])
   const anomalies = useMemo(() => detectAnomalies(dosenList), [dosenList])
+  const conflicts = useMemo(() => filtered.filter(r => r.semesterConflict).length, [filtered])
 
   useMemo(() => setPage(1), [filtered.length])
 
@@ -65,16 +67,21 @@ export default function DashboardPage() {
           </h1>
           <div className="flex items-center gap-2 mt-1.5">
             <p className="text-sm font-bold" style={{ color: 'var(--muted)' }}>
-              {filtered.length.toLocaleString('id-ID')} Responden Valid
+              {fmt(filtered.length)} Responden Valid
             </p>
             {removedCount > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold uppercase">
-                {removedCount} Data Junk/Duplikat Terfilter
+                {fmt(removedCount)} Data Junk/Duplikat Terfilter
+              </span>
+            )}
+            {conflicts > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 font-bold uppercase flex items-center gap-1">
+                <AlertCircle size={10} /> {fmt(conflicts)} Data Ganjil (Periode Genap)
               </span>
             )}
             <span className="text-sm opacity-30" style={{ color: 'var(--muted)' }}>·</span>
             <p className="text-sm font-bold" style={{ color: 'var(--muted)' }}>
-              {dosenList.length} Dosen · {fileName}
+              {fmt(dosenList.length)} Dosen · {fileName}
             </p>
           </div>
         </div>
@@ -107,8 +114,8 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Responden Valid"    value={filtered.length.toLocaleString('id-ID')} icon={Users}         size="sm" />
-        <StatCard label="Jumlah Dosen"       value={dosenList.length}                        icon={Award}         size="sm" />
+        <StatCard label="Responden Valid"    value={fmt(filtered.length)} icon={Users}         size="sm" />
+        <StatCard label="Jumlah Dosen"       value={fmt(dosenList.length)}                        icon={Award}         size="sm" />
         <StatCard 
           label="Mapping Data"       
           value={`${mappingAccuracy.toFixed(1)}%`} 
@@ -148,7 +155,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2.5">
             <h2 className="section-title">Database Kinerja Dosen</h2>
-            <span className="badge bg-u-navy text-brand border border-[var(--brand-border)]">{dosenList.length}</span>
+            <span className="badge bg-u-navy text-brand border border-[var(--brand-border)]">{fmt(dosenList.length)}</span>
           </div>
         </div>
 
@@ -189,13 +196,13 @@ export default function DashboardPage() {
                     <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPerforma) }}>{fmt(d.skorPerforma)}</td>
                     <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPemahaman) }}>{fmt(d.skorPemahaman)}</td>
                     <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorInteraktif) }}>{fmt(d.skorInteraktif)}</td>
-                    <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{d.totalRespon}</td>
+                    <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{fmt(dosenList.find(x=>x.namaDosen===d.namaDosen).totalRespon)}</td>
                     <td>
                       <div className="flex items-center justify-start gap-2">
                         <ExportMenu dosenData={d} />
                         <button
                           onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--brand-dim)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-[var(--u-navy)] transition-all"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--brand-dim)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white transition-all"
                         >
                           <ChevronRight size={16} />
                         </button>
@@ -212,7 +219,7 @@ export default function DashboardPage() {
         {totalPages > 1 && (
           <div className="flex flex-col lg:flex-row items-center justify-between mt-8 pt-6 border-t border-[var(--border)] gap-6">
             <div className="text-xs sm:text-sm font-medium text-[var(--muted)] text-center lg:text-left">
-              Menampilkan <span className="text-[var(--foreground)] font-bold">{(page-1)*PAGE_SIZE + 1}</span> - <span className="text-[var(--foreground)] font-bold">{Math.min(page*PAGE_SIZE, dosenList.length)}</span> dari <span className="text-[var(--foreground)] font-bold">{dosenList.length}</span> dosen
+              Menampilkan <span className="text-[var(--foreground)] font-bold">{fmt((page-1)*PAGE_SIZE + 1)}</span> - <span className="text-[var(--foreground)] font-bold">{fmt(Math.min(page*PAGE_SIZE, dosenList.length))}</span> dari <span className="text-[var(--foreground)] font-bold">{fmt(dosenList.length)}</span> dosen
             </div>
             
             <div className="flex flex-wrap items-center justify-center gap-2">
@@ -273,7 +280,7 @@ export default function DashboardPage() {
                         onClick={() => setPage(p)}
                         className={clsx('w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 rounded-lg text-xs font-bold transition-all border',
                           p === page 
-                            ? 'bg-[var(--brand)] text-white dark:text-[var(--u-navy)] border-[var(--brand)] shadow-lg shadow-brand/20' 
+                            ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20' 
                             : 'text-[var(--muted)] hover:bg-[var(--brand-dim)] border-transparent'
                         )}
                       >

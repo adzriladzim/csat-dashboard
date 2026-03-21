@@ -1,0 +1,26 @@
+Timestamp
+Email Address
+Nama Mahasiswa
+NIM
+NIM 2
+Angkatan Perkuliahan
+Semester Berjalan
+Fakultas
+Program Studi
+Mata Kuliah
+Kode Kelas
+Program Studi 2
+Mata Kuliah 2
+Kode Kelas 2
+Nama Dosen
+Pertemuan ke
+Bagaimana tingkat pemahaman kamu terhadap kelas hari ini?
+Topik apa yang masih belum kamu pahami dan adakah hal-hal yang masih ingin kamu ketahui dari kelas hari ini?
+Interaktif yang dimaksud adalah interaksi yang terjadi selama kelas berlangsung antara dosen, moderator dan mahasiswa. Beberapa aspek yang memengaruhi interaktifnya suatu kelas antara lain: 
+1. Penyampaian materi satu atau dua arah dari dosen
+2. Sesi tanya jawab sedikit/banyak
+3. Suasana kelas yang membosankan/tidak
+4. Sesi praktek/hands-on di dalam kelas yang menyenangkan
+Bagaimana tingkat kepuasan kamu terhadap performa mengajar DOSEN hari ini?
+Apakah ada feedback untuk DOSEN hari ini? 
+Jika iya, boleh diceritakan sejelas-jelasnya dan sejujur-jujurnya.

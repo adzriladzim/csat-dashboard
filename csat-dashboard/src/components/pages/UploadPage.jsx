@@ -13,6 +13,7 @@ export default function UploadPage() {
   const [status,   setStatus]   = useState('idle')
   const [error,    setError]    = useState('')
   const [info,     setInfo]     = useState(null)
+  const { removedCount } = useStore()
 
   const process = useCallback(async (file) => {
     if (!file) return
@@ -70,6 +71,7 @@ export default function UploadPage() {
           <p className="text-sm font-medium opacity-70 max-w-xs mx-auto" style={{ color:'var(--muted)' }}>
             Sistem Analisis Kepuasan Mahasiswa Terhadap Kinerja Dosen Cakrawala University
           </p>
+          <p className="text-[10px] text-blue-400 mt-1">System Version: {useStore.getState().version}</p>
         </div>
 
         {/* Card */}
