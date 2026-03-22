@@ -114,23 +114,23 @@ export default function DashboardPage() {
       {/* Global stats */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger">
         <StatCard 
-          label="CSAT"    
+          label="CSAT Gabungan"
           value={fmt(globalCsat)}       
           sub={scoreLabel(globalCsat)}       
           icon={Star}       
           highlight={true}
           color="#3b82f6"
         />
-        <StatCard label="Performa"   value={fmt(globalPerforma)}   sub={scoreLabel(globalPerforma)}   icon={TrendingUp} />
-        <StatCard label="Pemahaman" value={fmt(globalPemahaman)}  sub={scoreLabel(globalPemahaman)}  icon={BookOpen}   />
-        <StatCard label="Interaksi"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   />
+        <StatCard label="Performa Dosen"   value={fmt(globalPerforma)}   sub={scoreLabel(globalPerforma)}   icon={TrendingUp} />
+        <StatCard label="Pemahaman Materi" value={fmt(globalPemahaman)}  sub={scoreLabel(globalPemahaman)}  icon={BookOpen}   />
+        <StatCard label="Interaktivitas Kelas"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   />
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Responden"    value={fmt(filtered.length)} icon={Users}         size="sm" />
-        <StatCard label="Total Dosen"       value={fmt(dosenList.length)}                        icon={Award}         size="sm" />
+        <StatCard label="Total Responden"    value={fmt(filtered.length)} icon={Users}         size="sm" />
+        <StatCard label="Jumlah Dosen"       value={fmt(dosenList.length)}                        icon={Award}         size="sm" />
         <StatCard 
-          label="Mapping"       
+          label="Keberhasilan Mapping"       
           value={`${mappingAccuracy.toFixed(1)}%`} 
           icon={CheckCircle2} 
           highlightAlt={true}
@@ -138,7 +138,7 @@ export default function DashboardPage() {
           color="#10b981"
         />
         <StatCard 
-          label="Anomali"            
+          label="Perhatian"            
           value={anomalies.filter(a=>a.type==='concern').length} 
           icon={AlertCircle} 
           color="#f87171" 
