@@ -126,45 +126,44 @@ export default function DosenDetailPage() {
     <div className="p-4 md:p-6 space-y-6 animate-enter">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 leading-tight">
         <div className="flex items-start gap-4 flex-1 min-w-0">
           <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--bg-input)] border border-[var(--border)] hover:bg-[var(--brand-dim)] hover:text-[var(--brand)] transition-all flex-shrink-0">
             <ArrowLeft size={18} />
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color: 'var(--brand)' }}>Laporan Kinerja Pengajar</p>
-            <h1 className="font-serif-accent text-2xl md:text-3xl font-extrabold truncate leading-tight" style={{ color: 'var(--foreground)' }}>
+            <h1 className="font-serif-accent text-2xl md:text-3xl font-extrabold truncate" style={{ color: 'var(--foreground)' }}>
               {dosenData.namaDosen}
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <ScoreBadge score={dosenData.csatGabungan} />
               <span className="w-1 h-1 rounded-full opacity-20 bg-current hidden sm:inline" style={{ color: 'var(--foreground)' }} />
-              <span className="text-xs font-bold uppercase tracking-wide opacity-60" style={{ color: 'var(--muted)' }}>{dosenData.prodi || 'Fakultas Utama'}</span>
+              <span className="text-xs font-bold uppercase tracking-wide opacity-60 truncate" style={{ color: 'var(--muted)' }}>{dosenData.prodi || 'Fakultas Utama'}</span>
               <span className="w-1 h-1 rounded-full opacity-20 bg-current hidden sm:inline" style={{ color: 'var(--foreground)' }} />
-              <span className="text-xs font-bold" style={{ color: 'var(--brand)' }}>{fmt(dosenData.totalRespon)} <span className="opacity-60 lowercase" style={{ color: 'var(--muted)' }}>responden</span></span>
+              <span className="text-xs font-bold" style={{ color: 'var(--brand)' }}>{fmt(dosenData.totalRespon)} <span className="opacity-60 lowercase font-normal" style={{ color: 'var(--muted)' }}>responden</span></span>
             </div>
           </div>
         </div>
 
-        {/* Export buttons */}
-        <div className="flex flex-wrap gap-2.5 flex-shrink-0">
-          <button onClick={() => exportSingleDosenExcel(dosenData)} className="btn-secondary h-11 px-4">
+        <div className="flex flex-wrap gap-2.5 flex-shrink-0 w-full lg:w-auto">
+          <button onClick={() => exportSingleDosenExcel(dosenData)} className="btn-secondary h-11 px-4 flex-1 lg:flex-none justify-center">
             <FileDown size={14} />Excel
           </button>
           {activeTab === 'semua' && (
-            <button onClick={handleExportAll} disabled={exporting === 'all'} className="btn-secondary h-11 px-4">
+            <button onClick={handleExportAll} disabled={exporting === 'all'} className="btn-secondary h-11 px-4 flex-1 lg:flex-none justify-center">
               <Download size={14} />
-              {exporting === 'all' ? 'Generating...' : 'PDF Semua Kelas'}
+              {exporting === 'all' ? '...' : 'PDF Semua Kelas'}
             </button>
           )}
           {activeTab !== 'semua' && activeKelasData && (
             <button
               onClick={() => handleExportKelas(activeKelasData)}
               disabled={exporting === activeKelasData.kodeKelas}
-              className="btn-primary h-11 px-4 shadow-lg shadow-brand/20"
+              className="btn-primary h-11 px-4 shadow-lg shadow-brand/20 flex-1 lg:flex-none justify-center"
             >
               <FileText size={14} />
-              {exporting === activeKelasData.kodeKelas ? 'Generating...' : `Laporan PDF ${activeKelasData.kodeKelas}`}
+              {exporting === activeKelasData.kodeKelas ? '...' : `PDF ${activeKelasData.kodeKelas}`}
             </button>
           )}
         </div>
@@ -196,62 +195,25 @@ export default function DosenDetailPage() {
         </div>
       </div>
 
-      {/* Tab per kelas */}
       {hasMultiKelas && (
         <div className="card p-6 border-brand-border/20">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-8 h-8 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center">
-               <LayoutGrid size={16} className="text-[var(--brand)]" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center shadow-sm">
+                 <LayoutGrid size={18} className="text-[var(--brand)]" />
+              </div>
+              <div>
+                <p className="text-sm font-bold leading-tight" style={{ color: 'var(--foreground)' }}>Segmentasi per Ruang Kelas</p>
+                <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mt-1">Ditemukan {kelasList.length} Kelas Aktif</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Segmentasi per Ruang Kelas</p>
-              <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest mt-0.5">Ditemukan {kelasList.length} Kelas Aktif</p>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap gap-2.5">
-            <button
-               onClick={() => setActiveTab('semua')}
-               className={clsx(
-                 'px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all border',
-                 activeTab === 'semua'
-                   ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20'
-                   : 'bg-[var(--bg-input)] text-[var(--muted)] border-[var(--border)] hover:border-[var(--brand-border)]'
-               )}
-             >
-               Agregat Semua
-               <span className={clsx(
-                 "ml-2 px-1.5 py-0.5 rounded-md text-[10px]",
-                 activeTab === 'semua' ? "bg-white/20 text-white" : "bg-black/10 text-muted"
-               )}>{fmt(dosenData?.totalRespon || 0)}</span>
-            </button>
-
-            {kelasList.map(k => (
-              <button
-                key={k.kodeKelas}
-                onClick={() => setActiveTab(k.kodeKelas)}
-                className={clsx(
-                  'px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all border',
-                  activeTab === k.kodeKelas
-                    ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20'
-                    : 'bg-[var(--bg-input)] text-[var(--muted)] border-[var(--border)] hover:border-[var(--brand-border)]'
-                )}
-              >
-                Kelas <span className="font-mono">{k.kodeKelas}</span>
-                <span className={clsx(
-                  "ml-2 px-1.5 py-0.5 rounded-md text-[10px]",
-                  activeTab === k.kodeKelas ? "bg-white/20 text-white" : "bg-black/10 text-muted"
-                )}>{fmt(k.totalRespon)}</span>
-              </button>
-            ))}
-
-            <div className="flex-1" />
-            
-            <div className="flex items-center gap-3 pl-4 border-l border-[var(--border)]">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-30 whitespace-nowrap">Filter:</span>
               <select 
                 value={filterPertemuan}
                 onChange={e => setFilterPertemuan(e.target.value)}
-                className="bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
+                className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-[11px] font-bold focus:ring-2 focus:ring-brand outline-none transition-all flex-1 sm:flex-none"
               >
                 <option value="all">Semua Pertemuan</option>
                 {availablePertemuan.map(p => (
@@ -261,29 +223,69 @@ export default function DosenDetailPage() {
             </div>
           </div>
 
+          <div className="relative">
+            <div className="flex overflow-x-auto pb-4 gap-2.5 scrollbar-hide no-scrollbar -mx-6 px-6 sm:mx-0 sm:px-0">
+              <button
+                 onClick={() => setActiveTab('semua')}
+                 className={clsx(
+                   'px-4 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wide transition-all border flex-shrink-0 flex items-center gap-2.5 shadow-sm',
+                   activeTab === 'semua'
+                     ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20'
+                     : 'bg-[var(--bg-input)] text-[var(--muted)] border-[var(--border)] hover:border-[var(--brand-border)]'
+                 )}
+               >
+                 <span>Agregat Semua</span>
+                 <span className={clsx(
+                   "px-1.5 py-0.5 rounded-md text-[10px] font-mono",
+                   activeTab === 'semua' ? "bg-white/20 text-white" : "bg-black/10 text-muted"
+                 )}>{fmt(dosenData?.totalRespon || 0)}</span>
+              </button>
+
+              {kelasList.map(k => (
+                <button
+                  key={k.kodeKelas}
+                  onClick={() => setActiveTab(k.kodeKelas)}
+                  className={clsx(
+                    'px-4 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wide transition-all border flex-shrink-0 flex items-center gap-2.5 shadow-sm',
+                    activeTab === k.kodeKelas
+                      ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20'
+                      : 'bg-[var(--bg-input)] text-[var(--muted)] border-[var(--border)] hover:border-[var(--brand-border)]'
+                  )}
+                >
+                  <span className="opacity-60 font-medium lowercase">Kelas</span>
+                  <span className="font-serif-accent font-extrabold">{k.kodeKelas}</span>
+                  <span className={clsx(
+                    "px-1.5 py-0.5 rounded-md text-[10px] font-mono",
+                    activeTab === k.kodeKelas ? "bg-white/20 text-white" : "bg-black/10 text-muted"
+                  )}>{fmt(k.totalRespon)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {activeTab !== 'semua' && activeKelasData && (
-            <div className="mt-5 p-4 rounded-2xl flex items-center justify-between animate-enter shadow-inner"
+            <div className="mt-6 p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between animate-enter shadow-inner gap-4"
               style={{ background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[var(--brand-dim)] border border-[var(--brand-border)] flex items-center justify-center flex-shrink-0">
-                  <span className="font-serif-accent font-extrabold text-[var(--brand)] text-lg">{activeKelasData.kodeKelas?.[0] || 'K'}</span>
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className="w-12 h-12 rounded-2xl bg-[var(--brand-dim)] border border-[var(--brand-border)] flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <span className="font-serif-accent font-extrabold text-[var(--brand)] text-xl leading-none">{activeKelasData.kodeKelas?.[0] || 'K'}</span>
                 </div>
-                <div>
-                  <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold truncate" style={{ color: 'var(--foreground)' }}>
                     Analisis Kelas {activeKelasData.kodeKelas}
                   </p>
-                  <p className="text-xs mt-1 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
-                    {activeKelasData.mataKuliah} · {fmt(activeKelasData.totalRespon)} Responden Valid
+                  <p className="text-[11px] mt-1 font-bold opacity-40 uppercase tracking-widest truncate">
+                    {activeKelasData.mataKuliah}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => handleExportKelas(activeKelasData)}
                 disabled={exporting === activeKelasData.kodeKelas}
-                className="btn-primary h-10 px-5 text-xs flex-shrink-0 font-bold uppercase tracking-wider"
+                className="btn-primary h-11 px-6 text-xs w-full sm:w-auto justify-center font-extrabold uppercase tracking-wider shadow-lg shadow-brand/10"
               >
-                <Download size={14} />
-                {exporting === activeKelasData.kodeKelas ? '...' : 'Unduh Laporan PDF'}
+                <Download size={15} />
+                {exporting === activeKelasData.kodeKelas ? '...' : 'Unduh PDF'}
               </button>
             </div>
           )}
@@ -292,10 +294,17 @@ export default function DosenDetailPage() {
 
       {/* Score cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
-        <StatCard label="CSAT Gabungan"    value={fmt(activeData.csatGabungan)}   color={scoreColor(activeData.csatGabungan)}   icon={Star} />
-        <StatCard label="Performa Dosen"   value={fmt(activeData.skorPerforma)}   color={scoreColor(activeData.skorPerforma)}   icon={TrendingUp} />
-        <StatCard label="Pemahaman Materi" value={fmt(activeData.skorPemahaman)}  color={scoreColor(activeData.skorPemahaman)}  icon={BookOpen} />
-        <StatCard label="Interaktivitas"   value={fmt(activeData.skorInteraktif)} color={scoreColor(activeData.skorInteraktif)} icon={Activity} />
+        <StatCard 
+          label="CSAT Gabungan"    
+          value={fmt(activeData.csatGabungan)}   
+          sub={scoreLabel(activeData.csatGabungan)}
+          icon={Star} 
+          highlight={true}
+          color="#3b82f6"
+        />
+        <StatCard label="Performa Dosen"   value={fmt(activeData.skorPerforma)}   sub={scoreLabel(activeData.skorPerforma)}   icon={TrendingUp} />
+        <StatCard label="Pemahaman Materi" value={fmt(activeData.skorPemahaman)}  sub={scoreLabel(activeData.skorPemahaman)}  icon={BookOpen} />
+        <StatCard label="Interaktivitas"   value={fmt(activeData.skorInteraktif)} sub={scoreLabel(activeData.skorInteraktif)} icon={Activity} />
       </div>
 
       {/* Komparasi — tab semua saja */}
@@ -345,24 +354,24 @@ export default function DosenDetailPage() {
 
       {/* Trend + Radar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card p-6">
+        <div className="lg:col-span-2 card p-5 sm:p-7">
           <h2 className="section-title mb-6">Peta Tren CSAT per Pertemuan</h2>
-          <TrendChart data={activeData.pertemuanTrend} height={220} />
+          <TrendChart data={activeData.pertemuanTrend} height={window.innerWidth < 640 ? 180 : 250} />
         </div>
-        <div className="card p-6 flex flex-col">
-          <h2 className="section-title mb-6">Profil Kinerja Visual</h2>
-          <div className="flex-1 flex items-center justify-center">
-             <ProfileRadar data={radarData} height={240} />
+        <div className="card p-5 sm:p-7 flex flex-col">
+          <h2 className="section-title mb-6 text-center lg:text-left">Profil Kinerja Visual</h2>
+          <div className="flex-1 flex items-center justify-center min-h-[260px] sm:min-h-0">
+             <ProfileRadar data={radarData} height={window.innerWidth < 640 ? 200 : 240} />
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card p-6">
+        <div className="card p-5 sm:p-7">
           <h2 className="section-title mb-6">Distribusi Rating Skala 1-5</h2>
-          <DistributionBar data={ratingDistArray} height={180} />
+          <DistributionBar data={ratingDistArray} height={window.innerWidth < 640 ? 150 : 180} />
         </div>
-        <div className="card p-6">
+        <div className="card p-5 sm:p-7">
           <h2 className="section-title mb-6">Sentimen Respons Mahasiswa</h2>
           <div className="space-y-4">
             {sentimentStats.map(({ label, count, color }) => {
@@ -385,13 +394,15 @@ export default function DosenDetailPage() {
       </div>
 
       {topicWords.length > 0 && (
-        <div className="card p-6">
+        <div className="card p-5 sm:p-7">
           <h2 className="section-title mb-6">Terminologi Evaluasi Materi</h2>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {topicWords.map(({ text, value }) => {
-              const size = 11 + Math.round((value / topicWords[0].value) * 16)
+              const size = window.innerWidth < 640 
+                ? 10 + Math.round((value / topicWords[0].value) * 10)
+                : 11 + Math.round((value / topicWords[0].value) * 16)
               return (
-                <span key={text} className="px-4 py-2 rounded-xl border border-[var(--brand-border)] bg-[var(--brand-dim)] text-[var(--brand)] font-bold" style={{ fontSize: size }}>
+                <span key={text} className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-[var(--brand-border)] bg-[var(--brand-dim)] text-[var(--brand)] font-bold transition-all hover:scale-105" style={{ fontSize: size }}>
                   {text}
                 </span>
               )
@@ -401,13 +412,13 @@ export default function DosenDetailPage() {
       )}
 
       {activeData.feedbacks?.length > 0 && (
-        <div className="card p-6">
+        <div className="card p-5 sm:p-7 border-brand-border/10">
           <h2 className="section-title mb-8">Arsip Masukan Mahasiswa</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[350px] sm:max-h-[500px] overflow-y-auto pr-3 custom-scrollbar no-scrollbar">
             {activeData.feedbacks.map((fb, i) => (
-              <div key={i} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex gap-4">
-                <span className="w-1.5 rounded-full bg-[var(--brand)] self-stretch opacity-20" />
-                <p className="text-sm italic opacity-90">"{fb}"</p>
+              <div key={i} className="p-4 sm:p-5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border)] flex gap-4 transition-all hover:border-[var(--brand-border)]">
+                <span className="w-1 rounded-full bg-[var(--brand)] self-stretch opacity-20" />
+                <p className="text-sm italic opacity-90 leading-relaxed">"{fb}"</p>
               </div>
             ))}
           </div>

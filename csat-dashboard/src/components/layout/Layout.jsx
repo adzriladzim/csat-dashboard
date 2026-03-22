@@ -35,39 +35,58 @@ export default function Layout() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-base)]">
       {/* ── STICKY TOP NAVIGATION GROUP ──────────────────────── */}
-      <div className="sticky top-0 z-30 glass shadow-sm">
-        <header className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 py-3 sm:py-4 gap-3"
-          style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
+      <div className="sticky top-0 z-30 glass shadow-sm border-b border-[var(--border)] overflow-hidden">
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between px-5 sm:px-10 py-4 lg:py-4 gap-4"
+          style={{ background: 'var(--bg-surface)' }}>
           
-          <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden flex items-center justify-center bg-white p-1 shadow-sm border border-[var(--border)] cursor-pointer"
+          <div className="flex items-center justify-between w-full lg:w-auto">
+            <div className="flex items-center gap-3.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white p-1 shadow-sm border border-[var(--border)] cursor-pointer hover:border-[var(--brand)] transition-colors"
                 onClick={() => navigate('/')}>
                 <img src="/CAKRAWALA LOGOMARK 2A.png" alt="Cakrawala University" className="w-full h-full object-contain" />
               </div>
               <div className="cursor-pointer" onClick={() => navigate('/')}>
-                <h1 className="font-serif-accent font-extrabold text-xs sm:text-sm tracking-tight leading-tight" style={{ color: 'var(--brand)' }}>
-                  CSAT <span style={{ color: 'var(--foreground)' }}>DASHBOARD</span>
-                </h1>
-                <p className="text-[9px] sm:text-[10px] font-bold opacity-40 uppercase tracking-widest leading-none">Cakrawala University</p>
+                <div className="flex flex-col">
+                  <h1 className="font-serif-accent font-extrabold text-[15px] sm:text-lg tracking-tight leading-tight space-x-1.5">
+                    <span style={{ color: 'var(--brand)' }}>CSAT</span> 
+                    <span style={{ color: 'var(--foreground)' }}>DASHBOARD</span>
+                  </h1>
+                  <p className="text-[9px] sm:text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-0.5">Cakrawala University</p>
+                </div>
               </div>
             </div>
-            
-            <div className="flex items-center gap-2 border-l border-[var(--border)] pl-4 sm:pl-6 ml-1 sm:ml-0">
-               <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Dataset:</span>
-               <span className="text-[10px] sm:text-[11px] font-bold text-[var(--brand)] max-w-[120px] sm:max-w-[200px] truncate">{fileName || 'No Data'}</span>
+
+            {/* Icons only on mobile top-right, for clean look */}
+            <div className="flex lg:hidden items-center gap-2.5">
+               <button 
+                  onClick={() => { clearData(); navigate('/upload') }}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--brand-dim)] text-[var(--brand)] border border-[var(--brand-border)] transition-all hover:bg-[var(--brand)] hover:text-white"
+                  title="Ganti Dataset"
+                >
+                  <Upload size={16} />
+                </button>
+               <ThemeBtn size={15} />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-end">
-            <button 
-              onClick={() => { clearData(); navigate('/upload') }}
-              className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all bg-[var(--brand-dim)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white"
-            >
-              <Upload size={14} /> <span className="hidden xs:inline">Ganti Dataset</span>
-            </button>
-            <div className="hidden sm:block h-6 w-px bg-[var(--border)] mx-1" />
-            <ThemeBtn size={14} />
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 w-full lg:w-auto">
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[var(--bg-input)] border border-[var(--border)] w-full sm:w-auto shadow-inner">
+               <span className="text-[9px] font-extrabold uppercase tracking-widest opacity-40 pl-1">Dataset:</span>
+               <span className="text-[10px] sm:text-[11px] font-bold text-[var(--brand)] max-w-[150px] sm:max-w-[250px] truncate pr-1">
+                 {fileName || 'No Data Loaded'}
+               </span>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-3">
+              <div className="h-6 w-px bg-[var(--border)] mr-1" />
+              <button 
+                onClick={() => { clearData(); navigate('/upload') }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-[var(--brand-dim)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white"
+              >
+                <Upload size={14} /> <span>Ganti Dataset</span>
+              </button>
+              <ThemeBtn size={14} />
+            </div>
           </div>
         </header>
 

@@ -356,6 +356,34 @@
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .card { border-radius: 12px; }
+  .card { border-radius: 12px; padding: 16px !important; }
   .section-title { font-size: 14px; }
+  
+  /* Table Scroll Indicator Shadow (Subtle) */
+  .table-scroll-container {
+    position: relative;
+    background-image: 
+      linear-gradient(to right, var(--bg-card), var(--bg-card)),
+      linear-gradient(to right, var(--bg-card), var(--bg-card)),
+      linear-gradient(to right, rgba(0,0,0,0.1), transparent),
+      linear-gradient(to left, rgba(0,0,0,0.1), transparent);
+    background-position: left center, right center, left center, right center;
+    background-repeat: no-repeat;
+    background-color: var(--bg-card);
+    background-size: 20px 100%, 20px 100%, 10px 100%, 10px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (max-width: 480px) {
+  .badge { padding: 0.25rem 0.5rem; font-size: 9px; }
+  .btn-primary, .btn-secondary { padding: 8px 16px; font-size: 12px; }
 }

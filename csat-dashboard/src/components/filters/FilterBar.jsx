@@ -12,65 +12,68 @@ export default function FilterBar() {
                     filters.pertemuan !== 'all' || filters.dateFrom || filters.dateTo
 
   return (
-    <div className="card p-4">
-      <div className="flex flex-wrap items-end gap-3">
+    <div className="card p-4 sm:p-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-end">
         {/* Mata Kuliah */}
-        <div className="min-w-[180px] flex-1">
-          <label className="block text-[10px] text-muted mb-1.5 uppercase tracking-wider">Mata Kuliah</label>
-          <select value={filters.matkul} onChange={e=>setFilter('matkul',e.target.value)} className="input">
+        <div className="space-y-1.5">
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Mata Kuliah</label>
+          <select value={filters.matkul} onChange={e=>setFilter('matkul',e.target.value)} className="input w-full">
             <option value="all">Semua Mata Kuliah</option>
             {matkulList.map(m=><option key={m} value={m}>{m}</option>)}
           </select>
         </div>
 
         {/* Program Studi */}
-        <div className="min-w-[160px]">
-          <label className="block text-[10px] text-muted mb-1.5 uppercase tracking-wider">Program Studi</label>
-          <select value={filters.prodi} onChange={e=>setFilter('prodi',e.target.value)} className="input">
+        <div className="space-y-1.5">
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Program Studi</label>
+          <select value={filters.prodi} onChange={e=>setFilter('prodi',e.target.value)} className="input w-full">
             <option value="all">Semua Prodi</option>
             {prodiList.map(p=><option key={p} value={p}>{p}</option>)}
           </select>
         </div>
 
         {/* Dosen */}
-        <div className="min-w-[180px]">
-          <label className="block text-[10px] text-muted mb-1.5 uppercase tracking-wider">Dosen</label>
-          <select value={filters.dosen} onChange={e=>setFilter('dosen',e.target.value)} className="input">
+        <div className="space-y-1.5">
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Dosen</label>
+          <select value={filters.dosen} onChange={e=>setFilter('dosen',e.target.value)} className="input w-full">
             <option value="all">Semua Dosen</option>
             {dosenList.map(d=><option key={d} value={d}>{d}</option>)}
           </select>
         </div>
 
         {/* Pertemuan */}
-        <div className="min-w-[130px]">
-          <label className="block text-[10px] text-muted mb-1.5 uppercase tracking-wider">Pertemuan</label>
-          <select value={filters.pertemuan} onChange={e=>setFilter('pertemuan',e.target.value)} className="input">
+        <div className="space-y-1.5">
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Pertemuan</label>
+          <select value={filters.pertemuan} onChange={e=>setFilter('pertemuan',e.target.value)} className="input w-full">
             <option value="all">Semua</option>
             {pertemuanList.map(p=><option key={p} value={p}>Pertemuan {p}</option>)}
           </select>
         </div>
 
         {/* Tanggal Mulai */}
-        <div className="min-w-[150px]">
-          <label className="block text-[10px] text-muted mb-1.5 uppercase tracking-wider">Tanggal Mulai</label>
-          <input type="date" value={filters.dateFrom} onChange={e=>setFilter('dateFrom',e.target.value)} className="input" />
+        <div className="space-y-1.5">
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Mulai</label>
+          <input type="date" value={filters.dateFrom} onChange={e=>setFilter('dateFrom',e.target.value)} className="input w-full" />
         </div>
 
         {/* Tanggal Selesai */}
-        <div className="min-w-[150px]">
-          <label className="block text-[10px] text-muted mb-1.5 uppercase tracking-wider">Tanggal Selesai</label>
-          <input type="date" value={filters.dateTo} onChange={e=>setFilter('dateTo',e.target.value)} className="input" />
-        </div>
-
-        {/* Reset */}
-        {hasActive && (
-          <div>
-            <label className="block text-[10px] mb-1.5 opacity-0">Reset</label>
-            <button onClick={resetFilters} className="btn-ghost text-red-400 hover:text-red-300 hover:bg-red-500/5">
-              <X size={13} />Reset Filter
-            </button>
+        <div className="space-y-1.5">
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Selesai</label>
+          <div className="flex items-center gap-2">
+            <input type="date" value={filters.dateTo} onChange={e=>setFilter('dateTo',e.target.value)} className="input w-full" />
+            
+            {/* Reset inside the grid to save space */}
+            {hasActive && (
+              <button 
+                onClick={resetFilters} 
+                className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex-shrink-0 border border-red-500/20"
+                title="Reset Filters"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

@@ -73,38 +73,38 @@ export default function DashboardPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 animate-enter">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start gap-3 md:gap-4">
-        <div className="flex-1">
-          <h1 className="font-serif-accent text-2xl md:text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5 leading-tight">
+        <div className="flex-1 min-w-0">
+          <h1 className="font-serif-accent text-2xl md:text-3xl font-extrabold tracking-tight truncate" style={{ color: 'var(--foreground)' }}>
             Dashboard <span style={{ color: 'var(--brand)' }}>Overview</span>
           </h1>
-          <div className="flex items-center gap-2 mt-1.5">
-            <p className="text-sm font-bold" style={{ color: 'var(--muted)' }}>
-              {fmt(filtered.length)} Responden Valid
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2">
+            <p className="text-sm font-bold truncate" style={{ color: 'var(--muted)' }}>
+              {fmt(filtered.length)} <span className="font-normal opacity-60">Responden Valid</span>
             </p>
             {removedCount > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold uppercase">
-                {fmt(removedCount)} Data Junk/Duplikat Terfilter
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold uppercase whitespace-nowrap">
+                {fmt(removedCount)} Junk/Duplikat
               </span>
             )}
             {conflicts > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 font-bold uppercase flex items-center gap-1">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 font-bold uppercase flex items-center gap-1 whitespace-nowrap">
                 <AlertCircle size={10} /> {fmt(conflicts)} Data Ganjil (Periode Genap)
               </span>
             )}
-            <span className="text-sm opacity-30" style={{ color: 'var(--muted)' }}>·</span>
-            <p className="text-sm font-bold" style={{ color: 'var(--muted)' }}>
-              {fmt(dosenList.length)} Dosen · {fileName}
+            <span className="text-sm opacity-30 hidden sm:inline" style={{ color: 'var(--muted)' }}>·</span>
+            <p className="text-sm font-bold truncate" style={{ color: 'var(--muted)' }}>
+              {fmt(dosenList.length)} <span className="font-normal opacity-60">Dosen</span> · <span className="font-mono text-[10px] opacity-60">{fileName}</span>
             </p>
           </div>
         </div>
-        <div className="flex gap-2.5 flex-shrink-0">
-          <button onClick={() => exportDosenExcel(dosenList)} className="btn-secondary">
+        <div className="flex gap-2.5 flex-shrink-0 w-full sm:w-auto">
+          <button onClick={() => exportDosenExcel(dosenList)} className="btn-secondary flex-1 sm:flex-none justify-center">
             <Download size={14} />Export Excel
           </button>
-          <button onClick={handleExportAllPDF} className="btn-primary" disabled={exportingAll}>
+          <button onClick={handleExportAllPDF} className="btn-primary flex-1 sm:flex-none justify-center shadow-lg shadow-brand/10" disabled={exportingAll}>
             <FileDown size={14} />
-            {exportingAll ? 'Generating...' : 'Export PDF'}
+            {exportingAll ? '...' : 'Export PDF'}
           </button>
         </div>
       </div>
@@ -112,25 +112,25 @@ export default function DashboardPage() {
       <FilterBar />
 
       {/* Global stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger">
         <StatCard 
-          label="CSAT Gabungan"    
+          label="CSAT"    
           value={fmt(globalCsat)}       
           sub={scoreLabel(globalCsat)}       
           icon={Star}       
           highlight={true}
           color="#3b82f6"
         />
-        <StatCard label="Performa Dosen"   value={fmt(globalPerforma)}   sub={scoreLabel(globalPerforma)}   icon={TrendingUp} />
-        <StatCard label="Pemahaman Materi" value={fmt(globalPemahaman)}  sub={scoreLabel(globalPemahaman)}  icon={BookOpen}   />
-        <StatCard label="Interaktivitas"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   />
+        <StatCard label="Performa"   value={fmt(globalPerforma)}   sub={scoreLabel(globalPerforma)}   icon={TrendingUp} />
+        <StatCard label="Pemahaman" value={fmt(globalPemahaman)}  sub={scoreLabel(globalPemahaman)}  icon={BookOpen}   />
+        <StatCard label="Interaksi"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Responden Valid"    value={fmt(filtered.length)} icon={Users}         size="sm" />
-        <StatCard label="Jumlah Dosen"       value={fmt(dosenList.length)}                        icon={Award}         size="sm" />
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Responden"    value={fmt(filtered.length)} icon={Users}         size="sm" />
+        <StatCard label="Total Dosen"       value={fmt(dosenList.length)}                        icon={Award}         size="sm" />
         <StatCard 
-          label="Mapping Data"       
+          label="Mapping"       
           value={`${mappingAccuracy.toFixed(1)}%`} 
           icon={CheckCircle2} 
           highlightAlt={true}
@@ -138,7 +138,7 @@ export default function DashboardPage() {
           color="#10b981"
         />
         <StatCard 
-          label="Perhatian"            
+          label="Anomali"            
           value={anomalies.filter(a=>a.type==='concern').length} 
           icon={AlertCircle} 
           color="#f87171" 
