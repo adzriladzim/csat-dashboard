@@ -1,5 +1,3 @@
-import jsPDF from 'jspdf'
-import * as XLSX from 'xlsx'
 import { fmt, scoreLabel, analyzeSentiment, avg } from './analytics'
 
 const C = {
@@ -234,6 +232,7 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
 
 // ── Export semua kelas ────────────────────────────────────────────────────
 export async function exportDosenReport(dosenData) {
+  const { default: jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
   await buildDosenPDF(pdf, dosenData, null)
   const isSingleKelas = dosenData.kodeKelas && !dosenData.kodeKelas.includes(',')
@@ -244,6 +243,7 @@ export async function exportDosenReport(dosenData) {
 
 // ── Export per kelas tertentu ─────────────────────────────────────────────
 export async function exportDosenReportPerKelas(dosenData, kelasData) {
+  const { default: jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
   await buildDosenPDF(pdf, dosenData, kelasData)
   const kelasSuffix = (kelasData.kodeKelas || kelasData.mataKuliah || 'kelas').replace(/[^a-zA-Z0-9]/g,'_')
@@ -253,6 +253,7 @@ export async function exportDosenReportPerKelas(dosenData, kelasData) {
 
 // ── Dashboard PDF semua dosen ─────────────────────────────────────────────
 export async function exportDashboardPDF(dosenList) {
+  const { default: jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' })
   const W=297, H=210; let y=0
   pdf.setFillColor(...C.brand); pdf.rect(0,0,W,30,'F')
@@ -363,7 +364,8 @@ export async function exportDashboardPDF(dosenList) {
 }
 
 // ── Excel ─────────────────────────────────────────────────────────────────
-export function exportDosenExcel(dosenList) {
+export async function exportDosenExcel(dosenList) {
+  const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.map((d,i)=>({'Rank':i+1,'Nama Dosen':d.namaDosen,'Program Studi':d.prodi,'Mata Kuliah':d.mataKuliah,'Kode Kelas':d.kodeKelas,'CSAT Gabungan':d.csatGabungan,'Performa Dosen':d.skorPerforma,'Pemahaman Materi':d.skorPemahaman,'Interaktivitas':d.skorInteraktif,'Total Responden':d.totalRespon,'Status':scoreLabel(d.csatGabungan)}))), 'Ranking Dosen')
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.flatMap(d=>d.rows.map(r=>({'Timestamp':r.timestamp?new Date(r.timestamp).toLocaleString('id-ID'):'',' Nama Dosen':r.namaDosen,'Prodi':r.prodi,'Mata Kuliah':r.mataKuliah,'Kode Kelas':r.kodeKelas,'Pertemuan':r.pertemuan,'CSAT':r.csatGabungan,'Performa':r.skorPerforma,'Pemahaman':r.skorPemahaman,'Interaktivitas':r.skorInteraktif,'Feedback':r.feedbackDosen,'Topik Belum Paham':r.topikBelumPaham})))), 'Data Detail')
@@ -371,7 +373,8 @@ export function exportDosenExcel(dosenList) {
   XLSX.writeFile(wb, `CSAT_Export_${localDate}.xlsx`)
 }
 
-export function exportSingleDosenExcel(dosenData) {
+export async function exportSingleDosenExcel(dosenData) {
+  const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{'Nama Dosen':dosenData.namaDosen,'Program Studi':dosenData.prodi,'Mata Kuliah':dosenData.mataKuliah,'CSAT Gabungan':dosenData.csatGabungan,'Performa Dosen':dosenData.skorPerforma,'Pemahaman Materi':dosenData.skorPemahaman,'Interaktivitas':dosenData.skorInteraktif,'Total Responden':dosenData.totalRespon}]),'Ringkasan')
   if (dosenData.pertemuanTrend?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.pertemuanTrend.map(t=>({'Pertemuan':t.pertemuan,'CSAT':t.csat,'Responden':t.count}))),'Tren Pertemuan')

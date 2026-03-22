@@ -313,13 +313,13 @@ export default function DosenDetailPage() {
             <table className="w-full data-table">
               <thead>
                 <tr>
-                  <th className="w-20">Kode</th>
+                  <th className="w-20">Kode Kelas</th>
                   <th>Mata Kuliah</th>
                   <th>CSAT</th>
-                  <th className="hidden sm:table-cell">Perf.</th>
-                  <th className="hidden sm:table-cell">Pem.</th>
-                  <th className="hidden sm:table-cell">Int.</th>
-                  <th>Respon</th>
+                  <th className="hidden sm:table-cell">Performa Dosen</th>
+                  <th className="hidden sm:table-cell">Pemahaman Materi</th>
+                  <th className="hidden sm:table-cell">Interaktivitas</th>
+                  <th>Jumlah Respon</th>
                 </tr>
               </thead>
               <tbody>
