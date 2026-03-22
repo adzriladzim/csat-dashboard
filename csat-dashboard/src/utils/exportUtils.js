@@ -9,6 +9,13 @@ const C = {
 }
 const sRgb = s => { if (!s) return C.muted; if (s>=4.5) return C.green; if (s>=4.0) return C.blue; if (s>=3.0) return C.amber; return C.red }
 
+function getTimezone() {
+  try {
+    const parts = new Intl.DateTimeFormat('id-ID', { timeZoneName: 'short' }).formatToParts(new Date())
+    return parts.find(p => p.type === 'timeZoneName')?.value || ''
+  } catch (e) { return '' }
+}
+
 function secTitle(pdf, title, y, W=210) {
   pdf.setFontSize(11); pdf.setFont('helvetica','bold'); pdf.setTextColor(30,41,59)
   pdf.text(title, 14, y)
@@ -41,7 +48,7 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
     pdf.text(`Mata Kuliah: ${dosenData.mataKuliah || '–'}`, 12, 38)
   }
   pdf.setTextColor(180,200,255)
-  pdf.text(`Semester: ${dosenData.rows?.[0]?.semester || '–'}   ·   ${new Date().toLocaleDateString('id-ID',{dateStyle:'long'})}`, 12, 44)
+  pdf.text(`Semester: ${dosenData.rows?.[0]?.semester || '–'}   ·   ${new Date().toLocaleDateString('id-ID',{dateStyle:'long'})} ${getTimezone()}`, 12, 44)
 
   y = 54
 
@@ -218,7 +225,7 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
     pdf.setPage(i)
     pdf.setFillColor(...C.light); pdf.rect(0,287,W,10,'F')
     pdf.setFontSize(7.5); pdf.setTextColor(...C.muted)
-    pdf.text(`Laporan Kinerja Dosen · Cakrawala University · ${new Date().toLocaleDateString('id-ID',{dateStyle:'long'})}`,W/2,292,{align:'center'})
+    pdf.text(`Laporan Kinerja Dosen · Cakrawala University · ${new Date().toLocaleDateString('id-ID',{dateStyle:'long'})} ${getTimezone()}`,W/2,292,{align:'center'})
     pdf.text(`Halaman ${i}/${pages}`,W-14,292,{align:'right'})
     pdf.setTextColor(180,190,255)
     pdf.text('Dibuat oleh Adzril Adzim Hendrynov',14,292)
@@ -231,7 +238,8 @@ export async function exportDosenReport(dosenData) {
   await buildDosenPDF(pdf, dosenData, null)
   const isSingleKelas = dosenData.kodeKelas && !dosenData.kodeKelas.includes(',')
   const suffix = isSingleKelas ? `_Kelas_${dosenData.kodeKelas.replace(/[^a-zA-Z0-9]/g,'_')}` : '_SemuaKelas'
-  pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}${suffix}_${new Date().toISOString().slice(0,10)}.pdf`)
+  const localDate = new Date().toLocaleDateString('en-CA')
+  pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}${suffix}_${localDate}.pdf`)
 }
 
 // ── Export per kelas tertentu ─────────────────────────────────────────────
@@ -239,7 +247,8 @@ export async function exportDosenReportPerKelas(dosenData, kelasData) {
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
   await buildDosenPDF(pdf, dosenData, kelasData)
   const kelasSuffix = (kelasData.kodeKelas || kelasData.mataKuliah || 'kelas').replace(/[^a-zA-Z0-9]/g,'_')
-  pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}_Kelas${kelasSuffix}_${new Date().toISOString().slice(0,10)}.pdf`)
+  const localDate = new Date().toLocaleDateString('en-CA')
+  pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}_Kelas${kelasSuffix}_${localDate}.pdf`)
 }
 
 // ── Dashboard PDF semua dosen ─────────────────────────────────────────────
@@ -249,7 +258,7 @@ export async function exportDashboardPDF(dosenList) {
   pdf.setFillColor(...C.brand); pdf.rect(0,0,W,30,'F')
   pdf.setFontSize(16); pdf.setFont('helvetica','bold'); pdf.setTextColor(...C.white); pdf.text('Laporan Kinerja Dosen — Cakrawala University',14,14)
   pdf.setFontSize(9); pdf.setFont('helvetica','normal'); pdf.setTextColor(200,210,255)
-  pdf.text(`${new Date().toLocaleDateString('id-ID',{dateStyle:'full'})}   ·   Total Dosen: ${dosenList.length}`,14,22)
+  pdf.text(`${new Date().toLocaleDateString('id-ID',{dateStyle:'full'})} ${getTimezone()}   ·   Total Dosen: ${dosenList.length}`,14,22)
   pdf.setTextColor(180,200,255); pdf.text('Dibuat oleh Adzril Adzim Hendrynov - Ilkom24',14,28)
   // Ringkasan Metrik (Global)
     const allCsat = dosenList.map(d => d.csatGabungan).filter(Boolean)
@@ -349,7 +358,8 @@ export async function exportDashboardPDF(dosenList) {
     })
   const pages=pdf.internal.getNumberOfPages()
   for (let i=1;i<=pages;i++) { pdf.setPage(i); pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(`Laporan CSAT · Cakrawala University · Adzril Adzim Hendrynov · Hal. ${i}/${pages}`,W/2,H-4,{align:'center'}) }
-  pdf.save(`Laporan_CSAT_Semua_Dosen_${new Date().toISOString().slice(0,10)}.pdf`)
+  const localDate = new Date().toLocaleDateString('en-CA')
+  pdf.save(`Laporan_CSAT_Semua_Dosen_${localDate}.pdf`)
 }
 
 // ── Excel ─────────────────────────────────────────────────────────────────
@@ -357,7 +367,8 @@ export function exportDosenExcel(dosenList) {
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.map((d,i)=>({'Rank':i+1,'Nama Dosen':d.namaDosen,'Program Studi':d.prodi,'Mata Kuliah':d.mataKuliah,'Kode Kelas':d.kodeKelas,'CSAT Gabungan':d.csatGabungan,'Performa Dosen':d.skorPerforma,'Pemahaman Materi':d.skorPemahaman,'Interaktivitas':d.skorInteraktif,'Total Responden':d.totalRespon,'Status':scoreLabel(d.csatGabungan)}))), 'Ranking Dosen')
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.flatMap(d=>d.rows.map(r=>({'Timestamp':r.timestamp?new Date(r.timestamp).toLocaleString('id-ID'):'',' Nama Dosen':r.namaDosen,'Prodi':r.prodi,'Mata Kuliah':r.mataKuliah,'Kode Kelas':r.kodeKelas,'Pertemuan':r.pertemuan,'CSAT':r.csatGabungan,'Performa':r.skorPerforma,'Pemahaman':r.skorPemahaman,'Interaktivitas':r.skorInteraktif,'Feedback':r.feedbackDosen,'Topik Belum Paham':r.topikBelumPaham})))), 'Data Detail')
-  XLSX.writeFile(wb, `CSAT_Export_${new Date().toISOString().slice(0,10)}.xlsx`)
+  const localDate = new Date().toLocaleDateString('en-CA')
+  XLSX.writeFile(wb, `CSAT_Export_${localDate}.xlsx`)
 }
 
 export function exportSingleDosenExcel(dosenData) {
@@ -367,5 +378,6 @@ export function exportSingleDosenExcel(dosenData) {
   if (dosenData.kelasList?.length>1) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.kelasList.map(k=>({'Kode Kelas':k.kodeKelas,'Mata Kuliah':k.mataKuliah,'CSAT':k.csatGabungan,'Performa':k.skorPerforma,'Pemahaman':k.skorPemahaman,'Interaktivitas':k.skorInteraktif,'Responden':k.totalRespon}))),'Per Kelas')
   if (dosenData.feedbacks?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.feedbacks.map(f=>({'Komentar':f,'Sentimen':analyzeSentiment(f)}))),'Komentar')
   if (dosenData.topikBelum?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.topikBelum.map(t=>({'Topik Belum Dipahami':t}))),'Topik')
-  XLSX.writeFile(wb, `Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`)
+  const localDate = new Date().toLocaleDateString('en-CA')
+  XLSX.writeFile(wb, `Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}_${localDate}.xlsx`)
 }

@@ -71,15 +71,14 @@ function pushRow(d, r) {
 function finalize(d) {
   const pKeys = Object.keys(d.pertemuanMap).map(Number).filter(n => !isNaN(n))
   const maxP = pKeys.length ? Math.max(...pKeys) : 0
-  const trend = []
-  for (let i = 1; i <= maxP; i++) {
-    const vals = d.pertemuanMap[i] || []
-    trend.push({ 
-      pertemuan: `P${i.toString().padStart(2, '0')}`, 
-      csat: vals.length ? avg(vals) : null, 
-      count: vals.length 
-    })
-  }
+  const trend = pKeys.sort((a,b)=>a-b).map(p => {
+    const vals = d.pertemuanMap[p] || []
+    return {
+      pertemuan: `P${p.toString().padStart(2, '0')}`,
+      csat: vals.length ? avg(vals) : null,
+      count: vals.length
+    }
+  })
   let trendDir='stable'
   const valid = trend.filter(t=>t.csat!=null)
   if (valid.length >= 2) {
@@ -90,7 +89,7 @@ function finalize(d) {
 }
 
 /** Agregasi semua kelas digabung */
-export function aggregateByDosen(rows, fullRows = null) {
+export function aggregateByDosen(rows, fullRows = null, maxPertemuan = Infinity) {
   const map = {}
   rows.forEach(r => { 
     if (!r.namaDosen) return
@@ -100,9 +99,7 @@ export function aggregateByDosen(rows, fullRows = null) {
 
   // Recovery: If filtered, pull full trend from allRows for each lecturer in map
   if (fullRows && fullRows.length > 0) {
-    // We'll rebuild the trend map for these specific lecturers from scratch using fullRows
     const trendRecoveryMap = {}
-    // Pre-create an uppercase map for case-insensitive matching if needed
     const nameToCanonical = {}
     Object.keys(map).forEach(n => nameToCanonical[n.toUpperCase()] = n)
 
@@ -110,10 +107,10 @@ export function aggregateByDosen(rows, fullRows = null) {
       if (!r.namaDosen || r.pertemuan == null) return
       const rNameUpper = r.namaDosen.toUpperCase()
       const canonicalName = nameToCanonical[rNameUpper]
-      if (!canonicalName) return // Lecturer not in the current set
+      if (!canonicalName) return
       
       const pNum = typeof r.pertemuan === 'number' ? r.pertemuan : parseInt(r.pertemuan.toString().replace(/[^0-9]/g, ''))
-      if (!isNaN(pNum)) {
+      if (!isNaN(pNum) && pNum <= maxPertemuan) {
         if (!trendRecoveryMap[canonicalName]) trendRecoveryMap[canonicalName] = {}
         if (!trendRecoveryMap[canonicalName][pNum]) trendRecoveryMap[canonicalName][pNum] = []
         trendRecoveryMap[canonicalName][pNum].push(r.csatGabungan)
@@ -125,18 +122,18 @@ export function aggregateByDosen(rows, fullRows = null) {
     })
   }
 
-  return Object.values(map).map(finalize).sort((a,b)=>(b.csatGabungan||0)-(a.csatGabungan||0))
+  return Object.values(map).map(finalize).sort((a,b) => (b.csatGabungan || 0) - (a.csatGabungan || 0))
 }
 
 /** Agregasi per kelas (semua tanggal digabung) */
-export function aggregateByDosenKelas(rows, fullRows = null) {
-  const map={}
-  rows.forEach(r=>{
-    const kelas=r.kodeKelas||r.mataKuliah||'Kelas Tidak Diketahui'
-    const key=`${r.namaDosen}|||${kelas}`
+export function aggregateByDosenKelas(rows, fullRows = null, maxPertemuan = Infinity) {
+  const map = {}
+  rows.forEach(r => {
+    const kelas = r.kodeKelas || r.mataKuliah || 'Kelas Tidak Diketahui'
+    const key = `${r.namaDosen}|||${kelas}`
     if (!r.namaDosen) return
-    if (!map[key]) map[key]=newBucket(r.namaDosen, { mataKuliah:r.mataKuliah, kodeKelas:r.kodeKelas, prodi:r.prodi })
-    pushRow(map[key],r)
+    if (!map[key]) map[key] = newBucket(r.namaDosen, { mataKuliah:r.mataKuliah, kodeKelas:r.kodeKelas, prodi:r.prodi })
+    pushRow(map[key], r)
   })
 
   // Recovery: If filtered, pull full trend from allRows for each specific (lecturer+class) in map
@@ -146,14 +143,14 @@ export function aggregateByDosenKelas(rows, fullRows = null) {
     Object.keys(map).forEach(k => keyToCanonical[k.toUpperCase()] = k)
 
     fullRows.forEach(r => {
-      const kelas=r.kodeKelas||r.mataKuliah||'Kelas Tidak Diketahui'
+      const kelas = r.kodeKelas || r.mataKuliah || 'Kelas Tidak Diketahui'
       const rawKey = `${r.namaDosen}|||${kelas}`
       const keyUpper = rawKey.toUpperCase()
       const canonicalKey = keyToCanonical[keyUpper]
       if (!canonicalKey || r.pertemuan == null) return
 
       const pNum = typeof r.pertemuan === 'number' ? r.pertemuan : parseInt(r.pertemuan.toString().replace(/[^0-9]/g, ''))
-      if (!isNaN(pNum)) {
+      if (!isNaN(pNum) && pNum <= maxPertemuan) {
         if (!trendRecoveryMap[canonicalKey]) trendRecoveryMap[canonicalKey] = {}
         if (!trendRecoveryMap[canonicalKey][pNum]) trendRecoveryMap[canonicalKey][pNum] = []
         trendRecoveryMap[canonicalKey][pNum].push(r.csatGabungan)
@@ -165,7 +162,7 @@ export function aggregateByDosenKelas(rows, fullRows = null) {
     })
   }
 
-  return Object.values(map).map(finalize).sort((a,b)=>(b.csatGabungan||0)-(a.csatGabungan||0))
+  return Object.values(map).map(finalize).sort((a,b) => (b.csatGabungan || 0) - (a.csatGabungan || 0))
 }
 
 /** Agregasi per SESI = kelas + tanggal

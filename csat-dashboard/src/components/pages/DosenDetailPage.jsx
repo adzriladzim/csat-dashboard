@@ -22,19 +22,28 @@ export default function DosenDetailPage() {
   const [searchParams] = useSearchParams()
   const initialKelas   = searchParams.get('kelas')
   const [activeTab, setActiveTab]   = useState(initialKelas || 'semua')
+  const [filterPertemuan, setFilterPertemuan] = useState('all')
   const { parsedData } = useStore()
   const [exporting, setExporting]   = useState(null)  // null | 'all' | kodeKelas
 
   const decodedName = decodeURIComponent(name)
 
-  // Semua baris milik dosen ini
-  const dosenRows = parsedData.filter(r => r.namaDosen === decodedName)
+  // 1. Data FULL (Historical Context)
+  const dosenRowsFull = useMemo(() => parsedData.filter(r => r.namaDosen === decodedName), [parsedData, decodedName])
 
-  // Agregasi SEMUA kelas
-  const [dosenAll] = useMemo(() => aggregateByDosen(dosenRows, parsedData), [dosenRows, parsedData])
+  // 2. Data FILTERED BY MEETING (for Stats, Cards, Feedback)
+  const dosenRowsFiltered = useMemo(() => {
+    if (filterPertemuan === 'all') return dosenRowsFull
+    return dosenRowsFull.filter(r => r.pertemuan === Number(filterPertemuan))
+  }, [dosenRowsFull, filterPertemuan])
+
+  // 3. Agregasi
+  const maxP = filterPertemuan === 'all' ? Infinity : Number(filterPertemuan)
+  const aggregateResult = useMemo(() => aggregateByDosen(dosenRowsFiltered, dosenRowsFull, maxP), [dosenRowsFiltered, dosenRowsFull, maxP])
+  const dosenAll = aggregateResult?.[0] || null
   
-  // Agregasi PER KELAS (kode_kelas sebagai pemisah)
-  const kelasList = useMemo(() => aggregateByDosenKelas(dosenRows, parsedData), [dosenRows, parsedData])
+  const kelasList = useMemo(() => aggregateByDosenKelas(dosenRowsFiltered, dosenRowsFull, maxP), [dosenRowsFiltered, dosenRowsFull, maxP])
+  
   const hasMultiKelas = kelasList.length > 1
 
   // Inject kelasList ke dosenAll untuk export PDF semua kelas
@@ -46,25 +55,38 @@ export default function DosenDetailPage() {
     return kelasList.find(k => k.kodeKelas === activeTab) || dosenData
   }, [activeTab, dosenData, kelasList])
 
+  // List pertemuan yang tersedia untuk dropdown
+  const availablePertemuan = useMemo(() => {
+    const s = new Set(dosenRowsFull.map(r => r.pertemuan).filter(p => p != null))
+    return Array.from(s).sort((a,b) => a - b)
+  }, [dosenRowsFull])
+
   if (!dosenData || !activeData) {
     return (
-      <div className="p-6 text-center">
-        <p style={{ color: 'var(--muted)' }}>Data dosen tidak ditemukan.</p>
-        <button onClick={() => navigate(-1)} className="btn-secondary mt-4">Kembali</button>
+      <div className="p-8 text-center max-w-lg mx-auto mt-20 bg-[var(--bg-card)] rounded-3xl border border-[var(--border)] shadow-xl">
+        <div className="bg-amber-500/10 text-amber-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+          <AlertCircle size={32} />
+        </div>
+        <p className="font-serif-accent font-extrabold text-xl mb-2">Data Dosen Tidak Ditemukan</p>
+        <p className="text-[var(--muted)] text-sm mb-8 leading-relaxed">
+          Sistem tidak menemukan data untuk nama <strong>{decodedName}</strong>. 
+          Pastikan data sudah diunggah atau nama sesuai dengan di Excel.
+        </p>
+        <button onClick={() => navigate('/')} className="btn-primary w-full shadow-lg shadow-brand/20">
+          Kembali ke Dashboard
+        </button>
       </div>
     )
   }
 
   // Baris yang dipakai untuk distribusi rating — filter per kelas kalau perlu
-  const activeRows = activeTab === 'semua'
-    ? dosenRows
-    : dosenRows.filter(r => r.kodeKelas === activeTab)
+  const activeRowsForDist = activeTab === 'semua'
+    ? dosenRowsFiltered
+    : dosenRowsFiltered.filter(r => r.kodeKelas === activeTab)
 
-  const ratingDist = useMemo(() => {
-    const bins = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-    activeRows.forEach(r => { const s = Math.round(r.csatGabungan); if (s >= 1 && s <= 5) bins[s]++ })
-    return Object.entries(bins).map(([label, count]) => ({ label: `⭐${label}`, count }))
-  }, [activeRows])
+  const ratingDist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  activeRowsForDist.forEach(r => { const s = Math.round(r.csatGabungan); if (s >= 1 && s <= 5) ratingDist[s]++ })
+  const ratingDistArray = Object.entries(ratingDist).map(([label, count]) => ({ label: `⭐${label}`, count }))
 
   const radarData = [
     { metric: 'Performa',       value: activeData.skorPerforma   || 0 },
@@ -73,15 +95,13 @@ export default function DosenDetailPage() {
     { metric: 'CSAT',           value: activeData.csatGabungan   || 0 },
   ]
 
-  const sentimentCounts = useMemo(() => {
-    const c = { positive: 0, neutral: 0, negative: 0 }
-    activeData.feedbacks?.forEach(fb => c[analyzeSentiment(fb)]++)
-    return [
-      { label: '😊 Positif', count: c.positive, color: 'var(--positive)' },
-      { label: '😐 Netral',  count: c.neutral,  color: 'var(--muted)' },
-      { label: '😟 Negatif', count: c.negative, color: 'var(--negative)' },
-    ]
-  }, [activeData.feedbacks])
+  const sentimentCounts = { positive: 0, neutral: 0, negative: 0 }
+  activeData.feedbacks?.forEach(fb => sentimentCounts[analyzeSentiment(fb)]++)
+  const sentimentStats = [
+    { label: '😊 Positif', count: sentimentCounts.positive, color: 'var(--positive)' },
+    { label: '😐 Netral',  count: sentimentCounts.neutral,  color: 'var(--muted)' },
+    { label: '😟 Negatif', count: sentimentCounts.negative, color: 'var(--negative)' },
+  ]
 
   const topicWords = buildWordCloud(activeData.topikBelum || [], 40)
 
@@ -131,12 +151,12 @@ export default function DosenDetailPage() {
           <button onClick={() => exportSingleDosenExcel(dosenData)} className="btn-secondary h-11 px-4">
             <FileDown size={14} />Excel
           </button>
-          {/* PDF semua kelas */}
-          <button onClick={handleExportAll} disabled={exporting === 'all'} className="btn-secondary h-11 px-4">
-            <Download size={14} />
-            {exporting === 'all' ? 'Generating...' : 'PDF Semua Kelas'}
-          </button>
-          {/* PDF kelas aktif */}
+          {activeTab === 'semua' && (
+            <button onClick={handleExportAll} disabled={exporting === 'all'} className="btn-secondary h-11 px-4">
+              <Download size={14} />
+              {exporting === 'all' ? 'Generating...' : 'PDF Semua Kelas'}
+            </button>
+          )}
           {activeTab !== 'semua' && activeKelasData && (
             <button
               onClick={() => handleExportKelas(activeKelasData)}
@@ -144,17 +164,13 @@ export default function DosenDetailPage() {
               className="btn-primary h-11 px-4 shadow-lg shadow-brand/20"
             >
               <FileText size={14} />
-              {exporting === activeKelasData.kodeKelas
-                ? 'Generating...'
-                : `Laporan PDF ${activeKelasData.kodeKelas}`
-              }
+              {exporting === activeKelasData.kodeKelas ? 'Generating...' : `Laporan PDF ${activeKelasData.kodeKelas}`}
             </button>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Info Card */}
         <div className="lg:col-span-2 card p-6 flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-3">
              <div className="w-8 h-8 rounded-lg bg-[var(--brand-dim)] flex items-center justify-center">
@@ -165,7 +181,6 @@ export default function DosenDetailPage() {
           <p className="text-xl font-serif-accent font-bold leading-snug" style={{ color: 'var(--foreground)' }}>{dosenData.mataKuliah || 'Informasi tidak tersedia'}</p>
         </div>
 
-        {/* Brand Summary */}
         <div className="card p-6 bg-brand-dim/30 border-brand-border/40 relative overflow-hidden group">
           <div className="absolute -right-6 -bottom-6 opacity-5 transition-transform group-hover:scale-110">
              <Star size={120} fill="var(--brand)" />
@@ -181,7 +196,7 @@ export default function DosenDetailPage() {
         </div>
       </div>
 
-      {/* ── Tab per kelas ─────────────────────────────────────────────────── */}
+      {/* Tab per kelas */}
       {hasMultiKelas && (
         <div className="card p-6 border-brand-border/20">
           <div className="flex items-center gap-3 mb-5">
@@ -195,24 +210,22 @@ export default function DosenDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-2.5">
-            {/* Tab semua */}
             <button
-              onClick={() => setActiveTab('semua')}
-              className={clsx(
-                'px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all border',
-                activeTab === 'semua'
-                  ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20'
-                  : 'bg-[var(--bg-input)] text-[var(--muted)] border-[var(--border)] hover:border-[var(--brand-border)]'
-              )}
-            >
-              Agregat Semua
-              <span className={clsx(
-                "ml-2 px-1.5 py-0.5 rounded-md text-[10px]",
-                activeTab === 'semua' ? "bg-white/20 text-white" : "bg-black/10 text-muted"
-              )}>{fmt(dosenData.totalRespon)}</span>
+               onClick={() => setActiveTab('semua')}
+               className={clsx(
+                 'px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all border',
+                 activeTab === 'semua'
+                   ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-lg shadow-brand/20'
+                   : 'bg-[var(--bg-input)] text-[var(--muted)] border-[var(--border)] hover:border-[var(--brand-border)]'
+               )}
+             >
+               Agregat Semua
+               <span className={clsx(
+                 "ml-2 px-1.5 py-0.5 rounded-md text-[10px]",
+                 activeTab === 'semua' ? "bg-white/20 text-white" : "bg-black/10 text-muted"
+               )}>{fmt(dosenData?.totalRespon || 0)}</span>
             </button>
 
-            {/* Tab per kelas */}
             {kelasList.map(k => (
               <button
                 key={k.kodeKelas}
@@ -231,9 +244,23 @@ export default function DosenDetailPage() {
                 )}>{fmt(k.totalRespon)}</span>
               </button>
             ))}
+
+            <div className="flex-1" />
+            
+            <div className="flex items-center gap-3 pl-4 border-l border-[var(--border)]">
+              <select 
+                value={filterPertemuan}
+                onChange={e => setFilterPertemuan(e.target.value)}
+                className="bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
+              >
+                <option value="all">Semua Pertemuan</option>
+                {availablePertemuan.map(p => (
+                  <option key={p} value={p}>{`Pertemuan ${p}`}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* Info kelas aktif */}
           {activeTab !== 'semua' && activeKelasData && (
             <div className="mt-5 p-4 rounded-2xl flex items-center justify-between animate-enter shadow-inner"
               style={{ background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
@@ -271,7 +298,7 @@ export default function DosenDetailPage() {
         <StatCard label="Interaktivitas"   value={fmt(activeData.skorInteraktif)} color={scoreColor(activeData.skorInteraktif)} icon={Activity} />
       </div>
 
-      {/* Perbandingan semua kelas — hanya di tab "semua" */}
+      {/* Komparasi — tab semua saja */}
       {hasMultiKelas && activeTab === 'semua' && (
         <div className="card p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -280,7 +307,6 @@ export default function DosenDetailPage() {
             </div>
             <div>
               <h2 className="section-title">Komparasi Kinerja Antar Kelas</h2>
-              <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest mt-0.5">Pilih baris untuk mendalami data spesifik kelas</p>
             </div>
           </div>
           <div className="overflow-x-auto -mx-6 px-6">
@@ -294,7 +320,6 @@ export default function DosenDetailPage() {
                   <th className="hidden sm:table-cell">Pem.</th>
                   <th className="hidden sm:table-cell">Int.</th>
                   <th>Respon</th>
-                  <th className="text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -310,17 +335,6 @@ export default function DosenDetailPage() {
                     <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: scoreColor(k.skorPemahaman) }}>{fmt(k.skorPemahaman)}</td>
                     <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: scoreColor(k.skorInteraktif) }}>{fmt(k.skorInteraktif)}</td>
                     <td className="font-bold text-sm opacity-60">{fmt(k.totalRespon)}</td>
-                    <td>
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={e => { e.stopPropagation(); handleExportKelas(k) }}
-                          disabled={exporting === k.kodeKelas}
-                          className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-500/5 text-red-400 border border-red-500/10 hover:bg-red-500 hover:text-white transition-all disabled:opacity-30"
-                        >
-                          <Download size={15} />
-                        </button>
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -332,12 +346,7 @@ export default function DosenDetailPage() {
       {/* Trend + Radar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card p-6">
-          <div className="flex items-center justify-between mb-6">
-             <h2 className="section-title">Peta Tren CSAT per Pertemuan</h2>
-             {activeTab !== 'semua' && (
-               <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-[var(--brand-dim)] text-[var(--brand)] border border-[var(--brand-border)]">Kelas {activeTab}</span>
-             )}
-          </div>
+          <h2 className="section-title mb-6">Peta Tren CSAT per Pertemuan</h2>
           <TrendChart data={activeData.pertemuanTrend} height={220} />
         </div>
         <div className="card p-6 flex flex-col">
@@ -348,59 +357,41 @@ export default function DosenDetailPage() {
         </div>
       </div>
 
-      {/* Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-6">
           <h2 className="section-title mb-6">Distribusi Rating Skala 1-5</h2>
-          <DistributionBar data={ratingDist} height={180} />
+          <DistributionBar data={ratingDistArray} height={180} />
         </div>
         <div className="card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="section-title">Sentimen Respons Mahasiswa</h2>
-            <div className="w-8 h-8 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center">
-              <MessageSquare size={16} className="opacity-40" />
-            </div>
-          </div>
+          <h2 className="section-title mb-6">Sentimen Respons Mahasiswa</h2>
           <div className="space-y-4">
-            {sentimentCounts.map(({ label, count, color }) => {
+            {sentimentStats.map(({ label, count, color }) => {
               const total = activeData.feedbacks?.length || 1
               const pct   = Math.round(count / total * 100)
               return (
                 <div key={label} className="space-y-2">
                   <div className="flex justify-between items-baseline">
                     <span className="text-sm font-bold opacity-80" style={{ color: 'var(--foreground)' }}>{label}</span>
-                    <span className="font-mono text-xs font-bold" style={{ color: 'var(--muted)' }}>{count} <span className="text-[10px] opacity-40 font-sans uppercase">({pct}%)</span></span>
+                    <span className="font-mono text-xs font-bold" style={{ color: 'var(--muted)' }}>{count} <span className="text-[10px] opacity-40 uppercase">({pct}%)</span></span>
                   </div>
-                  <div className="h-3 rounded-full overflow-hidden shadow-inner border border-[var(--border)]" style={{ background: 'var(--bg-input)' }}>
-                    <div className="h-full rounded-full transition-all duration-1000 cubic-bezier(0.4, 0, 0.2, 1)" 
-                         style={{ width: `${pct}%`, backgroundColor: color, boxShadow: `0 0 10px ${color}33` }} />
+                  <div className="h-3 rounded-full overflow-hidden bg-[var(--bg-input)] border border-[var(--border)] shadow-inner">
+                    <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${pct}%`, backgroundColor: color }} />
                   </div>
                 </div>
               )
             })}
-            <p className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40 mt-4 text-center">
-              Berdasarkan {activeData.feedbacks?.length || 0} komentar terevaluasi
-            </p>
           </div>
         </div>
       </div>
 
-      {/* Word cloud */}
       {topicWords.length > 0 && (
         <div className="card p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-[var(--brand-dim)] flex items-center justify-center">
-               <BookOpen size={16} className="text-[var(--brand)]" />
-            </div>
-            <h2 className="section-title">Terminologi Evaluasi Materi</h2>
-          </div>
-          <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest mb-6">Analisis kata kunci dari topik yang belum sepenuhnya dipahami mahasiswa</p>
+          <h2 className="section-title mb-6">Terminologi Evaluasi Materi</h2>
           <div className="flex flex-wrap gap-2.5">
             {topicWords.map(({ text, value }) => {
               const size = 11 + Math.round((value / topicWords[0].value) * 16)
               return (
-                <span key={text} className="px-4 py-2 rounded-xl transition-all cursor-default font-bold hover:scale-105"
-                  style={{ fontSize: size, background: 'var(--brand-dim)', border: '1px solid var(--brand-border)', color: 'var(--brand)', boxShadow: 'var(--shadow-sm)' }}>
+                <span key={text} className="px-4 py-2 rounded-xl border border-[var(--brand-border)] bg-[var(--brand-dim)] text-[var(--brand)] font-bold" style={{ fontSize: size }}>
                   {text}
                 </span>
               )
@@ -409,74 +400,44 @@ export default function DosenDetailPage() {
         </div>
       )}
 
-      {/* Komentar */}
-      {(activeData.feedbacks?.length > 0) && (
+      {activeData.feedbacks?.length > 0 && (
         <div className="card p-6">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center">
-                <FileText size={16} className="text-[var(--brand)]" />
-              </div>
-              <h2 className="section-title">Arsip Masukan Mahasiswa</h2>
-            </div>
-            <span className="badge px-4 py-1.5 font-bold uppercase tracking-widest text-[10px] bg-u-navy text-brand border border-[var(--brand-border)]">
-              {fmt(activeData.feedbacks.length)} Respon
-            </span>
-          </div>
+          <h2 className="section-title mb-8">Arsip Masukan Mahasiswa</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar">
-            {activeData.feedbacks.map((fb, i) => {
-              const sentiment = analyzeSentiment(fb)
-              const barColor = sentiment === 'positive' ? 'var(--positive)' : sentiment === 'negative' ? 'var(--negative)' : 'var(--muted-2)'
-              return (
-                <div key={i} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex gap-4 hover:border-[var(--brand-border)] transition-all group">
-                  <span className="w-1.5 rounded-full self-stretch flex-shrink-0 shadow-sm"
-                    style={{ backgroundColor: barColor }} />
-                  <p className="text-sm leading-relaxed font-medium italic opacity-90" style={{ color: 'var(--foreground-2)' }}>"{fb}"</p>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Topik perlu penguatan */}
-      {(activeData.topikBelum?.length > 0) && (
-        <div className="card p-6 border-amber-500/10 bg-amber-500/[0.02]">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-              <AlertCircle size={18} className="text-amber-500" />
-            </div>
-            <div>
-              <h2 className="section-title">Prioritas Penguatan Materi</h2>
-              <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest mt-0.5">Topik yang membutuhkan perhatian khusus di pertemuan mandiri</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {activeData.topikBelum.map((t, i) => (
-              <div key={i} className="flex items-center gap-3 p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] hover:border-amber-500/30 transition-all">
-                <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                <p className="text-sm font-bold opacity-90" style={{ color: 'var(--foreground)' }}>{t}</p>
+            {activeData.feedbacks.map((fb, i) => (
+              <div key={i} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex gap-4">
+                <span className="w-1.5 rounded-full bg-[var(--brand)] self-stretch opacity-20" />
+                <p className="text-sm italic opacity-90">"{fb}"</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Detail pertemuan */}
-      <div className="card p-6">
-        <div className="flex items-center gap-3 mb-6">
-           <div className="w-8 h-8 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center">
-             <LayoutGrid size={15} className="opacity-40" />
-           </div>
-           <h2 className="section-title">Log Historis per Pertemuan</h2>
+      {activeData.topikBelum?.length > 0 && (
+        <div className="card p-6 border-amber-500/10 bg-amber-500/[0.02]">
+          <h2 className="section-title mb-6 text-amber-500">Prioritas Penguatan Materi</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {activeData.topikBelum.map((t, i) => (
+              <div key={i} className="flex items-center gap-3 p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border)]">
+                <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                <p className="text-sm font-bold">{t}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="overflow-x-auto -mx-6 px-6">
+      )}
+
+      {/* Detail per pertemuan */}
+      <div className="card p-6">
+        <h2 className="section-title mb-6">Log Historis per Pertemuan</h2>
+        <div className="overflow-x-auto">
           <table className="w-full data-table">
             <thead>
               <tr>
                 <th className="w-32">Pertemuan</th>
                 <th>Status CSAT</th>
-                <th>Beban Responden</th>
+                <th>Responden</th>
                 <th className="w-64">Visual Indeks</th>
               </tr>
             </thead>
@@ -485,11 +446,10 @@ export default function DosenDetailPage() {
                 <tr key={pertemuan}>
                   <td className="font-serif-accent font-extrabold text-lg text-[var(--brand)]">{pertemuan}</td>
                   <td><span className={clsx('badge px-4 py-1.5', scoreBadgeClass(csat))}>{fmt(csat)}</span></td>
-                  <td className="font-bold text-sm opacity-60">{fmt(count)} Mahasiswa</td>
+                  <td className="text-sm opacity-60 font-bold">{fmt(count)} Mahasiswa</td>
                   <td>
-                    <div className="w-full max-w-[200px] h-2.5 rounded-full overflow-hidden shadow-inner border border-[var(--border)]" style={{ background: 'var(--bg-input)' }}>
-                      <div className="h-full rounded-full transition-all duration-700" 
-                           style={{ width: `${csat?(csat/5)*100:0}%`, backgroundColor: scoreColor(csat), boxShadow: `0 0 8px ${scoreColor(csat)}55` }} />
+                    <div className="w-full max-w-[200px] h-2.5 rounded-full bg-[var(--bg-input)] border border-[var(--border)] overflow-hidden">
+                      <div className="h-full transition-all duration-700" style={{ width: `${csat?(csat/5)*100:0}%`, backgroundColor: scoreColor(csat) }} />
                     </div>
                   </td>
                 </tr>

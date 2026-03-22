@@ -17,7 +17,7 @@ import clsx from 'clsx'
 const PAGE_SIZE = 10
 
 export default function DashboardPage() {
-  const { getFiltered, fileName, mappingAccuracy, rawCount, removedCount } = useStore()
+  const { getFiltered, fileName, mappingAccuracy, rawCount, removedCount, filters, parsedData } = useStore()
   const navigate   = useNavigate()
   const [page, setPage]           = useState(1)
   const [jumpIdx, setJumpIdx]     = useState(null)
@@ -25,7 +25,6 @@ export default function DashboardPage() {
   const [exportingAll, setExportingAll] = useState(false)
 
   const filtered  = getFiltered()
-  const { parsedData } = useStore()
   const dosenList = useMemo(() => aggregateByDosen(filtered, parsedData), [filtered, parsedData])
   const anomalies = useMemo(() => detectAnomalies(dosenList), [dosenList])
   const conflicts = useMemo(() => filtered.filter(r => r.semesterConflict).length, [filtered])
@@ -39,14 +38,28 @@ export default function DashboardPage() {
 
   const globalTrend = useMemo(() => {
     const map = {}
-    filtered.forEach(r => {
+    const maxP = filters.pertemuan === 'all' ? Infinity : Number(filters.pertemuan)
+
+    // Manual filtering for trend to recover historical data (P1 to Selected P)
+    parsedData.forEach(r => {
       if (!r.pertemuan || !r.csatGabungan) return
-      if (!map[r.pertemuan]) map[r.pertemuan] = []
-      map[r.pertemuan].push(r.csatGabungan)
+      
+      // Apply other filters (matkul, prodi, dosen). We IGNORE the specific 'pertemuan' filter here.
+      if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return
+      if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return
+      if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return
+      
+      // For trend, we show ALL meetings up to the selected one
+      const pNum = Number(r.pertemuan)
+      if (!isNaN(pNum) && pNum <= maxP) {
+        if (!map[pNum]) map[pNum] = []
+        map[pNum].push(r.csatGabungan)
+      }
     })
+
     return Object.entries(map).sort(([a],[b])=>+a-+b)
       .map(([p, vals]) => ({ pertemuan: `P${p}`, csat: avg(vals) }))
-  }, [filtered])
+  }, [parsedData, filters])
 
   const totalPages = Math.ceil(dosenList.length / PAGE_SIZE)
   const paginated  = dosenList.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE)
@@ -304,7 +317,7 @@ export default function DashboardPage() {
                   className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--brand-dim)] disabled:opacity-50 transition-all"
                   title="Halaman Terakhir"
                 >
-                  <ChevronRight size={14} /><ChevronRight size={14} className="-ml-1"/>
+                  <ChevronRight size={14} /><ChevronRight size={14} className="-mr-1"/>
                 </button>
               </div>
             </div>

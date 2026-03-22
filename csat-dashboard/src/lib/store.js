@@ -19,8 +19,10 @@ const useStore = create((set, get) => ({
       .filter((r, idx) => {
         const dName = (r.namaDosen || '').toLowerCase()
         const isHeader = dName.includes('nama dosen') || dName === 'dosen'
-        if (isHeader || (r.csatGabungan === null)) {
-          removedRows.push({ row: idx + 2, reason: isHeader ? 'Header' : 'Empty Scores' })
+        // Allow if it has a generic name AND (either a score OR feedback OR a topic)
+        const hasData = r.csatGabungan !== null || r.feedbackDosen || r.topikBelumPaham
+        if (isHeader || !hasData) {
+          removedRows.push({ row: idx + 2, reason: isHeader ? 'Header' : 'No Data found in row' })
           return false
         }
         return true
