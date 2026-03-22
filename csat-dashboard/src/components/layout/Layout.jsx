@@ -1,36 +1,12 @@
-import { useState, useEffect } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
-import {
-  Upload, Sun, Moon
-} from 'lucide-react'
+import { Upload } from 'lucide-react'
 import TabNav from './TabNav'
+import ThemeToggle from '@/components/common/ThemeToggle'
 import useStore from '@/lib/store'
-
-function useDarkMode() {
-  const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem('csat-theme')
-    return saved ? saved === 'dark' : true
-  })
-  useEffect(() => {
-    document.documentElement.classList.toggle('light', !dark)
-    localStorage.setItem('csat-theme', dark ? 'dark' : 'light')
-  }, [dark])
-  return [dark, setDark]
-}
 
 export default function Layout() {
   const { fileName, clearData } = useStore()
   const navigate = useNavigate()
-  const [dark, setDark] = useDarkMode()
-
-  const ThemeBtn = ({ size = 15 }) => (
-    <button
-      onClick={() => setDark(d => !d)}
-      className="flex items-center justify-center w-9 h-9 rounded-xl transition-all hover:scale-105 active:scale-95 bg-[var(--bg-dropdown)] text-[var(--brand)] border border-[var(--brand-border)]"
-    >
-      {dark ? <Sun size={size} /> : <Moon size={size} />}
-    </button>
-  )
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-base)]">
@@ -65,7 +41,7 @@ export default function Layout() {
                 >
                   <Upload size={16} />
                 </button>
-               <ThemeBtn size={15} />
+               <ThemeToggle size={15} />
             </div>
           </div>
 
@@ -85,7 +61,7 @@ export default function Layout() {
               >
                 <Upload size={14} /> <span>Ganti Dataset</span>
               </button>
-              <ThemeBtn size={14} />
+              <ThemeToggle size={14} />
             </div>
           </div>
         </header>

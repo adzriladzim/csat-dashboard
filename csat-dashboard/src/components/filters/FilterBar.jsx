@@ -52,13 +52,13 @@ export default function FilterBar() {
 
         {/* Tanggal Mulai */}
         <div className="space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Mulai</label>
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Tanggal Mulai</label>
           <input type="date" value={filters.dateFrom} onChange={e=>setFilter('dateFrom',e.target.value)} className="input w-full" />
         </div>
 
         {/* Tanggal Selesai */}
         <div className="space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Selesai</label>
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Tanggal Selesai</label>
           <div className="flex items-center gap-2">
             <input type="date" value={filters.dateTo} onChange={e=>setFilter('dateTo',e.target.value)} className="input w-full" />
             

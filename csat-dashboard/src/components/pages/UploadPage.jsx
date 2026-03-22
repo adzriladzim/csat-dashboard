@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Upload, CheckCircle2, AlertCircle, TrendingUp, Loader2, FileSpreadsheet, Heart } from 'lucide-react'
+import ThemeToggle from '@/components/common/ThemeToggle'
 import * as XLSX from 'xlsx'
 import useStore from '@/lib/store'
 import clsx from 'clsx'
@@ -53,16 +54,21 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
       style={{ backgroundColor:'var(--bg-base)' }}>
+      {/* Theme Toggle in top-right */}
+      <div className="absolute top-6 right-6 z-50">
+        <ThemeToggle size={16} />
+      </div>
+
       {/* Decorative Blobs */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full blur-[150px] pointer-events-none opacity-20"
         style={{ background:'radial-gradient(circle, var(--brand) 0%, transparent 70%)' }} />
       <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full blur-[150px] pointer-events-none opacity-10"
-        style={{ background:'radial-gradient(circle, var(--u-navy) 0%, transparent 70%)' }} />
+        style={{ background:'radial-gradient(circle, var(--brand-dim) 0%, transparent 70%)' }} />
 
       <div className="relative w-full max-w-lg space-y-6 animate-enter">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6 bg-white shadow-xl border border-[var(--border)] p-3">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6 bg-[var(--bg-card)] shadow-xl border border-[var(--border)] p-3">
             <img src="/CAKRAWALA LOGOMARK 2A.png" alt="University Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="font-serif-accent text-4xl font-extrabold tracking-tight mb-2" style={{ color:'var(--foreground)' }}>
