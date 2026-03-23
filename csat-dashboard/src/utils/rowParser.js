@@ -174,12 +174,14 @@ export function parseRow(row, headers) {
   let tsISO = null
   if (tsRaw) { const d = new Date(tsRaw); if (!isNaN(d)) tsISO = d.toISOString() }
   const pertemuanRaw = getVal(row, headers, 'Pertemuan ke') || getVal(row, headers, 'Pertemuan')
-  const prodi1    = cleanText(getExact(row, headers, 'Program Studi'))
-  const prodi2    = cleanText(getExact(row, headers, 'Program Studi 2'))
-  const mk1       = cleanText(getExact(row, headers, 'Mata Kuliah'))
-  const mk2       = cleanText(getExact(row, headers, 'Mata Kuliah 2'))
-  const kk1       = cleanText(getExact(row, headers, 'Kode Kelas'))
-  const kk2       = cleanText(getExact(row, headers, 'Kode Kelas 2'))
+  
+  // -- ROBUST EXTRACTION FOR PRODI, MK, KODE KELAS --
+  const prodi1    = cleanText(getVal(row, headers, 'Program Studi'))
+  const prodi2    = cleanText(getVal(row, headers, 'Prodi'))
+  const mk1       = cleanText(getVal(row, headers, 'Mata Kuliah')) || cleanText(getVal(row, headers, 'Matakuliah'))
+  const mk2       = cleanText(getVal(row, headers, 'MK'))
+  const kk1       = cleanText(getVal(row, headers, 'Kode Kelas'))
+  const kk2       = cleanText(getVal(row, headers, 'Sesi')) || cleanText(getVal(row, headers, 'Kelas'))
   
   // -- ULTRA-STRICT KEYWORD-SET MATCHING (EXCLUDES FAKTOR/REASONING) --
   const scoreExcludes = ['faktor', 'mengapa', 'alasan', 'sebutkan']

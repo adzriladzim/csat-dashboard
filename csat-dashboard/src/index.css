@@ -383,6 +383,39 @@
   scrollbar-width: none;
 }
 
+/* ── Navigation Masking ────────────────────────────────────────────────── */
+.nav-mask-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.nav-mask-left, .nav-mask-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  pointer-events: none;
+  z-index: 20;
+  transition: opacity 0.3s;
+  opacity: 0;
+}
+
+.nav-mask-left {
+  left: 0;
+  background: linear-gradient(to right, var(--bg-surface), transparent);
+}
+
+.nav-mask-right {
+  right: 0;
+  background: linear-gradient(to left, var(--bg-surface), transparent);
+}
+
+.nav-mask-visible {
+  opacity: 1;
+}
+
 @media (max-width: 480px) {
   .badge { padding: 0.25rem 0.5rem; font-size: 9px; }
   .btn-primary, .btn-secondary { padding: 8px 16px; font-size: 12px; }

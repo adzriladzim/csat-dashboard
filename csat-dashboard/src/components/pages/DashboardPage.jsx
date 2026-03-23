@@ -36,8 +36,8 @@ export default function DashboardPage() {
       let vB = b[sortBy]
       
       // Special Cases
-      if (sortBy === 'namaDosen') {
-        vA = vA.toLowerCase(); vB = vB.toLowerCase()
+      if (sortBy === 'namaDosen' || sortBy === 'prodi') {
+        vA = (vA || '').toLowerCase(); vB = (vB || '').toLowerCase()
       } else if (sortBy === 'rank') {
         // Find original rank from the natural order (CSAT desc)
         vA = rawDosenList.findIndex(x => x.namaDosen === a.namaDosen)
@@ -232,7 +232,7 @@ export default function DashboardPage() {
                   onClick={() => handleSort('namaDosen')}
                 >
                   <div className="flex items-center gap-1">
-                    Dosen & Program Studi {getSortIcon('namaDosen')}
+                    Nama Dosen {getSortIcon('namaDosen')}
                   </div>
                 </th>
                 <th 
@@ -276,6 +276,14 @@ export default function DashboardPage() {
                   </div>
                 </th>
                 <th 
+                  className="hidden sm:table-cell cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
+                  onClick={() => handleSort('prodi')}
+                >
+                  <div className="flex items-center gap-1">
+                    Prodi {getSortIcon('prodi')}
+                  </div>
+                </th>
+                <th 
                   className="cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
                   onClick={() => handleSort('trend')}
                 >
@@ -299,7 +307,6 @@ export default function DashboardPage() {
                       >
                         {d.namaDosen}
                       </button>
-                      <p className="text-[11px] font-bold mt-1 uppercase tracking-wide" style={{ color: 'var(--muted)' }}>{d.prodi || 'Staf Pengajar'}</p>
                     </td>
                     <td>
                       <span className="font-serif-accent font-bold text-base" style={{ color: 'var(--accent-sapphire)' }}>
@@ -310,6 +317,11 @@ export default function DashboardPage() {
                     <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: 'var(--foreground)' }}>{fmt(d.skorPemahaman)}</td>
                     <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: 'var(--foreground)' }}>{fmt(d.skorInteraktif)}</td>
                     <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{fmt(d.totalRespon)}</td>
+                    <td className="hidden sm:table-cell">
+                      <span className="text-[11px] font-bold uppercase tracking-wide opacity-70" style={{ color: 'var(--muted)' }}>
+                        {d.prodi || 'Staf Pengajar'}
+                      </span>
+                    </td>
                     <td>
                       <StabilityBadge trend={d.trend} />
                     </td>

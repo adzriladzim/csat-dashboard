@@ -1,15 +1,20 @@
 import { Outlet, useNavigate } from 'react-router-dom'
-import { Upload } from 'lucide-react'
+import { useState } from 'react'
+import { Upload, HelpCircle } from 'lucide-react'
 import TabNav from './TabNav'
 import ThemeToggle from '@/components/common/ThemeToggle'
+import UserGuideModal from '@/components/common/UserGuideModal'
 import useStore from '@/lib/store'
 
 export default function Layout() {
   const { fileName, clearData } = useStore()
   const navigate = useNavigate()
+  const [showHelp, setShowHelp] = useState(false)
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-base)]">
+      <UserGuideModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+      
       {/* ── STICKY TOP NAVIGATION GROUP ──────────────────────── */}
       <div className="sticky top-0 z-30 glass shadow-sm border-b border-[var(--border)] overflow-hidden">
         <header className="flex flex-col lg:flex-row lg:items-center justify-between px-5 sm:px-10 py-4 lg:py-4 gap-4"
@@ -35,6 +40,13 @@ export default function Layout() {
             {/* Icons only on mobile top-right, for clean look */}
             <div className="flex lg:hidden items-center gap-2.5">
                <button 
+                  onClick={() => setShowHelp(true)}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 transition-all hover:bg-blue-500 hover:text-white"
+                  title="Panduan Penguna"
+                >
+                  <HelpCircle size={16} />
+                </button>
+               <button 
                   onClick={() => { clearData(); navigate('/upload') }}
                   className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--brand-dim)] text-[var(--brand)] border border-[var(--brand-border)] transition-all hover:bg-[var(--brand)] hover:text-white"
                   title="Ganti Dataset"
@@ -54,6 +66,12 @@ export default function Layout() {
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
+              <button 
+                onClick={() => setShowHelp(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white"
+              >
+                <HelpCircle size={14} /> <span>Bantuan</span>
+              </button>
               <div className="h-6 w-px bg-[var(--border)] mr-1" />
               <button 
                 onClick={() => { clearData(); navigate('/upload') }}
