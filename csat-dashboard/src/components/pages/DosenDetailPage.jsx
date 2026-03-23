@@ -186,8 +186,8 @@ export default function DosenDetailPage() {
           </div>
           <p className="text-[10px] font-bold uppercase tracking-widest mb-4 opacity-70">Identitas Kinerja</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-serif-accent font-extrabold">{fmt(dosenData.csatGabungan)}</span>
-            <span className="text-xs font-bold opacity-60 uppercase tracking-tighter">CSAT Global</span>
+            <span className="text-4xl font-serif-accent font-extrabold" style={{ color: 'var(--accent-sapphire)' }}>{fmt(dosenData.csatGabungan)}</span>
+            <span className="text-xs font-bold opacity-60 uppercase tracking-tighter" style={{ color: 'var(--accent-sapphire)' }}>CSAT Global</span>
           </div>
           <div className="mt-4 pt-4 border-t border-brand-border/20">
             <p className="text-xs font-medium opacity-80 italic">"Teruslah memberikan inspirasi akademik terbaik bagi mahasiswa."</p>
@@ -302,9 +302,9 @@ export default function DosenDetailPage() {
           highlight={true}
           color="#3b82f6"
         />
-        <StatCard label="Performa Dosen"   value={fmt(activeData.skorPerforma)}   sub={scoreLabel(activeData.skorPerforma)}   icon={TrendingUp} />
-        <StatCard label="Pemahaman Materi" value={fmt(activeData.skorPemahaman)}  sub={scoreLabel(activeData.skorPemahaman)}  icon={BookOpen} />
-        <StatCard label="Interaktivitas"   value={fmt(activeData.skorInteraktif)} sub={scoreLabel(activeData.skorInteraktif)} icon={Activity} />
+        <StatCard label="Performa Dosen"   value={fmt(activeData.skorPerforma)}   sub={scoreLabel(activeData.skorPerforma)}   icon={TrendingUp}   color="var(--foreground)" />
+        <StatCard label="Pemahaman Materi" value={fmt(activeData.skorPemahaman)}  sub={scoreLabel(activeData.skorPemahaman)}  icon={BookOpen}     color="var(--foreground)" />
+        <StatCard label="Interaktivitas"   value={fmt(activeData.skorInteraktif)} sub={scoreLabel(activeData.skorInteraktif)} icon={Activity}     color="var(--foreground)" />
       </div>
 
       {/* Komparasi — tab semua saja */}
@@ -339,10 +339,10 @@ export default function DosenDetailPage() {
                        <p className="text-sm font-bold group-hover:text-[var(--brand)] transition-colors" style={{ color: 'var(--foreground)' }}>{k.mataKuliah || 'Mata Kuliah Umum'}</p>
                        <p className="text-[10px] opacity-50 uppercase font-medium mt-0.5">{k.prodi || '–'}</p>
                     </td>
-                    <td><span className={clsx('badge px-3 py-1', scoreBadgeClass(k.csatGabungan))}>{fmt(k.csatGabungan)}</span></td>
-                    <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: scoreColor(k.skorPerforma) }}>{fmt(k.skorPerforma)}</td>
-                    <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: scoreColor(k.skorPemahaman) }}>{fmt(k.skorPemahaman)}</td>
-                    <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: scoreColor(k.skorInteraktif) }}>{fmt(k.skorInteraktif)}</td>
+                    <td><span className="font-serif-accent font-bold text-sm" style={{ color: 'var(--accent-sapphire)' }}>{fmt(k.csatGabungan)}</span></td>
+                    <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: 'var(--foreground)' }}>{fmt(k.skorPerforma)}</td>
+                    <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: 'var(--foreground)' }}>{fmt(k.skorPemahaman)}</td>
+                    <td className="font-mono text-xs font-bold hidden sm:table-cell" style={{ color: 'var(--foreground)' }}>{fmt(k.skorInteraktif)}</td>
                     <td className="font-bold text-sm opacity-60">{fmt(k.totalRespon)}</td>
                   </tr>
                 ))}
@@ -456,11 +456,11 @@ export default function DosenDetailPage() {
               {activeData.pertemuanTrend.map(({ pertemuan, csat, count }) => (
                 <tr key={pertemuan}>
                   <td className="font-serif-accent font-extrabold text-lg text-[var(--brand)]">{pertemuan}</td>
-                  <td><span className={clsx('badge px-4 py-1.5', scoreBadgeClass(csat))}>{fmt(csat)}</span></td>
+                  <td><span className="font-serif-accent font-bold text-lg" style={{ color: 'var(--accent-sapphire)' }}>{fmt(csat)}</span></td>
                   <td className="text-sm opacity-60 font-bold">{fmt(count)} Mahasiswa</td>
                   <td>
                     <div className="w-full max-w-[200px] h-2.5 rounded-full bg-[var(--bg-input)] border border-[var(--border)] overflow-hidden">
-                      <div className="h-full transition-all duration-700" style={{ width: `${csat?(csat/5)*100:0}%`, backgroundColor: scoreColor(csat) }} />
+                      <div className="h-full transition-all duration-700" style={{ width: `${csat?(csat/5)*100:0}%`, backgroundColor: 'var(--accent-sapphire)' }} />
                     </div>
                   </td>
                 </tr>

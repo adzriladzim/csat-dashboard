@@ -58,14 +58,14 @@ export default function WeeklyAnalysisPage() {
               <tbody className="divide-y divide-[var(--border)]">
                 {top5.map((d, i) => (
                   <tr key={d.namaDosen} className="hover:bg-[var(--brand-dim)]/5 transition-colors">
-                    <td className="text-center font-bold text-emerald-400 font-serif-accent">#{i + 1}</td>
+                    <td className="text-center font-bold opacity-60 font-serif-accent" style={{ color: 'var(--foreground)' }}>#{i + 1}</td>
                     <td>
                       <p className="font-bold text-[var(--foreground)] leading-tight">{d.namaDosen}</p>
                       <p className="text-[10px] text-[var(--muted)] font-medium mt-0.5 truncate max-w-[200px] uppercase tracking-tighter">
                         {d.prodi || 'Staf Pengajar'}
                       </p>
                     </td>
-                    <td className="text-left font-mono font-bold" style={{ color: scoreColor(d.csatGabungan) }}>
+                    <td className="text-left font-mono font-bold" style={{ color: 'var(--accent-sapphire)' }}>
                       {fmt(d.csatGabungan)}
                     </td>
                   </tr>
@@ -101,14 +101,14 @@ export default function WeeklyAnalysisPage() {
               <tbody className="divide-y divide-[var(--border)]">
                 {bot5.map((d, i) => (
                   <tr key={d.namaDosen} className="hover:bg-red-500/5 transition-colors">
-                    <td className="text-center font-bold text-red-500 font-serif-accent">#{dosenList.length - i}</td>
+                    <td className="text-center font-bold opacity-60 font-serif-accent" style={{ color: 'var(--foreground)' }}>#{dosenList.length - i}</td>
                     <td>
                       <p className="font-bold text-[var(--foreground)] leading-tight">{d.namaDosen}</p>
                       <p className="text-[10px] text-[var(--muted)] font-medium mt-0.5 truncate max-w-[200px] uppercase tracking-tighter">
                         {d.prodi || 'Staf Pengajar'}
                       </p>
                     </td>
-                    <td className="text-left font-mono font-bold" style={{ color: scoreColor(d.csatGabungan) }}>
+                    <td className="text-left font-mono font-bold" style={{ color: 'var(--accent-sapphire)' }}>
                       {fmt(d.csatGabungan)}
                     </td>
                   </tr>

@@ -108,7 +108,7 @@ export default function PerformancePage() {
                     }} />
                 </div>
                 <div className="w-16 flex items-center justify-end gap-2 flex-shrink-0">
-                  <span className="text-xs font-mono font-bold" style={{color: scoreColor(d.csatGabungan)}}>{fmt(d.csatGabungan)}</span>
+                  <span className="text-xs font-mono font-bold" style={{color: 'var(--accent-sapphire)'}}>{fmt(d.csatGabungan)}</span>
                   {isOut && <TrendingUp size={12} className="text-emerald-400" />}
                   {isCon && <TrendingDown size={12} className="text-red-400" />}
                 </div>

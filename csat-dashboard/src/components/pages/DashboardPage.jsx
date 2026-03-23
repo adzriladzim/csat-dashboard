@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Users, Star, BookOpen, Activity, Download, TrendingUp,
+  Users, Star, BookOpen, Activity, Download, TrendingUp, TrendingDown,
   ChevronRight, ChevronLeft, FileDown, Award, AlertTriangle, AlertCircle,
-  CheckCircle2
+  CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown, Minus
 } from 'lucide-react'
 import useStore from '@/lib/store'
 import { aggregateByDosen, avg, fmt, scoreColor, scoreBadgeClass, scoreLabel, detectAnomalies } from '@/utils/analytics'
@@ -23,9 +23,37 @@ export default function DashboardPage() {
   const [jumpIdx, setJumpIdx]     = useState(null)
   const [jumpVal, setJumpVal]     = useState('')
   const [exportingAll, setExportingAll] = useState(false)
+  const [sortBy, setSortBy]       = useState('csatGabungan') // Default to CSAT
+  const [sortDir, setSortDir]     = useState('desc')
 
   const filtered  = getFiltered()
-  const dosenList = useMemo(() => aggregateByDosen(filtered, parsedData), [filtered, parsedData])
+  const rawDosenList = useMemo(() => aggregateByDosen(filtered, parsedData), [filtered, parsedData])
+  
+  const dosenList = useMemo(() => {
+    if (!sortBy) return rawDosenList
+    return [...rawDosenList].sort((a,b) => {
+      let vA = a[sortBy]
+      let vB = b[sortBy]
+      
+      // Special Cases
+      if (sortBy === 'namaDosen') {
+        vA = vA.toLowerCase(); vB = vB.toLowerCase()
+      } else if (sortBy === 'rank') {
+        // Find original rank from the natural order (CSAT desc)
+        vA = rawDosenList.findIndex(x => x.namaDosen === a.namaDosen)
+        vB = rawDosenList.findIndex(x => x.namaDosen === b.namaDosen)
+      } else if (sortBy === 'trend') {
+        const order = { up: 3, stable: 2, down: 1, none: 0 }
+        vA = order[a.trend] || 0
+        vB = order[b.trend] || 0
+      }
+
+      if (vA < vB) return sortDir === 'asc' ? -1 : 1
+      if (vA > vB) return sortDir === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [rawDosenList, sortBy, sortDir])
+
   const anomalies = useMemo(() => detectAnomalies(dosenList), [dosenList])
   const conflicts = useMemo(() => filtered.filter(r => r.semesterConflict).length, [filtered])
 
@@ -63,6 +91,21 @@ export default function DashboardPage() {
 
   const totalPages = Math.ceil(dosenList.length / PAGE_SIZE)
   const paginated  = dosenList.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE)
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortBy(key)
+      setSortDir('desc')
+    }
+    setPage(1)
+  }
+
+  const getSortIcon = (key) => {
+    if (sortBy !== key) return <ArrowUpDown size={12} className="opacity-30" />
+    return sortDir === 'asc' ? <ArrowUp size={12} className="text-[var(--brand)]" /> : <ArrowDown size={12} className="text-[var(--brand)]" />
+  }
 
   async function handleExportAllPDF() {
     setExportingAll(true)
@@ -121,9 +164,9 @@ export default function DashboardPage() {
           highlight={true}
           color="#3b82f6"
         />
-        <StatCard label="Performa Dosen"   value={fmt(globalPerforma)}   sub={scoreLabel(globalPerforma)}   icon={TrendingUp} />
-        <StatCard label="Pemahaman Materi" value={fmt(globalPemahaman)}  sub={scoreLabel(globalPemahaman)}  icon={BookOpen}   />
-        <StatCard label="Interaktivitas Kelas"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   />
+        <StatCard label="Performa Dosen"   value={fmt(globalPerforma)}   sub={scoreLabel(globalPerforma)}   icon={TrendingUp}  color="var(--foreground)" />
+        <StatCard label="Pemahaman Materi" value={fmt(globalPemahaman)}  sub={scoreLabel(globalPemahaman)}  icon={BookOpen}    color="var(--foreground)" />
+        <StatCard label="Interaktivitas Kelas"   value={fmt(globalInteraktif)} sub={scoreLabel(globalInteraktif)} icon={Activity}   color="var(--foreground)" />
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -167,7 +210,7 @@ export default function DashboardPage() {
       <div className="card p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2.5">
-            <h2 className="section-title">Database Kinerja Dosen</h2>
+            <h2 className="section-title">Peringkat Kinerja Dosen</h2>
             <span className="badge bg-u-navy text-brand border border-[var(--brand-border)]">{fmt(dosenList.length)}</span>
           </div>
         </div>
@@ -176,13 +219,70 @@ export default function DashboardPage() {
           <table className="w-full data-table min-w-[700px]">
             <thead className="sticky-header">
               <tr>
-                <th className="w-12 text-center">Rank</th>
-                <th>Dosen & Program Studi</th>
-                <th>CSAT</th>
-                <th className="hidden lg:table-cell">Performa</th>
-                <th className="hidden lg:table-cell">Pemahaman</th>
-                <th className="hidden lg:table-cell">Interaktif</th>
-                <th>Respon</th>
+                <th 
+                  className="w-12 text-center cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
+                  onClick={() => handleSort('rank')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Rank {getSortIcon('rank')}
+                  </div>
+                </th>
+                <th 
+                  className="cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
+                  onClick={() => handleSort('namaDosen')}
+                >
+                  <div className="flex items-center gap-1">
+                    Dosen & Program Studi {getSortIcon('namaDosen')}
+                  </div>
+                </th>
+                <th 
+                  className="cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
+                  onClick={() => handleSort('csatGabungan')}
+                >
+                  <div className="flex items-center gap-1">
+                    CSAT {getSortIcon('csatGabungan')}
+                  </div>
+                </th>
+                <th 
+                  className="hidden lg:table-cell cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
+                  onClick={() => handleSort('skorPerforma')}
+                >
+                  <div className="flex items-center gap-1">
+                    Performa Dosen {getSortIcon('skorPerforma')}
+                  </div>
+                </th>
+                <th 
+                  className="hidden lg:table-cell cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
+                  onClick={() => handleSort('skorPemahaman')}
+                >
+                  <div className="flex items-center gap-1">
+                    Pemahaman Materi {getSortIcon('skorPemahaman')}
+                  </div>
+                </th>
+                <th 
+                  className="hidden lg:table-cell cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
+                  onClick={() => handleSort('skorInteraktif')}
+                >
+                  <div className="flex items-center gap-1">
+                    Interaktivitas {getSortIcon('skorInteraktif')}
+                  </div>
+                </th>
+                <th 
+                  className="cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
+                  onClick={() => handleSort('totalRespon')}
+                >
+                  <div className="flex items-center gap-1">
+                    Respon {getSortIcon('totalRespon')}
+                  </div>
+                </th>
+                <th 
+                  className="cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
+                  onClick={() => handleSort('trend')}
+                >
+                  <div className="flex items-center gap-1">
+                    Stabilitas {getSortIcon('trend')}
+                  </div>
+                </th>
                 <th className="text-left">Aksi</th>
               </tr>
             </thead>
@@ -202,14 +302,17 @@ export default function DashboardPage() {
                       <p className="text-[11px] font-bold mt-1 uppercase tracking-wide" style={{ color: 'var(--muted)' }}>{d.prodi || 'Staf Pengajar'}</p>
                     </td>
                     <td>
-                      <span className={clsx('badge px-3 py-1.5', scoreBadgeClass(d.csatGabungan))}>
+                      <span className="font-serif-accent font-bold text-base" style={{ color: 'var(--accent-sapphire)' }}>
                         {fmt(d.csatGabungan)}
                       </span>
                     </td>
-                    <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPerforma) }}>{fmt(d.skorPerforma)}</td>
-                    <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPemahaman) }}>{fmt(d.skorPemahaman)}</td>
-                    <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: scoreColor(d.skorInteraktif) }}>{fmt(d.skorInteraktif)}</td>
-                    <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{fmt(dosenList.find(x=>x.namaDosen===d.namaDosen).totalRespon)}</td>
+                    <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: 'var(--foreground)' }}>{fmt(d.skorPerforma)}</td>
+                    <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: 'var(--foreground)' }}>{fmt(d.skorPemahaman)}</td>
+                    <td className="hidden lg:table-cell font-mono text-sm font-bold" style={{ color: 'var(--foreground)' }}>{fmt(d.skorInteraktif)}</td>
+                    <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{fmt(d.totalRespon)}</td>
+                    <td>
+                      <StabilityBadge trend={d.trend} />
+                    </td>
                     <td>
                       <div className="flex items-center justify-start gap-2">
                         <ExportMenu dosenData={d} />
@@ -324,6 +427,27 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function StabilityBadge({ trend }) {
+  if (trend === 'up') return (
+    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 w-fit">
+      <TrendingUp size={14} />
+      <span className="text-[10px] font-extrabold uppercase tracking-wider">Membaik</span>
+    </div>
+  )
+  if (trend === 'down') return (
+    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 text-red-500 border border-red-500/20 w-fit">
+      <TrendingDown size={14} />
+      <span className="text-[10px] font-extrabold uppercase tracking-wider">Menurun</span>
+    </div>
+  )
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-500/10 text-slate-500 border border-slate-500/20 w-fit">
+      <Minus size={14} />
+      <span className="text-[10px] font-extrabold uppercase tracking-wider">Stabil</span>
     </div>
   )
 }

@@ -7,11 +7,8 @@ export function avg(arr) {
   return v.reduce((a,b)=>a+b,0)/v.length
 }
 export function scoreColor(s) {
-  if (!s) return '#94a3b8'
-  if (s >= 4.5) return '#10b981' // Emerald (Softer)
-  if (s >= 4.0) return '#3b82f6' // Sapphire
-  if (s >= 3.0) return '#f59e0b' // Amber
-  return '#ef4444' // Rose
+  if (!s) return 'var(--muted)'
+  return 'var(--foreground)'
 }
 export function scoreColorHex(s) {
   if (!s) return '#64748b'
@@ -25,10 +22,7 @@ export function scoreLabel(s) {
 }
 export function scoreBadgeClass(s) {
   if (!s) return 'bg-slate-700 text-slate-400'
-  if (s >= 4.5) return 'bg-emerald-500/15 text-emerald-400'
-  if (s >= 4.0) return 'bg-blue-500/15 text-blue-400'
-  if (s >= 3.0) return 'bg-amber-500/15 text-amber-400'
-  return 'bg-red-500/15 text-red-400'
+  return 'bg-blue-500/15 text-blue-400 font-bold'
 }
 export function fmt(s) { 
   if (s == null) return '–'

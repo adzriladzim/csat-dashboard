@@ -84,6 +84,9 @@ export default function ExportMenu({ dosenData, buttonClass }) {
     }
   }
 
+  // Standardized style for consistency
+  const standardBtnStyle = buttonClass || 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500 hover:text-white font-extrabold'
+
   if (!hasMultipleKelas) {
     return (
       <button
@@ -93,7 +96,7 @@ export default function ExportMenu({ dosenData, buttonClass }) {
           'w-[116px] rounded-lg border flex items-center justify-center gap-1.5 h-[30px] text-[10px] font-bold uppercase transition-all whitespace-nowrap',
           exporting === 'all'
             ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
-            : buttonClass || 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-red-500/30 font-extrabold'
+            : standardBtnStyle
         )}
       >
         <FileDown size={12} />
@@ -102,11 +105,11 @@ export default function ExportMenu({ dosenData, buttonClass }) {
     )
   }
 
-  const commonBtnClass = clsx(
+  const multiBtnBase = clsx(
     'flex items-center justify-center gap-1.5 h-[30px] text-[10px] font-bold uppercase transition-all',
     exporting !== null
       ? 'bg-[var(--border)] text-[var(--muted)] cursor-wait'
-      : buttonClass || 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border-red-500/20'
+      : standardBtnStyle
   )
 
   return (
@@ -115,7 +118,7 @@ export default function ExportMenu({ dosenData, buttonClass }) {
         <button
           onClick={handleExportAll}
           disabled={exporting !== null}
-          className={clsx('w-[84px] rounded-l-lg border-l border-y whitespace-nowrap', commonBtnClass)}
+          className={clsx('w-[84px] rounded-l-lg border-l border-y whitespace-nowrap', multiBtnBase)}
           title="Unduh Semua Kelas"
         >
           <FileDown size={12} />
@@ -132,7 +135,7 @@ export default function ExportMenu({ dosenData, buttonClass }) {
             'flex items-center justify-center w-8 h-[30px] rounded-r-lg transition-all border-y border-x',
             isOpen 
               ? 'bg-red-500 text-white border-red-500 scale-[1.02] shadow-lg shadow-red-500/20 z-10' 
-              : buttonClass || 'bg-red-500/10 text-red-400 hover:bg-red-400 hover:text-white border-red-500/20'
+              : multiBtnBase
           )}
         >
           {hasMultipleKelas ? (

@@ -139,14 +139,14 @@ export default function RankingPage() {
                     </p>
                   </td>
                   <td>
-                    <span className={clsx('badge px-3 py-1.5', scoreBadgeClass(d.csatGabungan))}>
+                    <span className="font-serif-accent font-bold text-base" style={{ color: 'var(--accent-sapphire)' }}>
                       {fmt(d.csatGabungan)}
                     </span>
                   </td>
-                  <td className="font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPerforma) }}>{fmt(d.skorPerforma)}</td>
-                  <td className="font-mono text-sm font-bold" style={{ color: scoreColor(d.skorPemahaman) }}>{fmt(d.skorPemahaman)}</td>
-                  <td className="font-mono text-sm font-bold" style={{ color: scoreColor(d.skorInteraktif) }}>{fmt(d.skorInteraktif)}</td>
-                  <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{d.totalRespon}</td>
+                  <td className="font-mono text-sm font-bold" style={{ color: 'var(--foreground)' }}>{fmt(d.skorPerforma)}</td>
+                  <td className="font-mono text-sm font-bold" style={{ color: 'var(--foreground)' }}>{fmt(d.skorPemahaman)}</td>
+                  <td className="font-mono text-sm font-bold" style={{ color: 'var(--foreground)' }}>{fmt(d.skorInteraktif)}</td>
+                  <td className="font-bold text-sm" style={{ color: 'var(--foreground-2)' }}>{fmt(d.totalRespon)}</td>
                   <td>
                     <div className="flex items-center justify-end gap-2">
                       <ExportMenu dosenData={d} />
