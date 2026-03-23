@@ -3,6 +3,7 @@ import { parseRow } from '@/utils/rowParser'
 
 const useStore = create((set, get) => ({
   parsedData:  [],
+  mappingIssues: [], // New state for diagnostic tracking
   isLoaded:    false,
   fileName:    '',
   rawCount:    0,
@@ -12,75 +13,102 @@ const useStore = create((set, get) => ({
 
   parseAndDisplay: (rawRows, headers, fileName) => {
     const rawTotal = rawRows.length
+    const issues = []
     
-    const removedRows = []
-    let processed = rawRows
-      .map(r => parseRow(r, headers))
-      .filter((r, idx) => {
-        const dName = (r.namaDosen || '').toLowerCase()
-        const isHeader = dName.includes('nama dosen') || dName === 'dosen'
-        // Allow if it has a generic name AND (either a score OR feedback OR a topic)
-        const hasData = r.csatGabungan !== null || r.feedbackDosen || r.topikBelumPaham
-        if (isHeader || !hasData) {
-          removedRows.push({ row: idx + 2, reason: isHeader ? 'Header' : 'No Data found in row' })
-          return false
-        }
-        return true
-      })
-    
-    if (removedRows.length > 0) {
-      console.log(`[DATA] Filtered ${removedRows.length} junk/empty rows. Remaining: ${processed.length}`)
-    }
+    const processed = rawRows
+      .map((r, idx) => {
+        const parsed = parseRow(r, headers)
+        const rowNum = idx + 2 // Typical 1-indexed + header row
 
-    // 2. Transmit cleaned data to state (Cumulative Merge + Deduplication)
-    const newParsed = processed.map(r => ({
-      timestamp:        r.timestampResponse,
-      tanggal:          r.tanggal,
-      namaMahasiswa:    r.namaMahasiswa,
-      nim:              r.nim,
-      angkatan:         r.angkatan,
-      semester:         r.semester,
-      fakultas:         r.fakultas,
-      prodi:            r.prodi,
-      mataKuliah:       r.mataKuliah,
-      kodeKelas:        r.kodeKelas,
-      namaDosen:        r.namaDosen,
-      pertemuan:        r.pertemuan,
-      skorPemahaman:    r.skorPemahaman,
-      skorInteraktif:   r.skorInteraktif,
-      skorPerforma:     r.skorPerforma,
-      csatGabungan:     r.csatGabungan,
-      topikBelumPaham:  r.topikBelumPaham,
-      feedbackDosen:    r.feedbackDosen,
-      faktorPerforma:   r.faktorPerforma,
-      faktorInteraktif: r.faktorInteraktif,
-      moda:             r.moda,
-      sesi:             r.sesi,
-      semesterConflict: r.semesterConflict
-    }))
+        // Identify Mapping Issues
+        const reasons = []
+        if (!parsed.namaDosen) reasons.push('Dosen Kosong')
+        if (!parsed.mataKuliah) reasons.push('Mata Kuliah Kosong')
+        if (!parsed.prodi) reasons.push('Prodi Kosong')
+        if (parsed.csatGabungan === null) reasons.push('Skor Tidak Valid')
+
+        if (reasons.length > 0) {
+          issues.push({
+            row: rowNum,
+            alasan: reasons.join(', '),
+            timestamp: parsed.timestampResponse || '-',
+            dosenRaw: (r['Nama Dosen'] || r['Dosen'] || '-').toString().trim(),
+            mkRaw: (r['Mata Kuliah'] || r['Matakuliah'] || r['MK'] || '-').toString().trim(),
+            fakultas: parsed.fakultas || '-',
+            prodi: parsed.prodi || '-',
+            isDosenEmpty: !parsed.namaDosen,
+            isMKEmpty: !parsed.mataKuliah
+          })
+        }
+
+        // Return the parsed object but also include a transient flag to filter junk
+        return { 
+          ...parsed, 
+          _rowNum: rowNum,
+          _isJunk: (parsed.namaDosen?.toLowerCase().includes('nama dosen')) || 
+                   (parsed.csatGabungan === null && !parsed.feedbackDosen && !parsed.topikBelumPaham)
+        }
+      })
+      .filter(p => !p._isJunk)
+
+    const newParsed = processed.map(r => {
+      const { _rowNum, _isJunk, ...clean } = r
+      return {
+        timestamp:        clean.timestampResponse,
+        tanggal:          clean.tanggal,
+        namaMahasiswa:    clean.namaMahasiswa,
+        nim:              clean.nim,
+        angkatan:         clean.angkatan,
+        semester:         clean.semester,
+        fakultas:         clean.fakultas,
+        prodi:            clean.prodi,
+        mataKuliah:       clean.mataKuliah,
+        kodeKelas:        clean.kodeKelas,
+        namaDosen:        clean.namaDosen,
+        pertemuan:        clean.pertemuan,
+        skorPemahaman:    clean.skorPemahaman,
+        skorInteraktif:   clean.skorInteraktif,
+        skorPerforma:     clean.skorPerforma,
+        csatGabungan:     clean.csatGabungan,
+        topikBelumPaham:  clean.topikBelumPaham,
+        feedbackDosen:    clean.feedbackDosen,
+        faktorPerforma:   clean.faktorPerforma,
+        faktorInteraktif: clean.faktorInteraktif,
+        moda:             clean.moda,
+        sesi:             clean.sesi,
+        semesterConflict: clean.semesterConflict
+      }
+    })
 
     const currentData = get().parsedData
-    // Simple deduplication - match Dosen, MK, Pertemuan, NIM/Name, and Score
+    const currentIssues = get().mappingIssues
+    
+    // Deduplication (Append new only)
     const combined = [...currentData]
     let dupCount = 0
-    
     newParsed.forEach(nr => {
       const exists = currentData.some(cr => 
         cr.namaDosen === nr.namaDosen && 
         cr.mataKuliah === nr.mataKuliah && 
         cr.pertemuan === nr.pertemuan && 
         cr.nim === nr.nim && 
-        cr.csatGabungan === nr.csatGabungan
+        cr.timestamp === nr.timestamp
       )
       if (!exists) combined.push(nr)
       else dupCount++
     })
 
-    const finalCount = combined.length
-    if (dupCount > 0) console.log(`[DATA] Ignored ${dupCount} duplicate rows.`)
+    const combinedIssues = [...currentIssues]
+    issues.forEach(ni => {
+      const exists = currentIssues.some(ci => ci.row === ni.row && ci.timestamp === ni.timestamp && ci.alasan === ni.alasan)
+      if (!exists) combinedIssues.push(ni)
+    })
 
+    const finalCount = combined.length
+    
     set({ 
       parsedData: combined, 
+      mappingIssues: combinedIssues,
       isLoaded: true, 
       fileName: fileName === get().fileName ? fileName : (get().fileName ? 'Multiple Files' : fileName), 
       rawCount: finalCount,
@@ -90,7 +118,7 @@ const useStore = create((set, get) => ({
     return finalCount
   },
 
-  clearData: () => set({ parsedData: [], isLoaded: false, fileName: '' }),
+  clearData: () => set({ parsedData: [], mappingIssues: [], isLoaded: false, fileName: '' }),
 
   filters: {
     matkul: 'all', prodi: 'all', dosen: 'all',
@@ -108,7 +136,7 @@ const useStore = create((set, get) => ({
       if (filters.dosen     !== 'all' && r.namaDosen !== filters.dosen)    return false
       if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
       if (filters.dateFrom  && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-      if (filters.dateTo    && r.timestamp && new Date(r.timestamp) > new Date(filters.dateTo))   return false
+      if (filters.dateTo    && r.timestamp && r.timestamp !== '-' && new Date(r.timestamp) > new Date(filters.dateTo))   return false
       return true
     })
   },

@@ -7,13 +7,13 @@ const TABS = [
   { to: '/',                   label: 'Ranking Dosen' },
   { to: '/analisis-mahasiswa',  label: 'Analisis Mahasiswa' },
   { to: '/analisis-faktor',     label: 'Analisis Faktor' },
-  { to: '/analisis-strategis',  label: 'Analisis Strategis' },
+  { to: '/strategis',           label: 'Analisis Strategis' },
   { to: '/sentimen',            label: 'Analisis Komentar' },
-  { to: '/analisis-mingguan',   label: 'Analisis Mingguan' },
-  { to: '/analisis-pertemuan',  label: 'Analisis per Pertemuan' },
+  { to: '/mingguan',            label: 'Analisis Mingguan' },
+  { to: '/per-pertemuan',       label: 'Analisis per Pertemuan' },
   { to: '/matriks-korelasi',    label: 'Matriks Korelasi' },
   { to: '/anomali',             label: 'Deteksi Anomali' },
-  { to: '/pembersihan',         label: 'Masalah Mapping' },
+  { to: '/diagnostik',          label: 'Masalah Mapping' },
 ]
 
 export default function TabNav() {

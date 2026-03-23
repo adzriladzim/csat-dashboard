@@ -7,8 +7,9 @@ import RankingPage from '@/components/pages/RankingPage'
 import DosenDetailPage from '@/components/pages/DosenDetailPage'
 import SentimenPage from '@/components/pages/SentimenPage'
 import AnomalyPage from '@/components/pages/AnomalyPage'
-import StudentAnalysisPage from './components/pages/StudentAnalysisPage'
-import FactorAnalysisPage from './components/pages/FactorAnalysisPage'
+import StudentAnalysisPage from '@/components/pages/StudentAnalysisPage'
+import MappingIssuesPage from '@/components/pages/MappingIssuesPage'
+import FactorAnalysisPage from '@/components/pages/FactorAnalysisPage'
 import CorrelationPage from './components/pages/CorrelationPage'
 import StrategicAnalysisPage from './components/pages/StrategicAnalysisPage'
 import WeeklyAnalysisPage from './components/pages/WeeklyAnalysisPage'
@@ -22,10 +23,11 @@ export default function App() {
       <Route path="/upload" element={<UploadPage />} />
       <Route element={<Layout />}>
         <Route path="/"            element={isLoaded ? <DashboardPage />   : <Navigate to="/upload" />} />
-        <Route path="/ranking"     element={isLoaded ? <RankingPage />     : <Navigate to="/upload" />} />
+        <Route path="/ranking"     element={<RankingPage />} />
         <Route path="/dosen/:name" element={isLoaded ? <DosenDetailPage /> : <Navigate to="/upload" />} />
-        <Route path="/analisis-mahasiswa" element={isLoaded ? <StudentAnalysisPage /> : <Navigate to="/upload" />} />
-        <Route path="/analisis-faktor"    element={isLoaded ? <FactorAnalysisPage />  : <Navigate to="/upload" />} />
+        <Route path="/analisis-mahasiswa" element={<StudentAnalysisPage />} />
+        <Route path="/diagnostik" element={<MappingIssuesPage />} />
+        <Route path="/analisis-faktor"    element={<FactorAnalysisPage />} />
         <Route path="/sentimen"           element={isLoaded ? <SentimenPage />         : <Navigate to="/upload" />} />
         <Route path="/anomali"            element={isLoaded ? <AnomalyPage />          : <Navigate to="/upload" />} />
         <Route path="/matriks-korelasi"   element={isLoaded ? <CorrelationPage />      : <Navigate to="/upload" />} />
