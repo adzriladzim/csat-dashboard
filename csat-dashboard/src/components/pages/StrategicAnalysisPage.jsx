@@ -4,8 +4,9 @@ import { avg } from '@/utils/analytics'
 import FilterBar from '@/components/filters/FilterBar'
 import { 
   TrendChart, GroupedBarChart, RankingBarChart, 
-  DistributionBar, ScatterPlotChart 
+  DistributionBar, ScatterPlotChart, QuadrantChart
 } from '@/components/charts/ChartComponents'
+import { pearson } from '@/utils/analytics'
 
 export default function StrategicAnalysisPage() {
   const { getFiltered } = useStore()
@@ -104,7 +105,36 @@ export default function StrategicAnalysisPage() {
     }))
   }, [filtered])
 
-  // 7. Korelasi Interaktivitas vs Pemahaman (Agregasi per Dosen)
+  // 7. Importance-Performance Analysis (IPA) Quadrants
+  const ipaData = useMemo(() => {
+    if (!filtered.length) return []
+    
+    const attributes = [
+      { key: 'skorPemahaman',  label: 'Pemahaman Materi',  color: '#818cf8' },
+      { key: 'skorInteraktif', label: 'Interaktivitas',    color: '#34d399' },
+      { key: 'skorPerforma',   label: 'Performa Dosen',    color: '#4f46e5' }
+    ]
+
+    const csatValues = filtered.map(r => r.csatGabungan).filter(v => v !== null)
+    
+    return attributes.map(attr => {
+      const attrValues = filtered.map(r => r[attr.key]).filter(v => v !== null)
+      
+      // Ensure we have paired data for correlation
+      const pairs = filtered.filter(r => r[attr.key] != null && r.csatGabungan != null)
+      const x = pairs.map(p => p[attr.key])
+      const y = pairs.map(p => p.csatGabungan)
+      
+      return {
+        name: attr.label,
+        x: avg(attrValues), // Performance
+        y: pearson(x, y),   // Importance (Correlation)
+        fill: attr.color
+      }
+    })
+  }, [filtered])
+
+  // 8. Korelasi Interaktivitas vs Pemahaman (Agregasi per Dosen)
   const scatterData = useMemo(() => {
     const lecturerMap = {}
     filtered.forEach(r => {
@@ -141,7 +171,6 @@ export default function StrategicAnalysisPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Angkatan & Prodi - Tall & Balanced */}
           <div className="card p-8">
             <h2 className="section-title mb-8">Perbandingan per Angkatan</h2>
             <DistributionBar data={angkatanData} height={400} />
@@ -153,7 +182,6 @@ export default function StrategicAnalysisPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Sesi & Moda - Square proportions */}
           <div className="card p-8">
             <h2 className="section-title mb-8">Analisis Berdasarkan Sesi Kuliah</h2>
             <DistributionBar data={sesiData} height={400} />
@@ -164,13 +192,11 @@ export default function StrategicAnalysisPage() {
           </div>
         </div>
 
-        {/* Trend Section - Large */}
         <div className="card p-8">
           <h2 className="section-title mb-8">Tren Selama Semester (per Pertemuan)</h2>
           <TrendChart data={trendData} height={450} />
         </div>
 
-        {/* Scatter Section - Maximum Clarity */}
         <div className="card p-8">
           <h2 className="section-title mb-8">Korelasi Interaktivitas vs Pemahaman</h2>
           <ScatterPlotChart data={scatterData} height={500} xLabel="Interaktivitas" yLabel="Pemahaman" />
