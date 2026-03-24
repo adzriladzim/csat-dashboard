@@ -62,10 +62,7 @@ function cleanText(val) {
 function normalizeName(val) {
   if (!val) return null
   let s = String(val).trim().toUpperCase()
-  // Strip common academic titles
-  s = s.replace(/,\s*(S\..*|M\..*|PH\.D|DR\.|PROF\.).*/gi, '')
-  s = s.replace(/\s+(S\..*|M\..*|PH\.D|DR\.|PROF\.).*/gi, '')
-  // Strip common suffixes/prefixes like MK codes after a dash (e.g. "Dosen - MK101")
+  // Keep original formatting including titles as requested
   const parts = s.split(' - ')
   if (parts.length > 1) s = parts[0].trim()
   return s.replace(/\s+/g, ' ')

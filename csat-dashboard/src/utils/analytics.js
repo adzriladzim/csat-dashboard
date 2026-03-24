@@ -6,6 +6,13 @@ export function avg(arr) {
   if (!v.length) return null
   return v.reduce((a,b)=>a+b,0)/v.length
 }
+export function variance(arr) {
+  const v = arr.filter(x => x != null && !isNaN(x))
+  if (v.length < 2) return 0
+  const m = avg(v)
+  const sqDiff = v.map(x => Math.pow(x - m, 2))
+  return sqDiff.reduce((a,b)=>a+b,0)/v.length
+}
 export function scoreColor(s) {
   if (!s) return 'var(--muted)'
   return 'var(--foreground)'
@@ -86,6 +93,7 @@ function finalize(d) {
     const diff = valid[valid.length-1].csat - valid[0].csat
     if (diff>=0.3) trendDir='up'; else if (diff<=-0.3) trendDir='down'
   }
+    const varVal = variance(d.csatList)
     return { 
       namaDosen:d.namaDosen, 
       prodi:d.prodi||[...d.prodiSet].filter(Boolean).join(', '), 
@@ -94,6 +102,9 @@ function finalize(d) {
       tanggal:d.tanggal, 
       totalRespon:d.rows.length, 
       csatGabungan:avg(d.csatList), 
+      variansi: varVal,
+      anomalyLevel: varVal > 1.0 ? 'High' : varVal > 0.4 ? 'Medium' : 'Low',
+      stabilitas: varVal > 1.0 ? 'Tidak Stabil' : varVal > 0.4 ? 'Moderat' : 'Stabil',
       skorPemahaman:avg(d.pemahamanList), 
       skorInteraktif:avg(d.interaktifList), 
       skorPerforma:avg(d.performaList),
