@@ -108,21 +108,21 @@ export default function MeetingAnalysisPage() {
 
       {/* Alert Card */}
       {drops.length > 0 && (
-        <div className="card shadow-sm border border-rose-100 bg-white overflow-hidden">
-          <div className="p-5 border-b border-rose-50 flex items-center gap-2">
+        <div className="card shadow-sm border-rose-100 bg-white overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-rose-50 flex items-center gap-2">
             <AlertCircle size={18} className="text-rose-500" />
-            <h2 className="text-md font-bold text-rose-900">Alert: Penurunan Performa Signifikan</h2>
+            <h2 className="text-sm sm:text-md font-bold text-rose-900">Alert: Penurunan Performa Signifikan</h2>
           </div>
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
             {drops.slice(0, 4).map((drop, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-rose-50/50 border border-rose-100/50 group hover:bg-rose-50 transition-colors">
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-rose-900">{drop.name}</p>
-                  <p className="text-[11px] text-rose-600 font-medium">
-                    Penurunan dari <span className="font-bold">{drop.from}</span> ({fmt(drop.fromScore)}) ke <span className="font-bold">{drop.to}</span> ({fmt(drop.toScore)})
+              <div key={i} className="flex flex-col xs:flex-row items-start xs:items-center justify-between p-3 sm:p-4 rounded-xl bg-rose-50/50 border border-rose-100/50 group hover:bg-rose-50 transition-colors gap-2">
+                <div className="space-y-0.5">
+                  <p className="text-[13px] sm:text-sm font-bold text-rose-900 leading-tight">{drop.name}</p>
+                  <p className="text-[10px] sm:text-[11px] text-rose-600 font-medium">
+                    {drop.from} ({fmt(drop.fromScore)}) → {drop.to} ({fmt(drop.toScore)})
                   </p>
                 </div>
-                <div className="bg-rose-500 text-white px-3 py-1.5 rounded-md text-xs font-black">
+                <div className="bg-rose-500 text-white px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-black whitespace-nowrap">
                   {drop.diff}
                 </div>
               </div>
@@ -182,9 +182,15 @@ export default function MeetingAnalysisPage() {
 
       {/* Heatmap Card */}
       <div className="card shadow-sm border border-[#e2e8f0] overflow-hidden">
-        <div className="p-6 border-b border-[#f1f5f9]">
-          <h2 className="text-md font-bold text-[#1e293b]">Heatmap Performa Dosen per Pertemuan</h2>
-          <p className="text-[10px] text-[#94a3b8] mt-1">Warna lebih gelap menunjukkan CSAT lebih tinggi.</p>
+        <div className="p-5 sm:p-6 border-b border-[#f1f5f9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-sm sm:text-md font-bold text-[#1e293b]">Heatmap Performa Dosen per Pertemuan</h2>
+            <p className="text-[10px] text-[#94a3b8] mt-1">Warna lebih gelap menunjukkan CSAT lebih tinggi.</p>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-full lg:hidden animate-pulse">
+            <ArrowRight size={12} className="animate-bounce-x" />
+            <span>Swipe horizontal untuk detail</span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[1200px]">
@@ -235,7 +241,7 @@ export default function MeetingAnalysisPage() {
                   return (
                     <div className="bg-white p-3 shadow-xl border border-[#f1f5f9] rounded-xl">
                       <p className="text-[11px] font-black text-[#1e293b] mb-1">{payload[0].payload.name}</p>
-                      <p className="text-[13px] font-black text-indigo-600">{payload[0].value.toFixed(2)}</p>
+                      <p className="text-[13px] font-black text-indigo-600">{fmt(payload[0].value)}</p>
                     </div>
                   )
                 }
@@ -264,7 +270,10 @@ export default function MeetingAnalysisPage() {
               <CartesianGrid strokeDasharray="3 3" vertical={true} stroke="#f1f5f9" />
               <XAxis dataKey="pertemuan" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
               <YAxis domain={[0, 5]} ticks={[0,1,2,3,4,5]} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} label={{ value: 'Skor Rata-rata', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
-              <Tooltip />
+              <Tooltip 
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                formatter={(val) => [fmt(val), 'Skor Rata-rata']}
+              />
               <Legend verticalAlign="top" align="center" iconType="rect" wrapperStyle={{ paddingBottom: '30px', fontSize: '11px', fontWeight: 'bold' }} />
               <Area type="monotone" name="Performa Dosen" dataKey="avgPerforma" stroke="#6366f1" fillOpacity={1} fill="url(#colorPerforma)" strokeWidth={2} dot={{ r: 3 }} />
               <Area type="monotone" name="Pemahaman" dataKey="avgPemahaman" stroke="#10b981" fillOpacity={1} fill="url(#colorPemahaman)" strokeWidth={2} dot={{ r: 3 }} />

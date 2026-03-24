@@ -67,7 +67,7 @@ export default function TabNav() {
         <div 
           ref={scrollRef}
           onScroll={checkScroll}
-          className="w-full overflow-x-auto no-scrollbar scroll-smooth flex items-center h-full"
+          className="w-full overflow-x-auto no-scrollbar scroll-smooth flex items-center h-full snap-x snap-mandatory"
         >
           <nav className="flex items-center gap-1.5 px-10 py-3.5 min-w-max">
             {TABS.map((tab) => (
@@ -76,7 +76,7 @@ export default function TabNav() {
                 to={tab.to}
                 end={tab.to === '/'}
                 className={({ isActive }) => clsx(
-                  "px-5 py-2 rounded-full text-[11px] font-extrabold uppercase tracking-wider transition-all duration-300",
+                  "px-5 py-2 rounded-full text-[11px] font-extrabold uppercase tracking-wider transition-all duration-300 snap-center",
                   isActive 
                     ? "bg-[var(--brand)] text-white shadow-lg shadow-brand/20 scale-[1.02] z-10 nav-link-active" 
                     : "text-[var(--muted)] hover:text-[var(--brand)] hover:bg-[var(--brand-dim)]"

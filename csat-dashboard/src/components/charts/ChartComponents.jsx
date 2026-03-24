@@ -145,8 +145,8 @@ export function GroupedBarChart({ data, height = 300 }) {
         />
         <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: 11, paddingBottom: 25 }} iconType="rect" />
         <Bar dataKey="performa"  name="Performa Dosen"   fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={80} />
-        <Bar dataKey="pemahaman" name="Pemahaman Materi" fill="#818cf8" radius={[4, 4, 0, 0]} barSize={80} />
-        <Bar dataKey="interaktif" name="Interaktivitas"   fill="#c7d2fe" radius={[4, 4, 0, 0]} barSize={80} />
+        <Bar dataKey="pemahaman" name="Pemahaman Materi" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={80} />
+        <Bar dataKey="interaktif" name="Interaktivitas"   fill="#818cf8" radius={[4, 4, 0, 0]} barSize={80} />
       </BarChart>
     </ResponsiveContainer>
   )

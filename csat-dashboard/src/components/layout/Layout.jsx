@@ -17,11 +17,11 @@ export default function Layout() {
       
       {/* ── STICKY TOP NAVIGATION GROUP ──────────────────────── */}
       <div className="sticky top-0 z-30 glass shadow-sm border-b border-[var(--border)] overflow-hidden">
-        <header className="flex flex-col lg:flex-row lg:items-center justify-between px-5 sm:px-10 py-4 lg:py-4 gap-4"
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between px-4 sm:px-10 py-3 lg:py-4 gap-3 lg:gap-4"
           style={{ background: 'var(--bg-surface)' }}>
           
           <div className="flex items-center justify-between w-full lg:w-auto">
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-3">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white p-1 shadow-sm border border-[var(--border)] cursor-pointer hover:border-[var(--brand)] transition-colors"
                 onClick={() => navigate('/')}>
                 <img src="/CAKRAWALA LOGOMARK 2A.png" alt="Cakrawala University" className="w-full h-full object-contain" />

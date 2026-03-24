@@ -124,39 +124,56 @@ function finalize(d) {
 
 /** Agregasi semua kelas digabung */
 export function aggregateByDosen(rows, fullRows = null, maxPertemuan = Infinity) {
-  const map = {}
-  rows.forEach(r => { 
-    if (!r.namaDosen) return
-    if (!map[r.namaDosen]) map[r.namaDosen] = newBucket(r.namaDosen)
-    pushRow(map[r.namaDosen], r)
-  })
+  const map = new Map()
+  
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i]
+    if (!r.namaDosen) continue
+    
+    if (!map.has(r.namaDosen)) {
+      map.set(r.namaDosen, newBucket(r.namaDosen))
+    }
+    pushRow(map.get(r.namaDosen), r)
+  }
 
   // Recovery: If filtered, pull full trend from allRows for each lecturer in map
   if (fullRows && fullRows.length > 0) {
-    const trendRecoveryMap = {}
-    const nameToCanonical = {}
-    Object.keys(map).forEach(n => nameToCanonical[n.toUpperCase()] = n)
+    const trendRecoveryMap = new Map()
+    const nameToCanonical = new Map()
+    
+    for (const name of map.keys()) {
+      nameToCanonical.set(name.toUpperCase(), name)
+    }
 
-    fullRows.forEach(r => {
-      if (!r.namaDosen || r.pertemuan == null) return
+    for (let i = 0; i < fullRows.length; i++) {
+      const r = fullRows[i]
+      if (!r.namaDosen || r.pertemuan == null) continue
+      
       const rNameUpper = r.namaDosen.toUpperCase()
-      const canonicalName = nameToCanonical[rNameUpper]
-      if (!canonicalName) return
+      const canonicalName = nameToCanonical.get(rNameUpper)
+      if (!canonicalName) continue
       
       const pNum = typeof r.pertemuan === 'number' ? r.pertemuan : parseInt(r.pertemuan.toString().replace(/[^0-9]/g, ''))
       if (!isNaN(pNum) && pNum <= maxPertemuan) {
-        if (!trendRecoveryMap[canonicalName]) trendRecoveryMap[canonicalName] = {}
-        if (!trendRecoveryMap[canonicalName][pNum]) trendRecoveryMap[canonicalName][pNum] = []
-        trendRecoveryMap[canonicalName][pNum].push(r.csatGabungan)
+        if (!trendRecoveryMap.has(canonicalName)) {
+          trendRecoveryMap.set(canonicalName, new Map())
+        }
+        const pMap = trendRecoveryMap.get(canonicalName)
+        if (!pMap.has(pNum)) pMap.set(pNum, [])
+        pMap.get(pNum).push(r.csatGabungan)
       }
-    })
+    }
     
-    Object.keys(map).forEach(name => {
-      if (trendRecoveryMap[name]) map[name].pertemuanMap = trendRecoveryMap[name]
-    })
+    for (const [name, pMap] of trendRecoveryMap.entries()) {
+      if (map.has(name)) {
+        // Convert internal Map back to the expected object format for finalize
+        const target = map.get(name)
+        target.pertemuanMap = Object.fromEntries(pMap)
+      }
+    }
   }
 
-  return Object.values(map).map(finalize).sort((a,b) => (b.csatGabungan || 0) - (a.csatGabungan || 0))
+  return Array.from(map.values()).map(finalize).sort((a,b) => (b.csatGabungan || 0) - (a.csatGabungan || 0))
 }
 
 /** Agregasi per kelas (semua tanggal digabung) */
