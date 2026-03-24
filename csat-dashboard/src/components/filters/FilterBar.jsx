@@ -13,16 +13,7 @@ export default function FilterBar() {
 
   return (
     <div className="card p-4 sm:p-5">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-end">
-        {/* Mata Kuliah */}
-        <div className="space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Mata Kuliah</label>
-          <select value={filters.matkul} onChange={e=>setFilter('matkul',e.target.value)} className="input w-full">
-            <option value="all">Semua Mata Kuliah</option>
-            {matkulList.map(m=><option key={m} value={m}>{m}</option>)}
-          </select>
-        </div>
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
         {/* Program Studi */}
         <div className="space-y-1.5">
           <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Program Studi</label>
@@ -50,29 +41,18 @@ export default function FilterBar() {
           </select>
         </div>
 
-        {/* Tanggal Mulai */}
-        <div className="space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Tanggal Mulai</label>
-          <input type="date" value={filters.dateFrom} onChange={e=>setFilter('dateFrom',e.target.value)} className="input w-full" />
-        </div>
-
-        {/* Tanggal Selesai */}
-        <div className="space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Tanggal Selesai</label>
-          <div className="flex items-center gap-2">
-            <input type="date" value={filters.dateTo} onChange={e=>setFilter('dateTo',e.target.value)} className="input w-full" />
-            
-            {/* Reset inside the grid to save space */}
-            {hasActive && (
-              <button 
-                onClick={resetFilters} 
-                className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex-shrink-0 border border-red-500/20"
-                title="Reset Filters"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
+        {/* Reset Actions */}
+        <div className="flex h-10 items-center gap-2">
+          {hasActive && (
+            <button 
+              onClick={resetFilters} 
+              className="px-4 h-10 flex items-center justify-center gap-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 text-[11px] font-bold uppercase tracking-wider"
+              title="Reset Filters"
+            >
+              <X size={14} />
+              Reset Filter
+            </button>
+          )}
         </div>
       </div>
     </div>

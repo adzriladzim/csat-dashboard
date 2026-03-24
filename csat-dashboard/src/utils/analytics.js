@@ -38,6 +38,7 @@ function newBucket(namaDosen, overrides = {}) {
     namaDosen, 
     prodiSet:new Set(), mataKuliahSet:new Set(), kodeKelasSet:new Set(),
     rows:[], csatList:[], pemahamanList:[], interaktifList:[], performaList:[],
+    disiplinList:[], kejelasanList:[], penguasaanList:[], ketuntasanList:[], interaksiList:[],
     feedbacks:[], topikBelum:[], pertemuanMap:{}, 
     kodeKelas:null, mataKuliah:null, prodi:null, tanggal:null,
     ...overrides
@@ -52,6 +53,12 @@ function pushRow(d, r) {
   if (r.skorPemahaman)   d.pemahamanList.push(r.skorPemahaman)
   if (r.skorInteraktif)  d.interaktifList.push(r.skorInteraktif)
   if (r.skorPerforma)    d.performaList.push(r.skorPerforma)
+  
+  if (r.skorDisiplin)    d.disiplinList.push(r.skorDisiplin)
+  if (r.skorKejelasan)   d.kejelasanList.push(r.skorKejelasan)
+  if (r.skorPenguasaan)  d.penguasaanList.push(r.skorPenguasaan)
+  if (r.skorKetuntasan)  d.ketuntasanList.push(r.skorKetuntasan)
+  if (r.skorInteraksi)   d.interaksiList.push(r.skorInteraksi)
   if (r.feedbackDosen && isValidFeedback(r.feedbackDosen))   d.feedbacks.push(r.feedbackDosen.trim())
   if (r.topikBelumPaham && isValidTopik(r.topikBelumPaham)) d.topikBelum.push(r.topikBelumPaham.trim())
   if (r.pertemuan != null) {
@@ -79,7 +86,29 @@ function finalize(d) {
     const diff = valid[valid.length-1].csat - valid[0].csat
     if (diff>=0.3) trendDir='up'; else if (diff<=-0.3) trendDir='down'
   }
-  return { namaDosen:d.namaDosen, prodi:d.prodi||[...d.prodiSet].filter(Boolean).join(', '), mataKuliah:d.mataKuliah||[...d.mataKuliahSet].filter(Boolean).join(', '), kodeKelas:d.kodeKelas||[...d.kodeKelasSet].filter(Boolean).join(', '), tanggal:d.tanggal, totalRespon:d.rows.length, csatGabungan:avg(d.csatList), skorPemahaman:avg(d.pemahamanList), skorInteraktif:avg(d.interaktifList), skorPerforma:avg(d.performaList), feedbacks:[...new Set(d.feedbacks)], topikBelum:[...new Set(d.topikBelum)], pertemuanTrend:trend, trend:trendDir, rows:d.rows }
+    return { 
+      namaDosen:d.namaDosen, 
+      prodi:d.prodi||[...d.prodiSet].filter(Boolean).join(', '), 
+      mataKuliah:d.mataKuliah||[...d.mataKuliahSet].filter(Boolean).join(', '), 
+      kodeKelas:d.kodeKelas||[...d.kodeKelasSet].filter(Boolean).join(', '), 
+      tanggal:d.tanggal, 
+      totalRespon:d.rows.length, 
+      csatGabungan:avg(d.csatList), 
+      skorPemahaman:avg(d.pemahamanList), 
+      skorInteraktif:avg(d.interaktifList), 
+      skorPerforma:avg(d.performaList),
+      // Detailed attributes
+      skorDisiplin:avg(d.disiplinList),
+      skorKejelasan:avg(d.kejelasanList),
+      skorPenguasaan:avg(d.penguasaanList),
+      skorKetuntasan:avg(d.ketuntasanList),
+      skorInteraksi:avg(d.interaksiList),
+      feedbacks:[...new Set(d.feedbacks)], 
+      topikBelum:[...new Set(d.topikBelum)], 
+      pertemuanTrend:trend, 
+      trend:trendDir, 
+      rows:d.rows 
+    }
 }
 
 /** Agregasi semua kelas digabung */
@@ -219,13 +248,21 @@ export function getCorrelationMatrix(dosenList) {
   const data = dosenList.map(d => ({
     performa: d.skorPerforma || 0,
     pemahaman: d.skorPemahaman || 0,
-    interaktif: d.skorInteraktif || 0,
+    interaksi: d.skorInteraksi || d.skorInteraktif || 0,
     respon: d.totalRespon || 0
   }))
-  const keys = ['performa', 'pemahaman', 'interaktif', 'respon']
-  const labels = ['Performa Dosen', 'Pemahaman Materi', 'Interaktivitas', 'Jumlah Respon']
+
+  const keys = ['performa', 'pemahaman', 'interaksi', 'respon']
+  const labels = [
+    'Performa Dosen', 
+    'Pemahaman Materi', 
+    'Interaktivitas', 
+    'Jumlah Respon'
+  ]
+
   const matrix = keys.map(rKey => keys.map(cKey => 
     pearson(data.map(d => d[rKey]), data.map(d => d[cKey]))
   ))
+  
   return { matrix, labels }
 }

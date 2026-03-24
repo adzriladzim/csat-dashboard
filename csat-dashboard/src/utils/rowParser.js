@@ -187,17 +187,32 @@ export function parseRow(row, headers) {
   const scoreExcludes = ['faktor', 'mengapa', 'alasan', 'sebutkan']
   
   const hPemahaman  = getByKeywords(row, headers, ['Seberapa','paham','materi'], scoreExcludes) ||
-                      getByKeywords(row, headers, ['bagaimana','pemahaman','kelas'], scoreExcludes)
+                      getByKeywords(row, headers, ['bagaimana','pemahaman','kelas'], scoreExcludes) ||
+                      getByKeywords(row, headers, ['kejelasan','penjelasan','materi'], scoreExcludes)
                       
   const hInteraktif = getByKeywords(row, headers, ['Interaktif','komunikasi','dua arah'], scoreExcludes) ||
                       getByKeywords(row, headers, ['Interaktif','interaksi','moderator'], scoreExcludes)
                       
   const hPerforma   = getByKeywords(row, headers, ['Sejauh mana','kepuasan','performa'], scoreExcludes) ||
-                      getByKeywords(row, headers, ['Bagaimana','kepuasan','performa','mengajar'], scoreExcludes)
+                      getByKeywords(row, headers, ['Bagaimana','kepuasan','performa','mengajar'], scoreExcludes) ||
+                      getByKeywords(row, headers, ['Keseluruhan','kepuasan','pembelajaran'], scoreExcludes)
+  
+  // -- INDIVIDUAL ATTRIBUTES (FOR CORRELATION HEATMAP) --
+  const hDisiplin   = getByKeywords(row, headers, ['Kedisiplinan','waktu','presensi'], scoreExcludes)
+  const hKejelasan  = getByKeywords(row, headers, ['Kejelasan','penjelasan','materi'], scoreExcludes)
+  const hPenguasaan = getByKeywords(row, headers, ['Penguasaan','materi','substansi'], scoreExcludes)
+  const hKetuntasan = getByKeywords(row, headers, ['Ketuntasan','seluruh','silabus'], scoreExcludes)
+  const hInteraksi  = getByKeywords(row, headers, ['Interaksi','komunikasi','dua arah'], scoreExcludes)
   
   const pemahaman  = parseScore(hPemahaman)
   const interaktif = parseScore(hInteraktif)
   const performa   = parseScore(hPerforma)
+  
+  const disiplin   = parseScore(hDisiplin)
+  const kejelasan  = parseScore(hKejelasan)
+  const penguasaan = parseScore(hPenguasaan)
+  const ketuntasan = parseScore(hKetuntasan)
+  const interaksi  = parseScore(hInteraksi)
   
   const topikRaw    = getVal(row, headers, 'paham') || getVal(row, headers, 'topik') || getVal(row, headers, 'materi sulit')
   const topikClean  = cleanText(topikRaw)
@@ -224,6 +239,12 @@ export function parseRow(row, headers) {
     skorInteraktif:     interaktif,
     skorPerforma:       performa,
     csatGabungan:       computeCsat(pemahaman, interaktif, performa),
+    // Detailed attributes
+    skorDisiplin:       disiplin,
+    skorKejelasan:      kejelasan,
+    skorPenguasaan:     penguasaan,
+    skorKetuntasan:     ketuntasan,
+    skorInteraksi:      interaksi,
     topikBelumPaham:    (topikClean && isValidTopik(topikClean)) ? topikClean : null,
     feedbackDosen:      (fbClean && isValidFeedback(fbClean)) ? fbClean : null,
     faktorPerforma:     fp1,
