@@ -37,25 +37,40 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
   pdf.setFontSize(16); pdf.setFont('helvetica','bold')
   pdf.text(dosenData.namaDosen, 12, 22)
 
-  pdf.setFontSize(9); pdf.setFont('helvetica','normal'); pdf.setTextColor(210,218,255)
-  if (!isAll) {
-    pdf.text(`Kelas: ${data.kodeKelas || '–'}   ·   Mata Kuliah: ${data.mataKuliah || '–'}`, 12, 31)
-    pdf.text(`Prodi: ${data.prodi || dosenData.prodi || '–'}   ·   ${fmt(data.totalRespon)} responden`, 12, 38)
-  } else {
-    pdf.text(`Program Studi: ${dosenData.prodi || '–'}   ·   ${fmt(dosenData.totalRespon)} responden`, 12, 31)
-    pdf.text(`Mata Kuliah: ${dosenData.mataKuliah || '–'}`, 12, 38)
+  // Data extraction for Header
+  const firstRow = data.rows?.[0] || {}
+  const prodi = data.prodi || (dosenData && dosenData.prodi) || '–'
+  const resp = data.totalRespon || 0
+  const mk = data.mataKuliah || (dosenData && dosenData.mataKuliah) || '–'
+  
+  let pInfo = 'Semua Pertemuan', dInfo = '-'
+  if (data.rows?.length) {
+    const pSet = new Set(data.rows.map(r => r.pertemuan).filter(Boolean))
+    if (pSet.size === 1) pInfo = `Pertemuan ${[...pSet][0]}`
+    
+    // Majority Date detection (Mode)
+    const dCounts = {}
+    data.rows.forEach(r => { if (r.tanggal) dCounts[r.tanggal] = (dCounts[r.tanggal] || 0) + 1 })
+    const sortedDates = Object.entries(dCounts).sort((a, b) => b[1] - a[1])
+    if (sortedDates.length > 0) dInfo = sortedDates[0][0]
   }
-  pdf.setTextColor(180,200,255)
-  pdf.text(`Semester: ${dosenData.rows?.[0]?.semester || '–'}   ·   ${new Date().toLocaleDateString('id-ID',{dateStyle:'long'})} ${getTimezone()}`, 12, 44)
+
+  const kls = data.kodeKelas || (dosenData && dosenData.kodeKelas) || '–'
+  pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(210, 218, 255)
+  pdf.text(`Kode Kelas: ${kls}   ·   ${fmt(resp)} responden`, 12, 31)
+  pdf.text(`Mata Kuliah: ${mk}`, 12, 38)
+  
+  pdf.setTextColor(180, 200, 255)
+  // Logic: Only show date if it's NOT an "All Classes" aggregate (isAll) OR if it is a single date
+  const isSingleMeeting = pInfo !== 'Semua Pertemuan'
+  const showDate = !isAll || !isSingleMeeting
+  const dateStr = (showDate && dInfo !== '-') ? `   ·   Tanggal Kelas: ${dInfo}` : ''
+  pdf.text(`${pInfo}${dateStr}`, 12, 44)
 
   y = 54
 
   // Ringkasan skor
-  const titleText = isAll 
-    ? (data.kodeKelas && !data.kodeKelas.includes(',') 
-        ? `Ringkasan Skor Kinerja — Kelas ${data.kodeKelas} (Skala 1-5)`
-        : 'Ringkasan Skor Kinerja — Semua Kelas (Skala 1-5)')
-    : `Ringkasan Skor Kinerja — Kelas ${data.kodeKelas} (Skala 1-5)`
+  const titleText = 'Ringkasan Skor Kinerja (Skala 1 - 5)'
     
   secTitle(pdf, titleText, y); y += 9
 

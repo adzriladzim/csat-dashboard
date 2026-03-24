@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import useStore from '@/lib/store'
 import { aggregateByDosen, avg, fmt, scoreColor, scoreBadgeClass, scoreLabel, detectAnomalies } from '@/utils/analytics'
-import { exportDosenExcel, exportDashboardPDF } from '@/utils/exportUtils'
+import { exportDosenExcel, exportDashboardPDF, exportDosenReport } from '@/utils/exportUtils'
 import FilterBar from '@/components/filters/FilterBar'
 import { StatCard, ScoreBar } from '@/components/ui/StatCard'
 import { TrendChart } from '@/components/charts/ChartComponents'
@@ -27,7 +27,8 @@ export default function DashboardPage() {
   const [sortDir, setSortDir]     = useState('desc')
 
   const filtered  = getFiltered()
-  const rawDosenList = useMemo(() => aggregateByDosen(filtered, parsedData), [filtered, parsedData])
+  const maxP = filters.pertemuan === 'all' ? Infinity : parseInt(filters.pertemuan.toString().replace(/[^0-9]/g, '') || 100)
+  const rawDosenList = useMemo(() => aggregateByDosen(filtered, parsedData, maxP), [filtered, parsedData, maxP])
   
   const dosenList = useMemo(() => {
     if (!sortBy) return rawDosenList
@@ -66,7 +67,7 @@ export default function DashboardPage() {
 
   const globalTrend = useMemo(() => {
     const map = {}
-    const maxP = filters.pertemuan === 'all' ? Infinity : Number(filters.pertemuan)
+    const maxP = filters.pertemuan === 'all' ? Infinity : parseInt(filters.pertemuan.toString().replace(/[^0-9]/g, '') || 100)
 
     // Manual filtering for trend to recover historical data (P1 to Selected P)
     parsedData.forEach(r => {
@@ -109,7 +110,13 @@ export default function DashboardPage() {
 
   async function handleExportAllPDF() {
     setExportingAll(true)
-    try { await exportDashboardPDF(dosenList) }
+    try { 
+      if (dosenList.length === 1) {
+        await exportDosenReport(dosenList[0])
+      } else {
+        await exportDashboardPDF(dosenList) 
+      }
+    }
     finally { setExportingAll(false) }
   }
 
@@ -327,7 +334,7 @@ export default function DashboardPage() {
                     </td>
                     <td>
                       <div className="flex items-center justify-start gap-2">
-                        <ExportMenu dosenData={d} />
+                        <ExportMenu dosenData={d} fullRows={parsedData} filters={filters} />
                         <button
                           onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--brand-dim)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white transition-all"

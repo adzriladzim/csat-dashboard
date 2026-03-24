@@ -5,7 +5,7 @@ import { exportDosenReport, exportDosenReportPerKelas } from '@/utils/exportUtil
 import { aggregateByDosenKelas } from '@/utils/analytics'
 import clsx from 'clsx'
 
-export default function ExportMenu({ dosenData, buttonClass }) {
+export default function ExportMenu({ dosenData, buttonClass, fullRows, filters }) {
   const [isOpen, setIsOpen] = useState(false)
   const [exporting, setExporting] = useState(null)
   const [coords, setCoords] = useState({ top: 0, left: 0, placement: 'bottom' })
@@ -13,7 +13,8 @@ export default function ExportMenu({ dosenData, buttonClass }) {
   const buttonRef = useRef(null)
 
   // Get unique classes for this lecturer
-  const kelasList = aggregateByDosenKelas(dosenData.rows)
+  const maxP = filters?.pertemuan === 'all' ? Infinity : parseInt(filters?.pertemuan?.toString().replace(/[^0-9]/g, '') || 100)
+  const kelasList = aggregateByDosenKelas(dosenData.rows, fullRows, maxP)
   const hasMultipleKelas = kelasList.length > 1
 
   const updateCoords = () => {
