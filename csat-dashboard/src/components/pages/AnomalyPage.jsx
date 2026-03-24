@@ -20,7 +20,7 @@ export default function AnomalyPage() {
     return dosenList
       .filter(d => d.variansi > 0.39) // Show Medium anomalies again
       .sort((a, b) => b.variansi - a.variansi)
-      .slice(0, 10) // Keep it focused
+      .slice(0, 10) // Restored to 10 as per user's latest preference
   }, [dosenList])
 
   const chartData = useMemo(() => {

@@ -174,6 +174,70 @@ export function ScatterPlotChart({ data, height = 300, xLabel='X', yLabel='Y' })
   )
 }
 
+// ── IPA Quadrant Matrix ───────────────────────────────────────────────────
+export function QuadrantChart({ data, height = 450, xLabel='Performance', yLabel='Importance' }) {
+  if (!data?.length) return <EmptyChart />
+  
+  // Calculate Means for Reference Lines
+  const xMean = data.reduce((a,b)=>a+b.x, 0) / data.length
+  const yMean = data.reduce((a,b)=>a+b.y, 0) / data.length
+
+  return (
+    <div className="relative w-full h-full">
+      <ResponsiveContainer width="100%" height={height}>
+        <ScatterChart margin={{ top: 40, right: 40, bottom: 40, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis 
+            type="number" dataKey="x" name={xLabel} domain={[1, 5]} 
+            tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false}
+            label={{ value: xLabel, position: 'bottom', offset: 0, fill: 'var(--muted)', fontSize: 12, fontWeight: 'bold' }}
+          />
+          <YAxis 
+            type="number" dataKey="y" name={yLabel} domain={[0, 1]} 
+            tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false}
+            label={{ value: yLabel, angle: -90, position: 'insideLeft', offset: 15, fill: 'var(--muted)', fontSize: 12, fontWeight: 'bold' }}
+          />
+          <Tooltip 
+            cursor={{ strokeDasharray: '3 3' }} 
+            contentStyle={TOOLTIP_STYLE} 
+            itemStyle={{ color: 'var(--foreground)' }}
+            labelStyle={{ color: 'var(--foreground)' }}
+            formatter={(v, name) => [fmt(v), name]}
+          />
+          
+          {/* Quadrant Borders */}
+          <ReferenceLine x={xMean} stroke="var(--brand)" strokeDasharray="5 5" strokeWidth={2} opacity={0.5} />
+          <ReferenceLine y={yMean} stroke="var(--brand)" strokeDasharray="5 5" strokeWidth={2} opacity={0.5} />
+
+          <Scatter 
+            data={data} 
+            fill="var(--brand)" 
+            shape="circle"
+          >
+            {data.map((entry, index) => (
+              <circle key={`cell-${index}`} cx={entry.x} cy={entry.y} r={8} fill={entry.fill || 'var(--brand)'} />
+            ))}
+          </Scatter>
+        </ScatterChart>
+      </ResponsiveContainer>
+
+      {/* Quadrant Labels Overlay */}
+      <div className="absolute top-4 left-24 pointer-events-none opacity-40">
+        <span className="text-[10px] font-black uppercase tracking-tighter text-amber-500">Possible Overkill</span>
+      </div>
+      <div className="absolute top-4 right-10 pointer-events-none opacity-40">
+        <span className="text-[10px] font-black uppercase tracking-tighter text-emerald-500">Keep Up Good Work</span>
+      </div>
+      <div className="absolute bottom-16 left-24 pointer-events-none opacity-40">
+        <span className="text-[10px] font-black uppercase tracking-tighter text-rose-500">Low Priority</span>
+      </div>
+      <div className="absolute bottom-16 right-10 pointer-events-none opacity-40">
+        <span className="text-[10px] font-black uppercase tracking-tighter text-sky-500">Concentrate Here</span>
+      </div>
+    </div>
+  )
+}
+
 function EmptyChart() {
   return (
     <div className="flex items-center justify-center h-[180px] text-[var(--muted)] text-sm font-medium">

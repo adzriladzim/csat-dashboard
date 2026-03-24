@@ -13,6 +13,7 @@ import FactorAnalysisPage from '@/components/pages/FactorAnalysisPage'
 import CorrelationPage from './components/pages/CorrelationPage'
 import StrategicAnalysisPage from './components/pages/StrategicAnalysisPage'
 import WeeklyAnalysisPage from './components/pages/WeeklyAnalysisPage'
+import MeetingAnalysisPage from './components/pages/MeetingAnalysisPage'
 import PlaceholderPage from './components/pages/PlaceholderPage'
 
 export default function App() {
@@ -34,7 +35,7 @@ export default function App() {
         <Route path="/analisis-strategis" element={isLoaded ? <StrategicAnalysisPage /> : <Navigate to="/upload" />} />
         
         <Route path="/analisis-mingguan"  element={isLoaded ? <WeeklyAnalysisPage /> : <Navigate to="/upload" />} />
-        <Route path="/analisis-pertemuan" element={<PlaceholderPage title="Analisis per Pertemuan" />} />
+        <Route path="/analisis-pertemuan" element={isLoaded ? <MeetingAnalysisPage /> : <Navigate to="/upload" />} />
         <Route path="/pembersihan"        element={<PlaceholderPage title="Masalah Mapping" />} />
         <Route path="*"                   element={<Navigate to="/" />} />
       </Route>

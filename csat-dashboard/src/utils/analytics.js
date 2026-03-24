@@ -277,3 +277,56 @@ export function getCorrelationMatrix(dosenList) {
   
   return { matrix, labels }
 }
+
+// ── Meeting Analysis ────────────────────────────────────────────────────────
+export function getGlobalMeetingStats(rows) {
+  const map = {}
+  rows.forEach(r => {
+    if (r.pertemuan == null) return
+    const p = r.pertemuan
+    if (!map[p]) map[p] = { 
+      pertemuan: `P${p.toString().padStart(2, '0')}`,
+      performa: [], pemahaman: [], interaktif: [], csat: [], count: 0 
+    }
+    if (r.skorPerforma) map[p].performa.push(r.skorPerforma)
+    if (r.skorPemahaman) map[p].pemahaman.push(r.skorPemahaman)
+    if (r.skorInteraktif) map[p].interaktif.push(r.skorInteraktif)
+    if (r.csatGabungan) map[p].csat.push(r.csatGabungan)
+    map[p].count++
+  })
+
+  return Object.keys(map).sort((a,b)=>a-b).map(p => {
+    const d = map[p]
+    return {
+      pertemuan: d.pertemuan,
+      avgPerforma: avg(d.performa),
+      avgPemahaman: avg(d.pemahaman),
+      avgInteraktif: avg(d.interaktif),
+      composite: avg(d.csat),
+      count: d.count
+    }
+  })
+}
+
+export function detectPerformanceDrops(dosenList, threshold = 0.5) {
+  const drops = []
+  dosenList.forEach(d => {
+    const trend = d.pertemuanTrend.filter(t => t.csat != null)
+    for (let i = 1; i < trend.length; i++) {
+        const prev = trend[i-1]
+        const curr = trend[i]
+        const diff = curr.csat - prev.csat
+        if (diff <= -threshold) {
+          drops.push({
+            name: d.namaDosen,
+            from: prev.pertemuan,
+            to: curr.pertemuan,
+            fromScore: prev.csat,
+            toScore: curr.csat,
+            diff: +diff.toFixed(2)
+          })
+        }
+    }
+  })
+  return drops.sort((a,b) => a.diff - b.diff)
+}
