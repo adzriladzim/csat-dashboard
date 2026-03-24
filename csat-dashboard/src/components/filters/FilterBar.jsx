@@ -34,7 +34,7 @@ export default function FilterBar() {
 
         {/* Dosen */}
         <div className="space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Dosen</label>
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold">Nama Dosen</label>
           <select value={filters.dosen} onChange={e=>setFilter('dosen',e.target.value)} className="input w-full">
             <option value="all">Semua Dosen</option>
             {dosenList.map(d=><option key={d} value={d}>{d}</option>)}

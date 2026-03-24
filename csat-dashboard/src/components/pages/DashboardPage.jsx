@@ -303,7 +303,7 @@ export default function DashboardPage() {
                     <td>
                       <button
                         onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
-                        className="font-bold text-base hover:text-[var(--brand)] transition-colors text-left leading-tight" style={{ color: 'var(--foreground)' }}
+                        className="font-bold text-[12px] sm:text-sm md:text-base hover:text-[var(--brand)] transition-colors text-left leading-tight" style={{ color: 'var(--foreground)' }}
                       >
                         {d.namaDosen}
                       </button>

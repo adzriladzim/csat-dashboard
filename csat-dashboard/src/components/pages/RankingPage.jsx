@@ -131,7 +131,7 @@ export default function RankingPage() {
                     className="cursor-pointer group"
                     onClick={() => navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)}
                   >
-                    <p className="font-bold text-base group-hover:text-[var(--brand)] transition-colors leading-tight" style={{ color: 'var(--foreground)' }}>
+                    <p className="font-bold text-[12px] sm:text-sm md:text-base group-hover:text-[var(--brand)] transition-colors leading-tight" style={{ color: 'var(--foreground)' }}>
                       {d.namaDosen}
                     </p>
                     <p className="text-[11px] font-medium mt-1 opacity-60 uppercase tracking-wide truncate max-w-[240px]" style={{ color: 'var(--muted)' }}>
