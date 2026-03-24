@@ -2,7 +2,7 @@ import { fmt, scoreLabel, analyzeSentiment, avg } from './analytics'
 
 const C = {
   brand: [61,78,232], dark:[15,23,42], muted:[100,116,139],
-  green:[52,211,153], blue:[125,151,251], amber:[251,191,36], red:[248,113,113],
+  green:[52,211,153], blue:[125,151,251], sapphire:[59,130,246], amber:[251,191,36], red:[248,113,113],
   white:[255,255,255], light:[248,250,252], mid:[226,232,240],
 }
 const sRgb = s => { if (!s) return C.muted; if (s>=4.5) return C.green; if (s>=4.0) return C.blue; if (s>=3.0) return C.amber; return C.red }
@@ -66,12 +66,13 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
     ['Interaktivitas Kelas', data.skorInteraktif],
   ]
   metrics.forEach(([label, score]) => {
-    const rgb = sRgb(score)
+    const isCsat = label === 'CSAT Gabungan'
+    const rgb = isCsat ? C.sapphire : C.dark
     pdf.setFillColor(...C.light); pdf.roundedRect(14,y,W-28,10,2,2,'F')
-    pdf.setFillColor(...rgb); pdf.roundedRect(14,y,3,10,1,1,'F')
+    pdf.setFillColor(...(isCsat ? rgb : C.mid)); pdf.roundedRect(14,y,3,10,1,1,'F')
     pdf.setFontSize(9); pdf.setFont('helvetica','normal'); pdf.setTextColor(51,65,85); pdf.text(label, 21, y+6.8)
     pdf.setFont('helvetica','bold'); pdf.setTextColor(...rgb); pdf.text(fmt(score), W/2-5, y+6.8)
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(...C.muted); pdf.text(scoreLabel(score), W-52, y+6.8)
+    pdf.setFontSize(8); pdf.setFont('helvetica','normal'); pdf.setTextColor(...C.muted); pdf.text(scoreLabel(score), W-52, y+6.8)
     y += 12
   })
   pdf.setFontSize(9); pdf.setTextColor(...C.muted)
@@ -91,8 +92,8 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
       pdf.setFillColor(i%2===0?248:242,i%2===0?250:246,i%2===0?252:250); pdf.rect(14,y,W-28,8,'F')
       pdf.setFontSize(8); pdf.setFont('helvetica','bold'); pdf.setTextColor(61,78,232); pdf.text((k.kodeKelas||'–').slice(0,12),14+4,y+5.5)
       pdf.setFont('helvetica','normal'); pdf.setTextColor(51,65,85); pdf.text((k.mataKuliah||'–').slice(0,28),14+36,y+5.5)
-      [[k.csatGabungan,14+100],[k.skorPerforma,14+120],[k.skorPemahaman,14+140],[k.skorInteraktif,14+160]].forEach(([s,x]) => {
-        pdf.setFont('helvetica','bold'); pdf.setTextColor(...sRgb(s)); pdf.text(fmt(s),x,y+5.5)
+      [[k.csatGabungan,14+100],[k.skorPerforma,14+120],[k.skorPemahaman,14+140],[k.skorInteraktif,14+160]].forEach(([s,x], idx) => {
+        pdf.setFont('helvetica','bold'); pdf.setTextColor(...(idx === 0 ? C.sapphire : C.dark)); pdf.text(fmt(s),x,y+5.5)
       })
       pdf.setFont('helvetica','normal'); pdf.setTextColor(51,65,85); pdf.text(fmt(k.totalRespon),14+180,y+5.5)
       y += 9
@@ -318,7 +319,7 @@ export async function exportDashboardPDF(dosenList) {
       pdf.text(namaLines, cx, y + 5); cx += 75; 
       pdf.text(prodiLines, cx, y + 5); cx += 75
       ;[d.csatGabungan, d.skorPerforma, d.skorPemahaman, d.skorInteraktif].forEach((s, si) => {
-        pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...sRgb(s)); 
+        pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...(si === 0 ? C.sapphire : C.dark)); 
         pdf.text(fmt(s), cx, y + 5); cx += [18, 20, 22, 20][si]
       })
       pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85); 
@@ -350,7 +351,7 @@ export async function exportDashboardPDF(dosenList) {
       pdf.text(namaLines, cx, y + 5); cx += 75; 
       pdf.text(prodiLines, cx, y + 5); cx += 75
       ;[d.csatGabungan, d.skorPerforma, d.skorPemahaman, d.skorInteraktif].forEach((s, si) => {
-        pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...sRgb(s)); 
+        pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...(si === 0 ? C.sapphire : C.dark)); 
         pdf.text(fmt(s), cx, y + 5); cx += [18, 20, 22, 20][si]
       })
       pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85); 
