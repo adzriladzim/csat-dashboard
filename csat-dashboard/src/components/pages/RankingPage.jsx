@@ -47,10 +47,10 @@ export default function RankingPage() {
   // Removed handleExportPDF as it's handled by ExportMenu
 
   function SortIcon({ field }) {
-    if (sortKey !== field) return <ChevronUp size={12} className="text-slate-600" />
+    if (sortKey !== field) return <ChevronUp size={12} className="text-[var(--muted-2)] opacity-40" />
     return sortDir === 'desc'
-      ? <ChevronDown size={12} className="text-brand-400" />
-      : <ChevronUp   size={12} className="text-brand-400" />
+      ? <ChevronDown size={12} className="text-[var(--brand)]" />
+      : <ChevronUp   size={12} className="text-[var(--brand)]" />
   }
 
   return (
@@ -98,7 +98,7 @@ export default function RankingPage() {
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-2">
           <h2 className="section-title">Tabel Peringkat Lengkap</h2>
-          <span className="badge bg-u-navy text-brand border border-[var(--brand-border)]">{sorted.length} Dosen</span>
+          <span className="badge bg-[var(--brand)] text-[var(--brand-text)] border border-[var(--brand-border)]">{sorted.length} Dosen</span>
         </div>
         <p className="text-[11px] font-medium opacity-60 mb-6" style={{ color: 'var(--muted)' }}>
           Urutkan berdasarkan metrik yang diinginkan dengan menekan judul kolom tabel di bawah.

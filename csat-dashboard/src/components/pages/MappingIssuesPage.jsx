@@ -55,34 +55,34 @@ export default function MappingIssuesPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-red-500/5 border border-red-500/10 p-6 rounded-2xl shadow-sm group hover:border-red-500/30 transition-all">
+        <div className="bg-red-500/10 dark:bg-red-500/5 border border-red-500/20 p-6 rounded-2xl shadow-sm group hover:border-red-500/40 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
+            <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center text-red-600 dark:text-red-500">
               <AlertCircle size={20} />
             </div>
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-red-500/60 mb-1">Total Gagal</p>
-          <p className="text-3xl font-serif-accent font-black text-red-500">{fmt(stats.total)}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-500/60 mb-1">Total Gagal</p>
+          <p className="text-3xl font-serif-accent font-black text-red-600 dark:text-red-500">{fmt(stats.total)}</p>
         </div>
 
-        <div className="bg-orange-500/5 border border-orange-500/10 p-6 rounded-2xl shadow-sm group hover:border-orange-500/30 transition-all">
+        <div className="bg-orange-500/10 dark:bg-orange-500/5 border border-orange-500/20 p-6 rounded-2xl shadow-sm group hover:border-orange-500/40 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-500">
               <UserX size={20} />
             </div>
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-orange-500/60 mb-1">Dosen Kosong</p>
-          <p className="text-3xl font-serif-accent font-black text-orange-500">{fmt(stats.dosenEmpty)}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-orange-600 dark:text-orange-500/60 mb-1">Dosen Kosong</p>
+          <p className="text-3xl font-serif-accent font-black text-orange-600 dark:text-orange-500">{fmt(stats.dosenEmpty)}</p>
         </div>
 
-        <div className="bg-amber-500/5 border border-amber-500/10 p-6 rounded-2xl shadow-sm group hover:border-amber-500/30 transition-all">
+        <div className="bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 p-6 rounded-2xl shadow-sm group hover:border-amber-500/40 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-500">
               <BookX size={20} />
             </div>
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500/60 mb-1">Mata Kuliah Kosong</p>
-          <p className="text-3xl font-serif-accent font-black text-amber-500">{fmt(stats.mkEmpty)}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-500/60 mb-1">Mata Kuliah Kosong</p>
+          <p className="text-3xl font-serif-accent font-black text-amber-600 dark:text-amber-500">{fmt(stats.mkEmpty)}</p>
         </div>
       </div>
 
