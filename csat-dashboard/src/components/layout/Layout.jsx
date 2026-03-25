@@ -85,7 +85,10 @@ export default function Layout() {
 
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 w-full lg:w-auto">
             <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[var(--bg-input)] border border-[var(--border)] w-full sm:w-auto shadow-inner">
-              <span className="text-[9px] font-extrabold uppercase tracking-widest opacity-40 pl-1">
+              <span
+                className="text-[9px] font-extrabold uppercase tracking-widest pl-1"
+                style={{ color: "var(--foreground)", opacity: 0.7 }}
+              >
                 Dataset:
               </span>
               <span className="text-[10px] sm:text-[11px] font-bold text-[var(--brand)] max-w-[150px] sm:max-w-[250px] truncate pr-1">
