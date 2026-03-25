@@ -61,10 +61,9 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
   pdf.text(`Mata Kuliah: ${mk}`, 12, 38)
   
   pdf.setTextColor(180, 200, 255)
-  // Logic: Only show date if it's NOT an "All Classes" aggregate (isAll) OR if it is a single date
-  const isSingleMeeting = pInfo !== 'Semua Pertemuan'
-  const showDate = !isAll || !isSingleMeeting
-  const dateStr = (showDate && dInfo !== '-') ? `   ·   Tanggal Kelas: ${dInfo}` : ''
+  // Logic: Always show date if it exists (not '-')
+  const showDate = dInfo !== '-'
+  const dateStr = showDate ? `   ·   Tanggal Kelas: ${dInfo}` : ''
   pdf.text(`${pInfo}${dateStr}`, 12, 44)
 
   y = 54

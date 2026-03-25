@@ -21,6 +21,7 @@ import {
   detectPerformanceDrops,
   getGlobalCatalog,
 } from "@/utils/analytics";
+import { exportDosenReport, exportSingleDosenExcel } from "@/utils/exportUtils";
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
 
@@ -39,6 +40,51 @@ export default function AIChat() {
 
   const { getFiltered, parsedData } = useStore();
   const scrollRef = useRef(null);
+
+  // Dragging & Responsive Logic
+  const [position, setPosition] = useState({ x: 0, y: 0 }); // Relative to initial bottom-right
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const handleMouseDown = (e) => {
+    if (isMobile || isMinimized) return;
+    setIsDragging(true);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: position.x,
+      initialY: position.y,
+    };
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e) => {
+      const dx = e.clientX - dragRef.current.startX;
+      const dy = e.clientY - dragRef.current.startY;
+      setPosition({
+        x: dragRef.current.initialX - dx,
+        y: dragRef.current.initialY - dy,
+      });
+    };
+
+    const handleMouseUp = () => setIsDragging(false);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -91,6 +137,7 @@ export default function AIChat() {
         avgCsat: avg(rows.map((r) => r.csatGabungan)),
         totalRespon: rows.length,
         pertemuan: [...new Set(rows.map((r) => r.pertemuan))].sort(),
+        kodeKelas: [...new Set(rows.map((r) => r.kodeKelas))].filter(Boolean),
       };
     });
 
@@ -132,10 +179,59 @@ export default function AIChat() {
     setIsTyping(false);
     if (response) {
       let currentText = "";
-      const fullText = response.content;
-      const words = fullText.split(" ");
+      let fullText = response.content;
 
-      // Initial empty message
+      // --- Action Pre-Processor ---
+      // Check for [ACTION:DOWNLOAD:Name|{"json":...}]
+      const downloadMatch = fullText.match(/\[ACTION:DOWNLOAD:(.*?)\|(.*?)\]/);
+      let actionToExecute = null;
+
+      // CRITICAL: Always clean the tag so the user NEVER sees it, regardless of success
+      fullText = fullText.replace(/\[ACTION:DOWNLOAD:.*?\]/g, "").trim();
+
+      if (downloadMatch) {
+        try {
+          const targetDosen = downloadMatch[1].trim();
+          const filterStr = downloadMatch[2].trim();
+          const filters = JSON.parse(filterStr);
+          let dosenRows = parsedData.filter((r) => r.namaDosen === targetDosen);
+
+          if (dosenRows.length > 0) {
+            // Apply granular filters (Classic Meeting/Class selection)
+            if (filters.kodeKelas) {
+              dosenRows = dosenRows.filter(
+                (r) => r.kodeKelas === filters.kodeKelas,
+              );
+            }
+            if (filters.pertemuan) {
+              dosenRows = dosenRows.filter(
+                (r) => r.pertemuan === filters.pertemuan,
+              );
+            }
+
+            if (dosenRows.length > 0) {
+              // CRITICAL: Filter trend context by class to ensure 1:1 data parity with manual view
+              let trendContext = parsedData;
+              if (filters.kodeKelas) {
+                trendContext = trendContext.filter(
+                  (r) => r.kodeKelas === filters.kodeKelas,
+                );
+              }
+
+              const aggregated = aggregateByDosen(
+                dosenRows,
+                trendContext,
+                filters.pertemuan || Infinity,
+              )[0];
+              actionToExecute = () => exportDosenReport(aggregated);
+            }
+          }
+        } catch (e) {
+          console.error("Action Error:", e);
+        }
+      }
+
+      const words = fullText.split(" ");
       const botMsg = { ...response, content: "" };
       setMessages((prev) => [...prev, botMsg]);
 
@@ -148,6 +244,11 @@ export default function AIChat() {
           last[last.length - 1] = { ...botMsg, content: currentText };
           return last;
         });
+      }
+
+      // Execute download after typing (feels natural)
+      if (actionToExecute) {
+        setTimeout(actionToExecute, 500);
       }
     }
   };
@@ -170,14 +271,33 @@ export default function AIChat() {
   return (
     <div
       className={clsx(
-        "fixed right-6 bottom-6 bg-[var(--bg-dropdown)] border border-[var(--brand-border)] shadow-[var(--shadow-overlay)] z-[9999] flex flex-col transition-all duration-300 overflow-hidden backdrop-blur-xl",
-        isMinimized
-          ? "w-72 h-14 rounded-2xl"
-          : "w-[380px] h-[580px] rounded-3xl",
+        "fixed bg-[var(--bg-dropdown)] border border-[var(--brand-border)] shadow-[var(--shadow-overlay)] z-[9999] flex flex-col transition-all duration-300 overflow-hidden backdrop-blur-xl",
+        isMobile
+          ? isMinimized
+            ? "bottom-4 right-4 w-72 h-14 rounded-2xl"
+            : "inset-0 w-full h-full rounded-none"
+          : isMinimized
+            ? "right-6 bottom-6 w-72 h-14 rounded-2xl"
+            : "w-[380px] h-[580px] rounded-3xl",
+        isDragging && "transition-none select-none cursor-grabbing",
       )}
+      style={
+        !isMobile && !isMinimized
+          ? {
+              right: `${24 + position.x}px`,
+              bottom: `${24 + position.y}px`,
+            }
+          : {}
+      }
     >
       {/* Header */}
-      <div className="p-4 flex items-center justify-between border-b border-[var(--border)] bg-blue-600/10">
+      <div
+        onMouseDown={handleMouseDown}
+        className={clsx(
+          "p-4 flex items-center justify-between border-b border-[var(--border)] bg-blue-600/10 cursor-grab active:cursor-grabbing",
+          isMobile && !isMinimized && "pt-12", // Spacing for safe area
+        )}
+      >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white scale-90 shadow-lg shadow-blue-500/20">
             <Bot size={18} />

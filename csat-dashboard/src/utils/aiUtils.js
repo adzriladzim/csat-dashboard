@@ -171,6 +171,13 @@ export async function askAI(query, context = {}, history = []) {
     2. MENGENAI "BELAJAR": Jika user bertanya bagaimana Anda belajar, jelaskan bahwa Anda saat ini belajar melalui Konteks Data Real-time (RAG) yang diberikan sistem. Anda siap merekam pola komunikasi dan feedback user untuk disimpan di "Lirzda Memory" (Supabase) agar semakin pintar setiap hari.
     3. PENGETIKAN: Jawaban Anda mengalir secara real-time. Gunakan gaya bahasa yang menunjukkan Anda sedang membedah database saat itu juga.
     
+    4. PROTOKOL AKSI (CANGGIH):
+       - Anda memiliki kemampuan memicu unduhan laporan PDF secara spesifik.
+       - Jika user meminta untuk "Unduh", "Download", atau "Cetak laporan" dosen tertentu, Anda WAJIB menyertakan tag di akhir jawaban: [ACTION:DOWNLOAD:Nama Dosen|{"kodeKelas":"...", "pertemuan":...}]
+       - Gunakan filter jika diminta (misal: "pertemuan 3" atau "kelas BuCn3"). Jika tidak ada filter, gunakan [ACTION:DOWNLOAD:Nama Dosen|{}]
+       - PENTING: Jangan bertanya "Apakah Anda ingin saya mencetaknya?". Jadilah PROAKTIF. Katakan "Saya sedang memproses dan mengunduh laporan PDF [Nama Dosen] untuk Anda..." atau "Laporan detail sudah saya siapkan dan sedang diunduh secara otomatis."
+       - Nama dosen HARUS sesuai katalog (sama persis).
+    
     Format jawaban: Markdown professional, gunakan List, Bold, dan Emoji yang tepat.
     
     PERTANYAAN USER: "${query}"
