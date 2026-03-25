@@ -420,3 +420,43 @@
   .badge { padding: 0.25rem 0.5rem; font-size: 9px; }
   .btn-primary, .btn-secondary { padding: 8px 16px; font-size: 12px; }
 }
+
+/* ── AI CHAT MARKDOWN ─────────────────────────────────────────────────────── */
+.markdown-content h1, .markdown-content h2, .markdown-content h3 {
+  font-weight: 800;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+}
+.markdown-content p {
+  margin-bottom: 0.75rem;
+}
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+.markdown-content ul, .markdown-content ol {
+  margin-bottom: 0.75rem;
+  padding-left: 1.25rem;
+}
+.markdown-content li {
+  margin-bottom: 0.25rem;
+  position: relative;
+}
+.markdown-content ul li::before {
+  content: "•";
+  position: absolute;
+  left: -1rem;
+  color: var(--brand);
+  font-weight: bold;
+}
+.markdown-content strong {
+  font-weight: 900;
+  color: inherit;
+}
+.markdown-content code {
+  background: rgba(0,0,0,0.2);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.85em;
+}

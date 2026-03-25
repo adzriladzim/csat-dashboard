@@ -7,7 +7,7 @@ import useStore from '@/lib/store'
 import clsx from 'clsx'
 
 export default function UploadPage() {
-  const { parseAndDisplay } = useStore()
+  const { parseAndDisplay, syncToCloud } = useStore()
   const navigate   = useNavigate()
   const inputRef   = useRef()
   const [dragging, setDragging] = useState(false)
@@ -40,6 +40,11 @@ export default function UploadPage() {
         rows = result.data; headers = result.meta.fields
       }
       const count = parseAndDisplay(rows, headers, file.name)
+      
+      // -- SYNC TO SUPABASE --
+      const allData = useStore.getState().parsedData
+      syncToCloud(allData)
+
       setInfo({ name: file.name, count })
       setStatus('done')
       setTimeout(() => navigate('/'), 900)

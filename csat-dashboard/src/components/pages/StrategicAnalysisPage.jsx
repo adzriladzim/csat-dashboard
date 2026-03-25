@@ -7,6 +7,7 @@ import {
   DistributionBar, ScatterPlotChart, QuadrantChart
 } from '@/components/charts/ChartComponents'
 import { pearson } from '@/utils/analytics'
+import FeedbackAnalytic from '@/components/ai/FeedbackAnalytic'
 
 export default function StrategicAnalysisPage() {
   const { getFiltered } = useStore()
@@ -162,6 +163,8 @@ export default function StrategicAnalysisPage() {
       </div>
 
       <FilterBar />
+
+      <FeedbackAnalytic rows={filtered} />
 
       <div className="grid grid-cols-1 gap-8">
         {/* Fakultas Section - Extra Tall */}

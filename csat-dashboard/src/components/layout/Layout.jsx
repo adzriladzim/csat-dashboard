@@ -5,6 +5,7 @@ import TabNav from './TabNav'
 import ThemeToggle from '@/components/common/ThemeToggle'
 import UserGuideModal from '@/components/common/UserGuideModal'
 import useStore from '@/lib/store'
+import AIChat from '@/components/ai/AIChat'
 
 export default function Layout() {
   const { fileName, clearData } = useStore()
@@ -94,6 +95,9 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* ── AI CHAT ASSISTANT ────────────────────────────────── */}
+      <AIChat />
     </div>
   )
 }

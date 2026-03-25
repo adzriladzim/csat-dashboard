@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import useStore from '@/lib/store'
 import Layout from '@/components/layout/Layout'
 import UploadPage from '@/components/pages/UploadPage'
@@ -17,7 +19,25 @@ import MeetingAnalysisPage from './components/pages/MeetingAnalysisPage'
 import PlaceholderPage from './components/pages/PlaceholderPage'
 
 export default function App() {
-  const isLoaded = useStore(s => s.isLoaded)
+  const { isLoaded, isLoading, loadInitialData } = useStore()
+
+  useEffect(() => {
+    loadInitialData()
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-base)] flex flex-col items-center justify-center gap-6 animate-pulse">
+        <div className="w-24 h-24 rounded-3xl bg-[var(--bg-card)] border border-[var(--border)] shadow-2xl flex items-center justify-center">
+          <img src="/CAKRAWALA LOGOMARK 2A.png" alt="Logo" className="w-16 h-16 object-contain" />
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="animate-spin text-blue-500" size={32} />
+          <p className="text-sm font-bold text-[var(--foreground)] tracking-widest uppercase">Lirzda is Loading Data...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <Routes>
