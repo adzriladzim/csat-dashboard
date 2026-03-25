@@ -13,9 +13,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom', 'helmet-async'],
+          'vendor-react': ['react', 'react-dom', 'react-router-dom', 'react-helmet-async'],
           'vendor-charts': ['recharts'],
-          'vendor-utils': ['@supabase/supabase-js', 'lucide-react', 'clsx', 'tailwind-merge']
+          'vendor-utils': ['@supabase/supabase-js', 'lucide-react', 'clsx']
         }
       }
     },
