@@ -347,3 +347,66 @@ export function detectPerformanceDrops(dosenList, threshold = 0.5) {
   })
   return drops.sort((a,b) => a.diff - b.diff)
 }
+
+/** 
+ * Memberikan "Katalog Global" untuk AI agar bisa menjawab tanpa filter aktif.
+ * Mengompres data besar menjadi ringkasan cerdas.
+ */
+export function getGlobalCatalog(allRows) {
+  if (!allRows || !allRows.length) return {}
+  
+  const lecturerMap = {} // name -> { prodis: Set, subjects: Set, avg: [], count: 0 }
+  const meetingLeaders = {} // pNum -> { name: score }
+  
+  allRows.forEach(r => {
+    if (!r.namaDosen) return
+    
+    // 1. Lecturer Map
+    if (!lecturerMap[r.namaDosen]) {
+      lecturerMap[r.namaDosen] = { prodis: new Set(), subjects: new Set(), csat: [] }
+    }
+    const l = lecturerMap[r.namaDosen]
+    if (r.prodi) l.prodis.add(r.prodi)
+    if (r.mataKuliah) l.subjects.add(r.mataKuliah)
+    if (r.csatGabungan) l.csat.push(r.csatGabungan)
+    
+    // 2. Meeting Leaders (Internal tracking)
+    if (r.pertemuan != null) {
+      const p = r.pertemuan
+      if (!meetingLeaders[p]) meetingLeaders[p] = {}
+      if (!meetingLeaders[p][r.namaDosen]) meetingLeaders[p][r.namaDosen] = []
+      meetingLeaders[p][r.namaDosen].push(r.csatGabungan)
+    }
+  })
+  
+  // Format Lecturer Catalog
+  const lecturerCatalog = Object.entries(lecturerMap).map(([name, data]) => ({
+    nama: name,
+    prodi: [...data.prodis],
+    matakuliah: [...data.subjects],
+    avgOverall: avg(data.csat),
+    totalRespon: data.csat.length
+  }))
+  
+  // Format Meeting Catalog (Top 1 per meeting)
+  const meetingCatalog = {}
+  Object.keys(meetingLeaders).forEach(p => {
+    const leaders = Object.entries(meetingLeaders[p])
+      .map(([name, scores]) => ({ name, score: avg(scores) }))
+      .sort((a,b) => b.score - a.score)
+    
+    if (leaders.length > 0) {
+      meetingCatalog[`P${p.toString().padStart(2, '0')}`] = {
+        terbaik: leaders[0].name,
+        skor: leaders[0].score,
+        runnerUp: leaders[1]?.name || null
+      }
+    }
+  })
+  
+  return {
+    daftarDosen: lecturerCatalog.slice(0, 50), // Limit to avoid prompt bloat
+    juaraPerPertemuan: meetingCatalog,
+    totalData: allRows.length
+  }
+}

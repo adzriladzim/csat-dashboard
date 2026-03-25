@@ -2,6 +2,16 @@ import { create } from 'zustand'
 import { parseRow } from '@/utils/rowParser'
 import { supabase } from '@/lib/supabase'
 
+// Unified ID Logic for stable matching
+const generateID = (r) => {
+  // Biar super unik & AMAN dari error encoding: 
+  // Gunakan gabungan string sederhana yang dibuang karakter anehnya
+  const fb = (r.feedbackDosen || '').slice(0, 20).replace(/[^a-zA-Z0-9]/g, '')
+  const sc = `${r.skorPemahaman || 0}${r.skorInteraktif || 0}${r.skorPerforma || 0}`
+  const base = `${r.nim || 'N'}-${r.namaDosen || 'D'}-${r.mataKuliah || 'M'}-${r.pertemuan || 0}-${r.timestamp || '0'}-${sc}-${fb}`
+  return base.slice(0, 150) // Postgres TEXT can handle this
+}
+
 const useStore = create((set, get) => ({
   parsedData:  [],
   mappingIssues: [], // New state for diagnostic tracking
@@ -83,40 +93,30 @@ const useStore = create((set, get) => ({
 
     const currentData = get().parsedData
     const currentIssues = get().mappingIssues
-    
-    // Deduplication (Append new only)
-    const combined = [...currentData]
-    let dupCount = 0
-    newParsed.forEach(nr => {
-      const exists = currentData.some(cr => 
-        cr.namaDosen === nr.namaDosen && 
-        cr.mataKuliah === nr.mataKuliah && 
-        cr.pertemuan === nr.pertemuan && 
-        cr.nim === nr.nim && 
-        cr.timestamp === nr.timestamp
-      )
-      if (!exists) combined.push(nr)
-      else dupCount++
-    })
 
-    const combinedIssues = [...currentIssues]
-    issues.forEach(ni => {
-      const exists = currentIssues.some(ci => ci.row === ni.row && ci.timestamp === ni.timestamp && ci.alasan === ni.alasan)
-      if (!exists) combinedIssues.push(ni)
-    })
-
-    const finalCount = combined.length
-    
+    // STRICT REPLACE MODE: 
+    // Always use new parsed data as the only source of truth (fix 8244 -> 7244)
+    const combined = newParsed
+    const combinedIssues = issues
+ 
     set({ 
       parsedData: combined, 
       mappingIssues: combinedIssues,
       isLoaded: true, 
-      fileName: fileName === get().fileName ? fileName : (get().fileName ? 'Multiple Files' : fileName), 
-      rawCount: finalCount,
+      fileName: fileName, // Reset to current filename
+      rawCount: combined.length,
       mappingAccuracy: 100,
       removedCount: 0
     })
-    return finalCount
+    return combined.length
+  },
+
+  clearCloudData: async () => {
+    const { error } = await supabase.from('csat_data').delete().neq('id', '0')
+    if (!error) {
+      set({ parsedData: [], rawCount: 0, fileName: '' })
+    }
+    return !error
   },
 
   clearData: () => set({ parsedData: [], mappingIssues: [], isLoaded: false, fileName: '' }),
@@ -238,6 +238,11 @@ const useStore = create((set, get) => ({
     if (!supabase || !newRows.length) return
     
     try {
+      // 0. AUTOMATIC CLEANUP: Clear Cloud once before new data (True Sync)
+      // This ensures 1:1 match with file without manual truncate
+      console.log('Cleaning up old cloud data for full sync...')
+      await supabase.from('csat_data').delete().neq('id', '0')
+
       // 1. Upsert Lecturers
       const uniqueDosen = [...new Set(newRows.map(r => r.namaDosen))].filter(Boolean)
       console.log(`Syncing ${uniqueDosen.length} lecturers...`)
@@ -258,13 +263,11 @@ const useStore = create((set, get) => ({
 
       console.log(`Preparing ${newRows.length} rows for cloud...`)
 
-      // 3. Prepare CSAT Rows
-      const cloudRows = newRows.map(r => {
-        const lId = lecturers?.find(l => l.name === r.namaDosen)?.id
-        const sId = subjects?.find(s => s.name === r.mataKuliah)?.id
-        
-        // Logical unique ID to prevent duplicates (NIM + MK + Pertemuan + TS)
-        const compositeId = `${r.nim || 'anon'}_${sId || 'no-mk'}_${r.pertemuan || 0}_${r.timestamp || Date.now()}`
+        // 3. Prepare CSAT Rows
+        const cloudRows = newRows.map(r => {
+          const lId = lecturers?.find(l => l.name === r.namaDosen)?.id
+          const sId = subjects?.find(s => s.name === r.mataKuliah)?.id
+          const compositeId = generateID(r)
         
         return {
           id: compositeId,
@@ -297,10 +300,16 @@ const useStore = create((set, get) => ({
         }
       })
 
-      // 4. Batch Upsert to Supabase (500 rows per chunk to avoid payload limits)
+      // 4. Deduplicate locally before sending to Supabase
+      // (Postgres fails if a single batch has duplicate 'id' values)
+      const uniqueCloudRows = Array.from(
+        cloudRows.reduce((map, row) => map.set(row.id, row), new Map()).values()
+      )
+
+      // 5. Batch Upsert (500 rows per chunk)
       const CHUNK_SIZE = 500
-      for (let i = 0; i < cloudRows.length; i += CHUNK_SIZE) {
-        const chunk = cloudRows.slice(i, i + CHUNK_SIZE)
+      for (let i = 0; i < uniqueCloudRows.length; i += CHUNK_SIZE) {
+        const chunk = uniqueCloudRows.slice(i, i + CHUNK_SIZE)
         const { error: upsertError } = await supabase.from('csat_data').upsert(chunk, { onConflict: 'id' })
         if (upsertError) {
           console.error(`Sync chunk ${i/CHUNK_SIZE} failed:`, upsertError)

@@ -1,68 +1,156 @@
-import { useState, useRef, useEffect } from 'react'
-import { MessageSquare, Send, X, Bot, User, Sparkles, Minimize2, Maximize2 } from 'lucide-react'
-import { askAI } from '@/utils/aiUtils'
-import useStore from '@/lib/store'
-import { aggregateByDosen, avg, getGlobalMeetingStats, detectAnomalies, detectPerformanceDrops } from '@/utils/analytics'
-import clsx from 'clsx'
-import ReactMarkdown from 'react-markdown'
+import { useState, useRef, useEffect, useMemo } from "react";
+import {
+  MessageSquare,
+  Send,
+  X,
+  Bot,
+  User,
+  Sparkles,
+  Minimize2,
+  Maximize2,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
+import { askAI } from "@/utils/aiUtils";
+import useStore from "@/lib/store";
+import {
+  aggregateByDosen,
+  avg,
+  getGlobalMeetingStats,
+  detectAnomalies,
+  detectPerformanceDrops,
+  getGlobalCatalog,
+} from "@/utils/analytics";
+import clsx from "clsx";
+import ReactMarkdown from "react-markdown";
 
 export default function AIChat() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
-  const [input, setInput] = useState('')
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [input, setInput] = useState("");
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Halo! Saya **Lirzda**, asisten analitik Anda. Ada yang bisa saya bantu bedah dari data CSAT hari ini? ✨📈' }
-  ])
-  const [isTyping, setIsTyping] = useState(false)
-  
-  const { getFiltered, parsedData } = useStore()
-  const scrollRef = useRef(null)
+    {
+      role: "assistant",
+      content:
+        "Halo! Saya **Lirzda**, asisten analitik Anda. Ada yang bisa saya bantu bedah dari data CSAT hari ini? ✨📈",
+    },
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+
+  const { getFiltered, parsedData } = useStore();
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isTyping])
+  }, [messages, isTyping]);
+
+  // Performance: Memoize heavy global catalog to avoid lag on every message
+  const globalCatalog = useMemo(
+    () => getGlobalCatalog(parsedData),
+    [parsedData],
+  );
 
   const handleSend = async (e) => {
-    e?.preventDefault()
-    if (!input.trim() || isTyping) return
+    e?.preventDefault();
+    if (!input.trim() || isTyping) return;
 
-    const userMsg = { role: 'user', content: input }
-    setMessages(prev => [...prev, userMsg])
-    setInput('')
-    setIsTyping(true)
+    const userMsg = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setIsTyping(true);
 
-    // Prepare Rich Context
-    const filtered = getFiltered()
-    const dosenList = aggregateByDosen(filtered, parsedData)
-    const meetingStats = getGlobalMeetingStats(filtered)
-    
+    // 0. Base Data for Context
+    const filtered = getFiltered();
+    const dosenList = aggregateByDosen(filtered, parsedData);
+    const meetingStats = getGlobalMeetingStats(filtered);
+
+    // 1. Logic to detect specific lecturers in the query for "Deep Search"
+    const allDosenNames = [
+      ...new Set(parsedData.map((d) => d.namaDosen)),
+    ].filter(Boolean);
+    const detectedDosen = allDosenNames.filter(
+      (name) =>
+        input.toLowerCase().includes(name.toLowerCase()) ||
+        name.toLowerCase().includes(
+          input
+            .toLowerCase()
+            .replace(/pak |bu /g, "")
+            .trim(),
+        ),
+    );
+
+    // 2. Fetch Deep Context for detected lecturers
+    const specificLecturerData = detectedDosen.map((name) => {
+      const rows = parsedData.filter((r) => r.namaDosen === name);
+      return {
+        nama: name,
+        prodi: [...new Set(rows.map((r) => r.prodi))].filter(Boolean),
+        matakuliah: [...new Set(rows.map((r) => r.mataKuliah))].filter(Boolean),
+        avgCsat: avg(rows.map((r) => r.csatGabungan)),
+        totalRespon: rows.length,
+        pertemuan: [...new Set(rows.map((r) => r.pertemuan))].sort(),
+      };
+    });
+
     const context = {
       currentPage: window.location.pathname,
+      activeFilters: useStore.getState().filters,
+      fileName: useStore.getState().fileName || "Data dari Supabase",
       summary: {
         totalResponden: filtered.length,
-        averageCsat: avg(dosenList.map(d => d.csatGabungan)),
-        top3Dosen: dosenList.slice(0, 3).map(d => ({ nama: d.namaDosen, csat: d.csatGabungan })),
-        bottom3Dosen: dosenList.slice(-3).reverse().map(d => ({ nama: d.namaDosen, csat: d.csatGabungan })),
+        averageCsat: avg(dosenList.map((d) => d.csatGabungan)),
+        top3Dosen: dosenList
+          .slice(0, 3)
+          .map((d) => ({ nama: d.namaDosen, csat: d.csatGabungan })),
+        bottom3Dosen: dosenList
+          .slice(-3)
+          .reverse()
+          .map((d) => ({ nama: d.namaDosen, csat: d.csatGabungan })),
       },
-      perMeetingStats: meetingStats.map(m => ({
+      perMeetingStats: meetingStats.map((m) => ({
         label: m.pertemuan,
         avg: m.composite,
-        respondents: m.count
+        respondents: m.count,
       })),
-      anomalies: detectAnomalies(dosenList).slice(0, 5).map(a => ({
-        nama: a.namaDosen,
-        type: a.type,
-        csat: a.csatGabungan
-      })),
-      performanceDrops: detectPerformanceDrops(dosenList, 0.4).slice(0, 5)
-    }
+      globalCatalog,
+      deepSearch: specificLecturerData, // New: Highly specific data for mentioned lecturers
+      anomalies: detectAnomalies(dosenList)
+        .slice(0, 5)
+        .map((a) => ({
+          nama: a.namaDosen,
+          type: a.type,
+          csat: a.csatGabungan,
+        })),
+      performanceDrops: detectPerformanceDrops(dosenList, 0.4).slice(0, 5),
+    };
 
-    const response = await askAI(input, context, messages)
-    setMessages(prev => [...prev, response])
-    setIsTyping(false)
-  }
+    const response = await askAI(input, context, messages);
+
+    // Typing Effect Logic
+    setIsTyping(false);
+    if (response) {
+      let currentText = "";
+      const fullText = response.content;
+      const words = fullText.split(" ");
+
+      // Initial empty message
+      const botMsg = { ...response, content: "" };
+      setMessages((prev) => [...prev, botMsg]);
+
+      // Typing simulation (FASTER)
+      for (let i = 0; i < words.length; i++) {
+        await new Promise((res) => setTimeout(res, 5 + Math.random() * 10));
+        currentText += (i === 0 ? "" : " ") + words[i];
+        setMessages((prev) => {
+          const last = [...prev];
+          last[last.length - 1] = { ...botMsg, content: currentText };
+          return last;
+        });
+      }
+    }
+  };
 
   if (!isOpen) {
     return (
@@ -76,14 +164,16 @@ export default function AIChat() {
           Tanya Lirzda AI
         </span>
       </button>
-    )
+    );
   }
 
   return (
-    <div 
+    <div
       className={clsx(
         "fixed right-6 bottom-6 bg-[var(--bg-dropdown)] border border-[var(--brand-border)] shadow-[var(--shadow-overlay)] z-[9999] flex flex-col transition-all duration-300 overflow-hidden backdrop-blur-xl",
-        isMinimized ? "w-72 h-14 rounded-2xl" : "w-[380px] h-[580px] rounded-3xl"
+        isMinimized
+          ? "w-72 h-14 rounded-2xl"
+          : "w-[380px] h-[580px] rounded-3xl",
       )}
     >
       {/* Header */}
@@ -93,18 +183,24 @@ export default function AIChat() {
             <Bot size={18} />
           </div>
           <div>
-            <h3 className="text-sm font-black text-[var(--foreground)] leading-none">Lirzda AI</h3>
-            {!isMinimized && <span className="text-[10px] text-blue-500 font-bold animate-pulse">Online & Ready</span>}
+            <h3 className="text-sm font-black text-[var(--foreground)] leading-none">
+              Lirzda AI
+            </h3>
+            {!isMinimized && (
+              <span className="text-[10px] text-blue-500 font-bold animate-pulse">
+                Online & Ready
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button 
+          <button
             onClick={() => setIsMinimized(!isMinimized)}
             className="p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors text-[var(--muted)]"
           >
             {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
           </button>
-          <button 
+          <button
             onClick={() => setIsOpen(false)}
             className="p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors text-[var(--muted)]"
           >
@@ -116,34 +212,65 @@ export default function AIChat() {
       {!isMinimized && (
         <>
           {/* Chat Messages */}
-          <div 
+          <div
             ref={scrollRef}
             className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-black/[0.02] dark:bg-white/[0.02]"
           >
             {messages.map((m, i) => (
-              <div key={i} className={clsx("flex gap-3", m.role === 'user' ? "flex-row-reverse" : "flex-row")}>
-                <div className={clsx(
-                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm",
-                  m.role === 'user' ? "bg-slate-700" : "bg-blue-600"
-                )}>
-                  {m.role === 'user' ? <User size={14} className="text-white" /> : <Bot size={14} className="text-white" />}
+              <div
+                key={i}
+                className={clsx(
+                  "flex gap-3",
+                  m.role === "user" ? "flex-row-reverse" : "flex-row",
+                )}
+              >
+                <div
+                  className={clsx(
+                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm",
+                    m.role === "user" ? "bg-slate-700" : "bg-blue-600",
+                  )}
+                >
+                  {m.role === "user" ? (
+                    <User size={14} className="text-white" />
+                  ) : (
+                    <Bot size={14} className="text-white" />
+                  )}
                 </div>
-                <div className={clsx(
-                  "max-w-[80%] rounded-2xl p-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap markdown-content",
-                  m.role === 'user' 
-                    ? "bg-blue-600 text-white rounded-tr-none font-medium" 
-                    : "bg-[var(--bg-card)] text-[var(--foreground)] rounded-tl-none border border-[var(--border)]"
-                )}>
-                  {m.role === 'assistant' && m.cached && (
+                <div
+                  className={clsx(
+                    "max-w-[80%] rounded-2xl p-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap markdown-content relative group/msg",
+                    m.role === "user"
+                      ? "bg-blue-600 text-white rounded-tr-none font-medium"
+                      : "bg-[var(--bg-card)] text-[var(--foreground)] rounded-tl-none border border-[var(--border)]",
+                  )}
+                >
+                  {m.role === "assistant" && m.cached && (
                     <div className="flex items-center gap-1.5 mb-1.5 opacity-50">
                       <Sparkles size={10} className="text-blue-500" />
-                      <span className="text-[9px] font-black uppercase tracking-tighter">Lirzda Memory</span>
+                      <span className="text-[9px] font-black uppercase tracking-tighter">
+                        Lirzda Memory
+                      </span>
                     </div>
                   )}
-                  {m.role === 'assistant' ? (
+                  {m.role === "assistant" ? (
                     <ReactMarkdown>{m.content}</ReactMarkdown>
                   ) : (
                     m.content
+                  )}
+
+                  {/* Feedback Buttons (Only for Assistant) */}
+                  {m.role === "assistant" && !isTyping && m.content && (
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--border)] opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                      <span className="text-[10px] text-[var(--muted)]">
+                        Apakah ini membantu?
+                      </span>
+                      <button className="p-1 hover:bg-blue-500/10 rounded-md text-[var(--muted)] hover:text-blue-500 transition-colors">
+                        <ThumbsUp size={12} />
+                      </button>
+                      <button className="p-1 hover:bg-red-500/10 rounded-md text-[var(--muted)] hover:text-red-500 transition-colors">
+                        <ThumbsDown size={12} />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -163,18 +290,18 @@ export default function AIChat() {
           </div>
 
           {/* Input Area */}
-          <form 
+          <form
             onSubmit={handleSend}
             className="p-4 bg-[var(--bg-card)] border-t border-[var(--border)] flex gap-2 items-center"
           >
             <input
               type="text"
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={(e) => setInput(e.target.value)}
               placeholder="Tanya sesuatu tentang data..."
               className="flex-1 bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-xs font-medium text-[var(--foreground)] placeholder:text-[var(--muted-2)] focus:outline-none focus:border-blue-500 transition-colors shadow-inner"
             />
-            <button 
+            <button
               type="submit"
               disabled={!input.trim() || isTyping}
               className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
@@ -185,5 +312,5 @@ export default function AIChat() {
         </>
       )}
     </div>
-  )
+  );
 }
