@@ -1,137 +1,158 @@
 # 📊 CSAT Dashboard — Cakrawala University
 
-**Client-Side Analytics · React + Vite + Tailwind · No-DB Architecture**
+**"Empowering Academic Excellence through Intelligent Data Analytics"**
 
-Dashboard analisis kinerja dosen berbasis feedback mahasiswa yang bekerja sepenuhnya di sisi client.  
-Data diimpor melalui file XLSX/CSV hasil export Google Forms, diproses secara instan di browser, dan divisualisasikan tanpa memerlukan database atau server backend.
+[![React](https://img.shields.io/badge/Frontend-React%2018-blue)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Build-Vite-646CFF)](https://vitejs.dev/)
+[![Supabase](https://img.shields.io/badge/Backend-Supabase%20Cloud-3ECF8E)](https://supabase.com/)
+[![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-8E75B2)](https://ai.google.dev/)
+
+Dashboard analisis kinerja dosen berbasis feedback mahasiswa yang bertransformasi menjadi platform **Enterprise Intelligence**. Sistem ini mengintegrasikan data real-time, persistensi cloud, dan kecerdasan buatan untuk membantu Program Studi melakukan evaluasi akademik yang presisi, objektif, dan proaktif.
 
 ---
 
-## 🏗️ Alur Kerja Sistem (Local-Only)
+## 🏗️ Arsitektur & Ekosistem Sistem
 
+Sistem ini dirancang dengan arsitektur **Modern Full-Stack** yang memisahkan antara _Data Acquisition_, _Cloud Storage_, dan _AI Processing Layer_.
+
+```mermaid
+graph TD
+    A[Google Forms Response] -->|Export XLSX/CSV| B(Admin Dashboard)
+    B -->|Smart Upload| C{Supabase Cloud}
+    C -->|Persistence| D[(PostgreSQL)]
+    B -->|Context Injection| E[Lirzda AI Engine]
+    E -->|RAG Analysis| F[Google Gemini Pro]
+    E -->|Smart Action| G[Auto PDF Generator]
+    D -->|Real-time Aggregation| B
 ```
-Google Forms (Mahasiswa isi feedback)
-        ↓
-Google Sheets (Admin export ke .xlsx / .csv)
-        ↓
-React Dashboard (User upload file ke browser)
-        ↓
-Instant Analytics (Data diolah & ditampilkan secara lokal)
-        ↓
-Export PDF / Excel (Laporan siap cetak)
-```
-
-> [!NOTE]
-> **Privasi & Keamanan:** Data feedback tidak pernah meninggalkan browser anda. Semua perhitungan skor dan analisis dilakukan secara lokal di perangkat anda.
 
 ---
 
-## 🚀 Memulai (Setup Lokal)
+## ✨ Fitur Unggulan (Comprehensive)
 
-1. **Clone & Install**
-
-   ```bash
-   # Masuk folder project
-   cd csat-dashboard
-
-   # Install dependensi
-   npm install
-   ```
-
-2. **Jalankan Aplikasi**
-
-   ```bash
-   npm run dev
-   ```
-
-   Buka `http://localhost:5173` di browser anda. ✅
-
-3. **Gunakan Dashboard**
-   - Download hasil respon dari Google Forms dalam format `.xlsx` atau `.csv`.
-   - Drag & drop file tersebut ke halaman **Upload** di dashboard.
-   - Semua menu analisis akan terbuka secara otomatis.
+| Kategori            | Fitur                   | Keterangan                                                                                           |
+| :------------------ | :---------------------- | :--------------------------------------------------------------------------------------------------- |
+| 🤖 **Intelligence** | **Lirzda AI Engine**    | Analisis data berbasis Gemini Pro yang paham konteks file, dosen, hingga anomali.                    |
+| 🦾 **Automation**   | **Action Protocol**     | Lirzda dapat mengunduh laporan PDF secara otomatis berdasarkan perintah chat Anda.                   |
+| ☁️ **Persistence**  | **Supabase Cloud Sync** | Penyimpanan data persisten; data aman di cloud tanpa perlu upload ulang setiap refresh.              |
+| � **Analytics**     | **Anomaly Detection**   | Identifikasi otomatis penurunan performa atau volatilitas tinggi menggunakan Z-Score.                |
+| � **Visualization** | **Dynamic Charts**      | Grafik Radar Kompetensi, Tren Pertemuan, dan WordCloud Sentimen mahasiswa.                           |
+| � **Acquisition**   | **Smart Upload**        | Pendeteksian kolom otomatis (Auto-mapping) untuk file XLSX, XLS, dan CSV.                            |
+| 🏆 **Performance**  | **Ranking & Detail**    | Tabel peringkat sortable dan profil detail dosen dengan analisis kompetensi mendalam.                |
+| � **Experience**    | **Hybrid UX**           | Chatbot _draggable_ di desktop, _full-screen overlay_ di mobile, dan dukungan **Dark Mode** premium. |
+| 📄 **Reporting**    | **Granular Export**     | Export laporan profesional ke PDF (per dosen/kelas) dan rekap data ke Excel.                         |
 
 ---
 
-## ✨ Fitur Unggulan
+## 📁 Struktur Project Terbaru
 
-| Fitur                     | Keterangan                                                                              |
-| ------------------------- | --------------------------------------------------------------------------------------- |
-| 📤 **Instant Upload**     | Drag & drop XLSX/CSV dengan auto-mapping kolom pintar.                                  |
-| 📊 **Dashboard Overview** | Ringkasan CSAT, Tren per semester, dan Skor performa global.                            |
-| 🏆 **Ranking Dosen**      | Tabel performa sortable untuk melihat Top 5 & Bottom 5 dosen.                           |
-| 👤 **Detail Per Dosen**   | Radar chart kompetensi, tren per pertemuan, dan daftar komentar.                        |
-| 📄 **Export Laporan**     | Cetak detail per dosen ke PDF atau rekap ranking ke Excel.                              |
-| 💬 **Analisis Sentimen**  | Deteksi otomatis komentar Positif, Negatif, atau Netral.                                |
-| ☁️ **Word Cloud**         | Visualisasi kata kunci feedback & topik yang belum dipahami mahasiswa.                  |
-| 🔍 **Anomaly Detection**  | Identifikasi dosen dengan skor luar biasa atau yang perlu perhatian khusus via Z-Score. |
-| 🌓 **Dark Mode**          | Tampilan premium dengan dukungan mode gelap dan terang.                                 |
-
----
-
-## 📁 Struktur Project
-
-```
+```text
 csat-dashboard/
-│
 ├── src/
+│   ├── components/
+│   │   ├── ai/AIChat.jsx      ← UI Assistant (Draggable & Responsive)
+│   │   ├── charts/            ← Library visualisasi (Recharts & WordCloud)
+│   │   └── pages/             ← Halaman utama (Dashboard, Ranking, Anomali, dll)
 │   ├── lib/
-│   │   └── store.js               ← Zustand global state (penyimpanan data in-memory)
-│   │
+│   │   ├── store.js           ← Manajemen State Global & Cloud Sync Logic
+│   │   └── supabase.js        ← Konfigurasi & Inisialisasi API Supabase
 │   ├── utils/
-│   │   ├── rowParser.js           ← Logic pemetaan kolom & pembersihan data teknis
-│   │   ├── analytics.js           ← Inti perhitungan CSAT, Sentimen, & Anomali
-│   │   └── exportUtils.js         ← Export PDF (jsPDF) & Excel (xlsx)
-│   │
-│   └── components/
-│       ├── layout/Layout.jsx      ← Sidebar & Navigasi Utama
-│       ├── charts/                ← Komponen visualisasi Recharts (Radar, Line, Bar)
-│       └── pages/                 ← Halaman utama: Upload, Dashboard, Ranking, Detail, dll
-│
-├── package.json
-├── tailwind.config.js             ← Konfigurasi tema & warna brand
-└── vite.config.js
+│   │   ├── aiUtils.js         ← Prompt Engineering & Action Logic Lirzda
+│   │   ├── analytics.js       ← Engine kalkulasi CSAT, Z-Score, & Agregasi
+│   │   └── exportUtils.js     ← Engine pembuat laporan PDF & Excel
+│   └── App.jsx                ← Root component & routing
+└── supabase_schema.sql        ← Blueprint database PostgreSQL untuk Supabase
 ```
 
 ---
 
-## 🔧 Kustomisasi Pemetaan Data
+## 🧠 Metodologi & Algoritma Analisis
 
-Jika format kolom di Google Forms anda berubah, anda dapat menyesuaikannya di file `src/utils/rowParser.js`.
+### 1. Perhitungan Skor CSAT (Customer Satisfaction Score)
 
-### Menambah Kata Kunci Struggling (Word Cloud)
+Sistem menggunakan rata-rata terbobot dari tiga pilar utama evaluasi:
+$$CSAT\_Gabungan = \frac{Pemahaman + Interaktif + Performa}{3}$$
+Setiap aspek dinilai pada skala 1-5 oleh mahasiswa.
 
-Cari konstanta `STRUGGLE_WORDS` untuk menambah kata kunci yang menandakan mahasiswa belum paham suatu materi:
+### 2. Deteksi Anomali (Z-Score & Variansi)
 
-```javascript
-const STRUGGLE_WORDS = [
-  "bingung",
-  "belum paham",
-  "perlu latihan lebih", // tambahkan di sini
-];
-```
+Untuk mengidentifikasi performa yang luar biasa atau yang memerlukan perhatian (drop), sistem menghitung penyimpangan statistik ($Z$):
+$$Z = \frac{x - \mu}{\sigma}$$
 
-### Memfilter Feedback Sampah (Junk Filter)
+- **High Anomaly**: Variansi $> 1.0$ (Indikasi feedback mahasiswa sangat terpolarisasi).
+- **Performance Drop**: Penurunan skor $> 0.4$ antar pertemuan.
 
-Edit konstanta `FB_JUNK` untuk membuang komentar yang tidak informatif (seperti "oke", "siap", dll):
+### 3. NLP & Word Cloud (Sentiment Analysis)
 
-```javascript
-const FB_JUNK = new Set(['oke', 'aman', 'tidak ada', // tambahkan di sini])
-```
+Menggunakan algoritma pembersihan teks (Junk Filter) dan ekstraksi kata kunci untuk memetakan "Topic Gap" (materi yang paling tidak dipahami mahasiswa).
 
 ---
 
-## 🆘 Troubleshooting
+## 🤖 Lirzda AI: Asisten Proaktif
 
-| Masalah                  | Solusi                                                                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| File tidak terbaca       | Pastikan format file adalah `.xlsx`, `.xls`, atau `.csv`.                                                                       |
-| Kolom tidak terdeteksi   | Sesuaikan keyword kolom di `src/utils/rowParser.js`.                                                                            |
-| Tampilan berantakan      | Pastikan anda menjalankan `npm install` untuk mengunduh Tailwind CSS.                                                           |
-| Data hilang saat refresh | Karena sistem ini No-DB, data hanya disimpan sementara di memory browser. Anda perlu upload ulang file jika browser di-refresh. |
+**Lirzda** bukan sekadar chatbot, ia adalah agen yang memiliki akses ke:
+
+- **Deep Search Context**: Melakukan query mendalam ke seluruh histori data dosen yang disebutkan.
+- **Smart Action Protocol**: Memicu perintah sistem (seperti unduh PDF) secara otomatis via deteksi tag `[ACTION]`.
+- **Lirzda Memory**: Menyimpan preferensi dan fakta unik tentang dosen di tabel `lirzda_memories` untuk pembelajaran berkelanjutan.
 
 ---
 
-# Dibuat oleh **Adzril Adzim Hendrynov** untuk keperluan evaluasi & peningkatan kualitas pengajaran dosen **Cakrawala University** 🎓
+## 💾 Model Data (Database Schema)
 
-# csat-dashboard
+Sistem menggunakan database relasional di Supabase dengan skema berikut:
+
+- **`lecturers`**: Menyimpan identitas unik dosen.
+- **`subjects`**: Katalog mata kuliah dan kode kelas.
+- **`csat_data`**: Tabel utama berkapasitas tinggi untuk menyimpan ribuan baris feedback.
+- **`lirzda_memories`**: Tabel "Ingatan" AI untuk menyimpan fakta-fakta hasil pembelajaran.
+- **`ai_cache`**: Optimasi performa untuk menyimpan jawaban AI yang serupa.
+
+---
+
+## � Instalasi & Konfigurasi
+
+### Prasyarat
+
+- Node.js (v18+)
+- Akun Supabase (Gratis)
+- Google AI Studio API Key (Gemini)
+
+### Langkah Setup
+
+1. **Clone Repositori**
+
+   ```bash
+   git clone https://github.com/adzriladzim/csat-dashboard.git
+   cd csat-dashboard
+   ```
+
+2. **Environment Variable (`.env`)**
+
+   ```env
+   VITE_SUPABASE_URL=https://hahahihi.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJhbG...
+   VITE_GEMINI_API_KEY=AIzaSy...
+   ```
+
+3. **Database Setup**
+   Jalankan query di `supabase_schema.sql` pada SQL Editor Supabase Anda untuk membuat tabel dan kebijakan keamanan (RLS).
+
+---
+
+## � Responsivitas & UX Premium
+
+- **Mobile First**: Dashboard dan Chat Lirzda dioptimalkan untuk perangkat layar kecil dengan mode full-screen overlay.
+- **Desktop Pro**: Chat Lirzda bersifat _draggable_ (bisa dipindah-pindah) agar tidak menutupi grafik utama.
+- **Zero Maintenance**: Fitur _Auto-Sync_ otomatis membersihkan dan memperbarui cloud setiap kali ada unggahan data baru.
+
+---
+
+## 📄 Lisensi & Penggunaan
+
+Sistem ini bersifat Open Access untuk keperluan internal **Cakrawala University**. Dikembangkan dengan dedikasi untuk peningkatan standar kualitas pendidikan tinggi di Indonesia.
+
+---
+
+**Dibuat oleh Adzril Adzim Hendrynov**  
+_Membangun Masa Depan Pendidikan dengan Kecerdasan Data._ 🎓🚀
