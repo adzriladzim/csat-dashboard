@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /private/
+
+Sitemap: https://csat-dashboard-khaki.vercel.app/sitemap.xml

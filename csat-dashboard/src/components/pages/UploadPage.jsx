@@ -12,6 +12,7 @@ import {
 import ThemeToggle from "@/components/common/ThemeToggle";
 import * as XLSX from "xlsx";
 import useStore from "@/lib/store";
+import SEO from "@/components/common/SEO";
 import clsx from "clsx";
 
 export default function UploadPage() {
@@ -88,6 +89,10 @@ export default function UploadPage() {
       className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
       style={{ backgroundColor: "var(--bg-base)" }}
     >
+      <SEO
+        title="Upload Data Feedback"
+        description="Impor file XLSX/CSV dari Google Forms untuk memulai analisis dashboard kinerja dosen di Universitas Cakrawala."
+      />
       {/* Theme Toggle in top-right */}
       <div className="absolute top-6 right-6 z-50">
         <ThemeToggle size={16} />
@@ -116,6 +121,8 @@ export default function UploadPage() {
             <img
               src="/CAKRAWALA LOGOMARK 2A.png"
               alt="University Logo"
+              width="50"
+              height="50"
               className="w-full h-full object-contain"
             />
           </div>

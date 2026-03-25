@@ -18,6 +18,7 @@ import {
 } from "@/utils/analytics";
 import { exportDosenExcel } from "@/utils/exportUtils";
 import FilterBar from "@/components/filters/FilterBar";
+import SEO from "@/components/common/SEO";
 import { RankingBarChart } from "@/components/charts/ChartComponents";
 import ExportMenu from "@/components/ui/ExportMenu";
 import clsx from "clsx";
@@ -80,6 +81,10 @@ export default function RankingPage() {
 
   return (
     <div className="p-6 space-y-6 animate-enter">
+      <SEO
+        title="Ranking Performa Dosen"
+        description="Peringkat dosen berdasarkan skor CSAT tertinggi dan terendah di Universitas Cakrawala."
+      />
       <div className="flex items-start justify-between">
         <div>
           <h1
