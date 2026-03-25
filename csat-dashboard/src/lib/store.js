@@ -240,12 +240,12 @@ const useStore = create((set, get) => ({
     try {
       // 0. AUTOMATIC CLEANUP: Clear Cloud once before new data (True Sync)
       // This ensures 1:1 match with file without manual truncate
-      console.log('Cleaning up old cloud data for full sync...')
+      // Sync logic
       await supabase.from('csat_data').delete().neq('id', '0')
 
       // 1. Upsert Lecturers
       const uniqueDosen = [...new Set(newRows.map(r => r.namaDosen))].filter(Boolean)
-      console.log(`Syncing ${uniqueDosen.length} lecturers...`)
+      // Syncing
       const { data: lecturers, error: lErr } = await supabase
         .from('lecturers')
         .upsert(uniqueDosen.map(name => ({ name })), { onConflict: 'name' })
@@ -254,14 +254,14 @@ const useStore = create((set, get) => ({
 
       // 2. Upsert Subjects
       const uniqueMK = [...new Set(newRows.map(r => r.mataKuliah))].filter(Boolean)
-      console.log(`Syncing ${uniqueMK.length} subjects...`)
+      // Syncing
       const { data: subjects, error: sErr } = await supabase
         .from('subjects')
         .upsert(uniqueMK.map(name => ({ name, code: name })), { onConflict: 'code' })
         .select()
       if (sErr) throw new Error(`Subject sync failed: ${sErr.message}`)
 
-      console.log(`Preparing ${newRows.length} rows for cloud...`)
+      // Syncing
 
         // 3. Prepare CSAT Rows
         const cloudRows = newRows.map(r => {
@@ -316,7 +316,7 @@ const useStore = create((set, get) => ({
           throw upsertError
         }
       }
-      console.log(`Successfully synced ${cloudRows.length} rows to Supabase.`)
+      // Success
     } catch (err) {
       console.error('CRITICAL: Sync to Supabase failed!', err)
       alert('Gagal sinkronisasi ke Cloud. Cek koneksi atau kuota Supabase Anda.')

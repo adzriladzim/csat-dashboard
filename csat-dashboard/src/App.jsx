@@ -41,9 +41,12 @@ const PlaceholderPage = lazy(
 
 // Loading Component
 const PageLoader = () => (
-  <div className="flex flex-col items-center justify-center p-20 animate-enter gap-4 opacity-50">
+  <div className="flex flex-col items-center justify-center p-20 animate-enter gap-4">
     <Loader2 className="animate-spin text-[var(--brand)]" size={32} />
-    <p className="text-[10px] font-black uppercase tracking-[0.3em]">
+    <p
+      className="text-[10px] font-black uppercase tracking-[0.3em]"
+      style={{ color: "var(--foreground)" }}
+    >
       Lirzda is Processing...
     </p>
   </div>

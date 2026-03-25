@@ -120,9 +120,9 @@ export default function UploadPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6 bg-[var(--bg-card)] shadow-xl border border-[var(--border)] p-3">
             <img
               src="/CAKRAWALA LOGOMARK 2A.png"
-              alt="University Logo"
-              width="50"
-              height="50"
+              alt="Cakrawala University Logo"
+              width="80"
+              height="80"
               className="w-full h-full object-contain"
             />
           </div>
