@@ -15,7 +15,8 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom', 'react-helmet-async'],
           'vendor-charts': ['recharts'],
-          'vendor-utils': ['@supabase/supabase-js', 'lucide-react', 'clsx']
+          'vendor-exporters': ['xlsx', 'jspdf', 'html2canvas', 'papaparse'],
+          'vendor-utils': ['@supabase/supabase-js', 'lucide-react', 'clsx', 'zustand']
         }
       }
     },

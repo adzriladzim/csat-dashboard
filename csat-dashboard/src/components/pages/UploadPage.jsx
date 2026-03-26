@@ -8,6 +8,8 @@ import {
   Loader2,
   FileSpreadsheet,
   Heart,
+  Sparkles,
+  PieChart,
 } from "lucide-react";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import * as XLSX from "xlsx";
@@ -26,6 +28,8 @@ export default function UploadPage() {
   const [isClearing, setIsClearing] = useState(false);
   const { removedCount } = useStore();
 
+  const [progress, setProgress] = useState(0);
+
   const process = useCallback(
     async (file) => {
       if (!file) return;
@@ -35,8 +39,12 @@ export default function UploadPage() {
         setStatus("error");
         return;
       }
+      
       setStatus("parsing");
       setError("");
+      setProgress(10); // Phase 1: File Accepted
+      await new Promise((r) => setTimeout(r, 50)); // Yield to paint UI
+
       try {
         let rows, headers;
         if (["xlsx", "xls"].includes(ext)) {
@@ -45,6 +53,9 @@ export default function UploadPage() {
             type: "array",
             cellDates: true,
           });
+          setProgress(30); // Phase 2: Sheet Read
+          await new Promise((r) => setTimeout(r, 50));
+          
           const ws = wb.Sheets[wb.SheetNames[0]];
           rows = XLSX.utils.sheet_to_json(ws, { raw: false, defval: "" });
           headers = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -61,21 +72,30 @@ export default function UploadPage() {
           rows = result.data;
           headers = result.meta.fields;
         }
+        
+        setProgress(50); // Phase 3: Data Extracted
+        await new Promise((r) => setTimeout(r, 50));
+
         const count = parseAndDisplay(rows, headers, file.name);
+
+        setProgress(75); // Phase 4: CSAT & Local Store Updated
+        await new Promise((r) => setTimeout(r, 50));
 
         // -- SYNC TO SUPABASE --
         const allData = useStore.getState().parsedData;
         syncToCloud(allData);
 
+        setProgress(100); // Phase 5: Cloud Sync Initiated/Done
         setInfo({ name: file.name, count });
         setStatus("done");
+        
         setTimeout(() => navigate("/"), 900);
       } catch (e) {
         setError(`Gagal: ${e.message}`);
         setStatus("error");
       }
     },
-    [parseAndDisplay, navigate],
+    [parseAndDisplay, navigate, syncToCloud],
   );
 
   const onDrop = (e) => {
@@ -215,23 +235,28 @@ export default function UploadPage() {
                 </div>
               </div>
             ) : status === "parsing" ? (
-              <div className="flex flex-col items-center gap-6 py-10">
-                <Loader2
-                  size={36}
-                  className="animate-spin text-[var(--brand)]"
-                />
-                <div className="text-center">
-                  <p
-                    className="font-bold text-lg"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    Sedang Memproses...
+              <div className="flex flex-col items-center gap-6 py-10 w-full max-w-sm mx-auto">
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                   <svg className="absolute inset-0 w-full h-full -rotate-90">
+                     <circle cx="40" cy="40" r="36" stroke="var(--border)" strokeWidth="6" fill="none" />
+                     <circle cx="40" cy="40" r="36" stroke="var(--brand)" strokeWidth="6" fill="none" 
+                       strokeDasharray="226" 
+                       strokeDashoffset={226 - (226 * progress) / 100} 
+                       className="transition-all duration-300 ease-out" 
+                     />
+                   </svg>
+                   <span className="text-base font-black" style={{ color: "var(--foreground)" }}>{progress}%</span>
+                </div>
+                <div className="text-center w-full">
+                  <p className="font-black text-lg" style={{ color: "var(--foreground)" }}>
+                    {progress < 100 ? "Sedang Memproses..." : "Sinkronisasi Selesai!"}
                   </p>
-                  <p
-                    className="text-sm mt-1 opacity-70"
-                    style={{ color: "var(--muted)" }}
-                  >
-                    Menghitung skor CSAT & analisis sentimen
+                  <p className="text-sm mt-1 font-medium" style={{ color: "var(--muted)", opacity: 0.8 }}>
+                    {progress <= 10 ? "Menghubungkan file data..." : 
+                     progress <= 30 ? "Mengurai struktur dokumen..." : 
+                     progress <= 50 ? "Memvalidasi data responden..." : 
+                     progress <= 75 ? "Lirzda AI: Kalkulasi CSAT & Sentimen..." : 
+                     progress < 100 ? "Menyinkronkan ke Cloud Database..." : "Membuka Dashboard Pintar..."}
                   </p>
                 </div>
               </div>
@@ -268,34 +293,60 @@ export default function UploadPage() {
           </div>
         </div>
 
-        {/* Feature Highlights */}
-        <div className="grid grid-cols-2 gap-4 stagger">
+        {/* Premium Feature Highlights */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 stagger">
           {[
             {
               icon: TrendingUp,
-              label: "Real-time",
-              desc: "Visualisasi skor & tren instan",
+              label: "Real-time Analytics",
+              desc: "Visualisasi skor & tren CSAT instan tanpa delay render.",
+              color: "text-blue-500",
+              bg: "bg-blue-500/10",
+              border: "group-hover:border-blue-500/50"
+            },
+            {
+              icon: Sparkles,
+              label: "Lirzda AI Engine",
+              desc: "Analisis sentimen otomatis & rekomendasi strategis.",
+              color: "text-emerald-500",
+              bg: "bg-emerald-500/10",
+              border: "group-hover:border-emerald-500/50"
             },
             {
               icon: FileSpreadsheet,
-              label: "Seamless",
-              desc: "Tanpa perlu setting kolom excel",
+              label: "Zero Config",
+              desc: "Unggah raw Excel langsung tanpa mapping kolom manual.",
+              color: "text-amber-500",
+              bg: "bg-amber-500/10",
+              border: "group-hover:border-amber-500/50"
             },
-          ].map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="stat-card group">
-              <div className="w-8 h-8 rounded-lg bg-brand-dim flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                <Icon size={16} className="text-[var(--brand)]" />
+            {
+              icon: PieChart,
+              label: "Multi-Dimensi",
+              desc: "Evaluasi performa, interaktif, & pemahaman materi.",
+              color: "text-purple-500",
+              bg: "bg-purple-500/10",
+              border: "group-hover:border-purple-500/50"
+            },
+          ].map(({ icon: Icon, label, desc, color, bg, border }) => (
+            <div 
+              key={label} 
+              className={clsx(
+                "p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] text-left",
+                "shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group relative overflow-hidden",
+                border
+              )}
+            >
+              <div className="absolute -bottom-4 -right-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Icon size={80} className={color} />
               </div>
-              <p
-                className="text-sm font-bold"
-                style={{ color: "var(--foreground)" }}
-              >
+              <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110", bg)}>
+                <Icon size={20} className={color} />
+              </div>
+              <p className="text-sm font-black mb-1.5 leading-tight" style={{ color: "var(--foreground)" }}>
                 {label}
               </p>
-              <p
-                className="text-[11px] leading-snug opacity-60 mt-1"
-                style={{ color: "var(--muted)" }}
-              >
+              <p className="text-xs leading-relaxed font-medium" style={{ color: "var(--foreground)", opacity: 0.75 }}>
                 {desc}
               </p>
             </div>

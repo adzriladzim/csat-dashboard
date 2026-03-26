@@ -104,7 +104,7 @@ function finalize(d) {
       csatGabungan:avg(d.csatList), 
       variansi: varVal,
       anomalyLevel: varVal > 1.0 ? 'High' : varVal > 0.4 ? 'Medium' : 'Low',
-      stabilitas: varVal > 1.0 ? 'Tidak Stabil' : varVal > 0.4 ? 'Moderat' : 'Stabil',
+      stabilitas: varVal > 1.0 ? 'Fluktuatif' : varVal > 0.4 ? 'Moderat' : 'Stabil',
       skorPemahaman:avg(d.pemahamanList), 
       skorInteraktif:avg(d.interaktifList), 
       skorPerforma:avg(d.performaList),

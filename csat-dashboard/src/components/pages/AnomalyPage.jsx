@@ -128,7 +128,13 @@ export default function AnomalyPage() {
                     {d.totalRespon}
                   </td>
                   <td className="px-6 py-5 text-center uppercase tracking-widest text-[10px] font-black">
-                    <span className="text-[var(--muted-2)]">
+                    <span 
+                      className={clsx(
+                        d.stabilitas === "Fluktuatif" ? "text-rose-500" :
+                        d.stabilitas === "Moderat" ? "text-amber-500" :
+                        "text-emerald-500"
+                      )}
+                    >
                       {d.stabilitas}
                     </span>
                   </td>

@@ -20,7 +20,8 @@ const useStore = create((set, get) => ({
   rawCount:    0,
   mappingAccuracy: 0,
   removedCount: 0,
-  version: '1.5.0 (Full Data Recovery)',
+  lastUpdated: null,
+  version:     '1.0.0',
 
   parseAndDisplay: (rawRows, headers, fileName) => {
     const rawTotal = rawRows.length
