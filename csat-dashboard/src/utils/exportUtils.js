@@ -28,7 +28,6 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
 
   // Header
   pdf.setFillColor(...C.brand); pdf.rect(0,0,W,46,'F')
-  pdf.setFillColor(255,255,255); pdf.rect(0,0,4,46,'F')
 
   // Judul
   pdf.setFontSize(8); pdf.setFont('helvetica','bold'); pdf.setTextColor(...C.white)
