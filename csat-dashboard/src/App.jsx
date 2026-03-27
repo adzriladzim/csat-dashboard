@@ -64,7 +64,7 @@ export default function App() {
       <div className="min-h-screen bg-[var(--bg-base)] flex flex-col items-center justify-center gap-6 animate-pulse">
         <div className="w-24 h-24 rounded-3xl bg-[var(--bg-card)] border border-[var(--border)] shadow-2xl flex items-center justify-center">
           <img
-            src="/CAKRAWALA LOGOMARK 2A.png"
+            src="/CAKRAWALA LOGOMARK 2A.webp"
             alt="Logo Cakrawala University"
             className="w-16 h-16 object-contain"
           />
@@ -136,7 +136,7 @@ export default function App() {
               }
             />
             <Route
-              path="/pembersihan"
+              path="/diagnostik"
               element={<PlaceholderPage title="Masalah Mapping" />}
             />
             <Route path="*" element={<Navigate to="/" />} />

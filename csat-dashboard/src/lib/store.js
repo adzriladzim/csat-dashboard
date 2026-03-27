@@ -21,7 +21,7 @@ const useStore = create((set, get) => ({
   mappingAccuracy: 0,
   removedCount: 0,
   lastUpdated: null,
-  version:     '1.0.0',
+  version:     import.meta.env.VITE_APP_VERSION || '1.0.0',
 
   parseAndDisplay: (rawRows, headers, fileName) => {
     const rawTotal = rawRows.length

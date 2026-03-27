@@ -1,11 +1,11 @@
 import { Outlet, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Upload, HelpCircle } from "lucide-react";
 import TabNav from "./TabNav";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import UserGuideModal from "@/components/common/UserGuideModal";
 import useStore from "@/lib/store";
-import AIChat from "@/components/ai/AIChat";
+const AIChat = lazy(() => import("@/components/ai/AIChat"));
 
 export default function Layout() {
   const { fileName, clearData } = useStore();
@@ -31,7 +31,7 @@ export default function Layout() {
                 onClick={() => navigate("/")}
               >
                 <img
-                  src="/CAKRAWALA LOGOMARK 2A.png"
+                  src="/CAKRAWALA LOGOMARK 2A.webp"
                   alt="Cakrawala University"
                   width="40"
                   height="40"
@@ -132,7 +132,9 @@ export default function Layout() {
       </main>
 
       {/* ── AI CHAT ASSISTANT ────────────────────────────────── */}
-      <AIChat />
+      <Suspense fallback={null}>
+        <AIChat />
+      </Suspense>
     </div>
   );
 }
