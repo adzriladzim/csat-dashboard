@@ -12,7 +12,6 @@ import {
   PieChart,
 } from "lucide-react";
 import ThemeToggle from "@/components/common/ThemeToggle";
-import * as XLSX from "xlsx";
 import useStore from "@/lib/store";
 import SEO from "@/components/common/SEO";
 import clsx from "clsx";
@@ -48,6 +47,7 @@ export default function UploadPage() {
       try {
         let rows, headers;
         if (["xlsx", "xls"].includes(ext)) {
+          const XLSX = await import("xlsx");
           const buf = await file.arrayBuffer();
           const wb = XLSX.read(new Uint8Array(buf), {
             type: "array",

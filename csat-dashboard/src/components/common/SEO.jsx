@@ -1,8 +1,8 @@
+import { memo } from "react";
 import { Helmet } from "react-helmet-async";
-
 import useStore from "@/lib/store";
 
-export default function SEO({ title, description, keywords, image }) {
+const SEO = memo(({ title, description, keywords, image }) => {
   const { version } = useStore();
   const siteTitle = "CSAT Dashboard · Cakrawala University";
   const fullTitle = title ? `${title} | ${siteTitle}` : siteTitle;
@@ -36,4 +36,6 @@ export default function SEO({ title, description, keywords, image }) {
       <link rel="canonical" href={url} />
     </Helmet>
   );
-}
+});
+
+export default SEO;
