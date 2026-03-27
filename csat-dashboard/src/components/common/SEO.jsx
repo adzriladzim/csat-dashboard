@@ -21,6 +21,7 @@ const SEO = memo(({ title, description, keywords, image }) => {
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
       <meta property="og:url" content={url} />
+      <meta property="og:site_name" content="CSAT Dashboard" />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={metaDesc} />
       <meta property="og:image" content={metaImage} />
@@ -31,6 +32,17 @@ const SEO = memo(({ title, description, keywords, image }) => {
       <meta property="twitter:title" content={fullTitle} />
       <meta property="twitter:description" content={metaDesc} />
       <meta property="twitter:image" content={metaImage} />
+
+      {/* Structured Data (JSON-LD) for Site Name */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "CSAT Dashboard",
+          alternateName: "CSAT Dashboard Cakrawala University",
+          url: "https://csat-dashboard-khaki.vercel.app/",
+        })}
+      </script>
 
       {/* Analytics (Optional: Canonical URL) */}
       <link rel="canonical" href={url} />
