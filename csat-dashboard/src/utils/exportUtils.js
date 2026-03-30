@@ -190,7 +190,17 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
   }
 
   // ── Ringkasan Umpan Balik Kualitatif (Tabel Selengkapnya) ───────────────
-  const feedbackRows = data.rows || [] // SHOW ALL 18 ROWS
+  const feedbackRows = [...(data.rows || [])].sort((a, b) => {
+    const mkA = (a.mataKuliah || "").toLowerCase();
+    const mkB = (b.mataKuliah || "").toLowerCase();
+    if (mkA !== mkB) return mkA.localeCompare(mkB);
+
+    const kA = (a.kodeKelas || "").toLowerCase();
+    const kB = (b.kodeKelas || "").toLowerCase();
+    if (kA !== kB) return kA.localeCompare(kB);
+
+    return (Number(a.pertemuan) || 0) - (Number(b.pertemuan) || 0);
+  });
   
   if (feedbackRows.length) {
     if (y > 220) { pdf.addPage(); y = 20 }

@@ -42,7 +42,7 @@ import ExportMenu from "@/components/ui/ExportMenu";
 import SEO from "@/components/common/SEO";
 import clsx from "clsx";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 50;
 
 export default function DashboardPage() {
   const {
@@ -432,43 +432,51 @@ export default function DashboardPage() {
                     <td className="font-serif-accent font-bold text-[var(--brand)] text-center">
                       {rank}
                     </td>
-                    <td>
-                      <button
-                        onClick={() =>
-                          navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)
-                        }
-                        className="font-bold text-[12px] sm:text-sm md:text-base hover:text-[var(--brand)] transition-colors text-left leading-tight"
-                        style={{ color: "var(--foreground)" }}
-                      >
-                        {d.namaDosen}
-                      </button>
-                    </td>
-                    <td>
-                      <span
-                        className="font-serif-accent font-bold text-base"
-                        style={{ color: "var(--accent-sapphire)" }}
-                      >
-                        {fmt(d.csatGabungan)}
-                      </span>
-                    </td>
-                    <td
-                      className="hidden lg:table-cell font-mono text-sm font-bold"
-                      style={{ color: "var(--foreground)" }}
-                    >
-                      {fmt(d.skorPerforma)}
-                    </td>
-                    <td
-                      className="hidden lg:table-cell font-mono text-sm font-bold"
-                      style={{ color: "var(--foreground)" }}
-                    >
-                      {fmt(d.skorPemahaman)}
-                    </td>
-                    <td
-                      className="hidden lg:table-cell font-mono text-sm font-bold"
-                      style={{ color: "var(--foreground)" }}
-                    >
-                      {fmt(d.skorInteraktif)}
-                    </td>
+                    {(() => {
+                      const isLow = (d.csatGabungan || 0) < 4.0;
+                      const lowColor = "#f87171";
+                      return (
+                        <>
+                          <td>
+                            <button
+                              onClick={() =>
+                                navigate(`/dosen/${encodeURIComponent(d.namaDosen)}`)
+                              }
+                              className="font-bold text-[12px] sm:text-sm md:text-base hover:text-[var(--brand)] transition-colors text-left leading-tight"
+                              style={{ color: "var(--foreground)" }}
+                            >
+                              {d.namaDosen}
+                            </button>
+                          </td>
+                          <td>
+                            <span
+                              className="font-serif-accent font-bold text-base"
+                              style={{ color: isLow ? lowColor : "var(--accent-sapphire)" }}
+                            >
+                              {fmt(d.csatGabungan)}
+                            </span>
+                          </td>
+                          <td
+                            className="hidden lg:table-cell font-mono text-sm font-bold"
+                            style={{ color: isLow ? lowColor : "var(--foreground)" }}
+                          >
+                            {fmt(d.skorPerforma)}
+                          </td>
+                          <td
+                            className="hidden lg:table-cell font-mono text-sm font-bold"
+                            style={{ color: isLow ? lowColor : "var(--foreground)" }}
+                          >
+                            {fmt(d.skorPemahaman)}
+                          </td>
+                          <td
+                            className="hidden lg:table-cell font-mono text-sm font-bold"
+                            style={{ color: isLow ? lowColor : "var(--foreground)" }}
+                          >
+                            {fmt(d.skorInteraktif)}
+                          </td>
+                        </>
+                      );
+                    })()}
                     <td
                       className="font-bold text-sm"
                       style={{ color: "var(--foreground-2)" }}

@@ -34,9 +34,9 @@ export function scoreBadgeClass(s) {
 export function fmt(s) { 
   if (s == null) return '–'
   if (typeof s !== 'number') return s.toString()
-  // No thousands separator, use dot for decimal, max 3 places
+  // No thousands separator, use dot for decimal, max 2 places as per management request
   if (Number.isInteger(s)) return s.toString()
-  return parseFloat(s.toFixed(3)).toString()
+  return parseFloat(s.toFixed(2)).toString()
 }
 export function fmtPct(v, t) { return t ? `${Math.round(v/t*100)}%` : '0%' }
 

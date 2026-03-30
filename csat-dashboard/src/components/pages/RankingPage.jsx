@@ -177,11 +177,15 @@ export default function RankingPage() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((d, i) => (
-                <tr key={d.namaDosen}>
-                  <td className="font-serif-accent font-bold text-[var(--brand)] text-center text-sm">
-                    {i + 1}
-                  </td>
+              {sorted.map((d, i) => {
+                const isLow = (d.csatGabungan || 0) < 4.0;
+                const lowColor = "#f87171"; // Rose-400
+                
+                return (
+                  <tr key={d.namaDosen}>
+                    <td className="font-serif-accent font-bold text-[var(--brand)] text-center text-sm">
+                      {i + 1}
+                    </td>
                   <td
                     className="cursor-pointer group py-3"
                     onClick={() =>
@@ -201,32 +205,32 @@ export default function RankingPage() {
                       {d.prodi || d.mataKuliah || "Staf Pengajar"}
                     </p>
                   </td>
-                  <td>
-                    <span
-                      className="font-serif-accent font-bold text-sm sm:text-base"
-                      style={{ color: "var(--accent-sapphire)" }}
+                    <td>
+                      <span
+                        className="font-serif-accent font-bold text-sm sm:text-base"
+                        style={{ color: isLow ? lowColor : "var(--accent-sapphire)" }}
+                      >
+                        {fmt(d.csatGabungan)}
+                      </span>
+                    </td>
+                    <td
+                      className="font-mono text-[11px] sm:text-sm font-bold hidden md:table-cell"
+                      style={{ color: isLow ? lowColor : "var(--foreground)" }}
                     >
-                      {fmt(d.csatGabungan)}
-                    </span>
-                  </td>
-                  <td
-                    className="font-mono text-[11px] sm:text-sm font-bold hidden md:table-cell"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {fmt(d.skorPerforma)}
-                  </td>
-                  <td
-                    className="font-mono text-[11px] sm:text-sm font-bold hidden md:table-cell"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {fmt(d.skorPemahaman)}
-                  </td>
-                  <td
-                    className="font-mono text-[11px] sm:text-sm font-bold hidden md:table-cell"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {fmt(d.skorInteraktif)}
-                  </td>
+                      {fmt(d.skorPerforma)}
+                    </td>
+                    <td
+                      className="font-mono text-[11px] sm:text-sm font-bold hidden md:table-cell"
+                      style={{ color: isLow ? lowColor : "var(--foreground)" }}
+                    >
+                      {fmt(d.skorPemahaman)}
+                    </td>
+                    <td
+                      className="font-mono text-[11px] sm:text-sm font-bold hidden md:table-cell"
+                      style={{ color: isLow ? lowColor : "var(--foreground)" }}
+                    >
+                      {fmt(d.skorInteraktif)}
+                    </td>
                   <td className={clsx("font-bold text-[11px] sm:text-sm")}>
                     {fmt(d.totalRespon)}
                   </td>
@@ -245,8 +249,9 @@ export default function RankingPage() {
                       </button>
                     </div>
                   </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

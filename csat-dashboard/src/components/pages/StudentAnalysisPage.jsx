@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Search, Filter, Download, X, Calendar } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, Filter, Download, X, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import useStore from '@/lib/store'
 import { fmt as globalFmt } from '@/utils/analytics'
 import clsx from 'clsx'
@@ -17,7 +17,7 @@ export default function StudentAnalysisPage() {
   const [prodiFilter, setProdiFilter] = useState('all')
   const [dosenFilter, setDosenFilter] = useState('all')
   const [pertemuanFilter, setPertemuanFilter] = useState('all')
-
+  const [sortConfig, setSortConfig] = useState({ key: 'skorPerforma', direction: 'asc' })
   // Filter students with any score <= 3 AND matching search/filters
   const criticalFeedbacks = useMemo(() => {
     let base = data.filter(r => 
@@ -48,8 +48,23 @@ export default function StudentAnalysisPage() {
       base = base.filter(r => String(r.pertemuan) === String(pertemuanFilter))
     }
 
+    // Apply Sorting
+    if (sortConfig.key) {
+      base.sort((a, b) => {
+        const aVal = a[sortConfig.key]
+        const bVal = b[sortConfig.key]
+        
+        if (aVal === bVal) return 0
+        if (aVal === null || aVal === undefined) return 1
+        if (bVal === null || bVal === undefined) return -1
+        
+        const direction = sortConfig.direction === 'asc' ? 1 : -1
+        return aVal > bVal ? direction : -direction
+      })
+    }
+
     return base
-  }, [data, search, prodiFilter, dosenFilter, pertemuanFilter])
+  }, [data, search, prodiFilter, dosenFilter, pertemuanFilter, sortConfig])
 
   const prodiList = useMemo(() => [...new Set(data.map(r => r.prodi).filter(Boolean))].sort(), [data])
   const dosenList = useMemo(() => [...new Set(data.map(r => r.namaDosen).filter(Boolean))].sort(), [data])
@@ -176,13 +191,49 @@ export default function StudentAnalysisPage() {
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead className="sticky-header">
               <tr className="bg-[var(--bg-dropdown)] border-b border-[var(--border)] text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                <th title="Nomor Pertemuan / Sesi Perkuliahan" className="px-6 py-4 w-[100px] text-center">Pertemuan</th>
+                <th 
+                  onClick={() => setSortConfig(prev => ({ key: 'pertemuan', direction: prev.key === 'pertemuan' && prev.direction === 'asc' ? 'desc' : 'asc' }))}
+                  className="px-6 py-4 w-[100px] text-center cursor-pointer hover:bg-[var(--brand-dim)] transition-colors group"
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    Pertemuan
+                    {sortConfig.key === 'pertemuan' ? (sortConfig.direction === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>) : <ArrowUpDown size={12} className="opacity-20 group-hover:opacity-100"/>}
+                  </div>
+                </th>
                 <th className="px-6 py-4">Nama Mahasiswa</th>
                 <th className="px-6 py-4">Dosen</th>
                 <th className="px-6 py-4">Mata Kuliah</th>
-                <th title="Skor Performa Dosen" className="px-6 py-4 text-center">Performa</th>
-                <th title="Skor Pemahaman Mahasiswa" className="px-6 py-4 text-center">Pemahaman</th>
-                <th title="Skor Interaktivitas Kelas" className="px-6 py-4 text-center">Interaktivitas</th>
+                
+                <th 
+                  onClick={() => setSortConfig(prev => ({ key: 'skorPerforma', direction: prev.key === 'skorPerforma' && prev.direction === 'asc' ? 'desc' : 'asc' }))}
+                  className="px-6 py-4 text-center cursor-pointer hover:bg-[var(--brand-dim)] transition-colors group"
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    Performa
+                    {sortConfig.key === 'skorPerforma' ? (sortConfig.direction === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>) : <ArrowUpDown size={12} className="opacity-20 group-hover:opacity-100"/>}
+                  </div>
+                </th>
+                
+                <th 
+                  onClick={() => setSortConfig(prev => ({ key: 'skorPemahaman', direction: prev.key === 'skorPemahaman' && prev.direction === 'asc' ? 'desc' : 'asc' }))}
+                  className="px-6 py-4 text-center cursor-pointer hover:bg-[var(--brand-dim)] transition-colors group"
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    Pemahaman
+                    {sortConfig.key === 'skorPemahaman' ? (sortConfig.direction === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>) : <ArrowUpDown size={12} className="opacity-20 group-hover:opacity-100"/>}
+                  </div>
+                </th>
+                
+                <th 
+                  onClick={() => setSortConfig(prev => ({ key: 'skorInteraktif', direction: prev.key === 'skorInteraktif' && prev.direction === 'asc' ? 'desc' : 'asc' }))}
+                  className="px-6 py-4 text-center cursor-pointer hover:bg-[var(--brand-dim)] transition-colors group"
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    Interaksi
+                    {sortConfig.key === 'skorInteraktif' ? (sortConfig.direction === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>) : <ArrowUpDown size={12} className="opacity-20 group-hover:opacity-100"/>}
+                  </div>
+                </th>
+                
                 <th className="px-6 py-4">Feedback Dosen</th>
                 <th className="px-6 py-4">Topik Sulit</th>
               </tr>

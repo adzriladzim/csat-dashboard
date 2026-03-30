@@ -51,8 +51,11 @@ export default function Layout() {
                       DASHBOARD
                     </span>
                   </h1>
-                  <p className="text-[9px] sm:text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-0.5">
+                  <p className="text-[9px] sm:text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-0.5 flex items-center gap-2">
                     Cakrawala University
+                    <span className="opacity-50 lowercase tracking-normal font-normal">
+                      v{useStore.getState().version}
+                    </span>
                   </p>
                 </div>
               </div>

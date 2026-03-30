@@ -35,7 +35,7 @@ export default function AnomalyPage() {
     return dosenList.map((d) => ({
       name: d.namaDosen,
       respon: d.totalRespon,
-      variansi: +d.variansi.toFixed(3),
+      variansi: +d.variansi.toFixed(2),
       level: d.anomalyLevel,
     }));
   }, [dosenList]);
@@ -108,7 +108,7 @@ export default function AnomalyPage() {
                     {fmt(d.csatGabungan)}
                   </td>
                   <td className="px-6 py-5 text-right font-mono font-black text-amber-500 text-base">
-                    {d.variansi.toFixed(3)}
+                    {d.variansi.toFixed(2)}
                   </td>
                   <td className="px-6 py-5 text-center">
                     <span
@@ -229,7 +229,7 @@ export default function AnomalyPage() {
                           <div className="flex justify-between text-[11px] font-bold text-[var(--muted)]">
                             <span>Variansi:</span>
                             <span className="font-black text-amber-500 uppercase">
-                              {data.variansi.toFixed(3)}
+                              {data.variansi.toFixed(2)}
                             </span>
                           </div>
                         </div>

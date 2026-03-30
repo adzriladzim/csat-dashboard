@@ -25,13 +25,24 @@ export default function FilterBar({ showFull = false }) {
 
         {/* Mata Kuliah (Optional) */}
         {showFull && (
-          <div className="flex-1 min-w-[160px] max-w-[240px] space-y-1.5">
-            <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Mata Kuliah</label>
-            <select value={filters.matkul} onChange={e=>setFilter('matkul',e.target.value)} className="input w-full text-xs font-bold">
-              <option value="all">Semua Matkul</option>
-              {matkulList.map(m=><option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
+          <>
+            <div className="flex-1 min-w-[160px] max-w-[240px] space-y-1.5">
+              <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Mata Kuliah</label>
+              <select value={filters.matkul} onChange={e=>setFilter('matkul',e.target.value)} className="input w-full text-xs font-bold">
+                <option value="all">Semua Matkul</option>
+                {matkulList.map(m=><option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            
+            {/* NEW: Kelas Filter */}
+            <div className="flex-1 min-w-[140px] max-w-[200px] space-y-1.5">
+              <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Kelas</label>
+              <select value={filters.kelas} onChange={e=>setFilter('kelas',e.target.value)} className="input w-full text-xs font-bold">
+                <option value="all">Semua Kelas</option>
+                {useStore.getState().getKelasList().map(k=><option key={k} value={k}>{k}</option>)}
+              </select>
+            </div>
+          </>
         )}
 
         {/* Dosen */}
