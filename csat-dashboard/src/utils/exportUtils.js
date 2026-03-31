@@ -14,10 +14,66 @@ function getTimezone() {
   } catch (e) { return '' }
 }
 
+function safeText(str) {
+  if (!str) return ''
+  // Only strip control characters (0x00-0x1F, 0x7F).
+  // Emojis and international characters are now ALLOWED and handled by the hybrid renderer.
+  return str.replace(/[\x00-\x1F\x7F]/g, '').trim()
+}
+
 function secTitle(pdf, title, y, W=210) {
   pdf.setFontSize(11); pdf.setFont('helvetica','bold'); pdf.setTextColor(30,41,59)
   pdf.text(title, 14, y)
   pdf.setDrawColor(...C.mid); pdf.line(14, y+2.5, W-14, y+2.5)
+}
+
+// ── Hybrid Text Renderer (PDF Standard vs Canvas Emoji) ────────────────────
+async function renderComplexText(pdf, text, x, y, width, fontSize=8, isBold=false) {
+  const hasEmoji = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u.test(text)
+  
+  if (!hasEmoji) {
+    pdf.setFont('helvetica', isBold ? 'bold' : 'normal'); pdf.setFontSize(fontSize)
+    pdf.setTextColor(71, 85, 105) 
+    const lines = pdf.splitTextToSize(text, width)
+    pdf.text(lines, x, y + 4.2) // Adjusted shift
+    return Math.max(1, lines.length) * 4.5
+  }
+
+  // EMOJI PATH: Render to Canvas then add as image
+  try {
+    const { default: html2canvas } = await import('html2canvas')
+    const div = document.createElement('div')
+    div.style.width = (width * 3.78) + 'px' 
+    div.style.fontSize = (fontSize * 1.33) + 'px'
+    div.style.fontFamily = "'Plus Jakarta Sans', sans-serif"
+    div.style.fontWeight = isBold ? '800' : '400'
+    div.style.color = 'rgb(71, 85, 105)'
+    div.style.lineHeight = '1.4'
+    div.style.display = 'inline-block' // Ensure it wraps content properly
+    div.style.padding = '4px 0' // ADD PADDING TO PREVENT CLIPPING
+    div.style.position = 'absolute'
+    div.style.left = '-9999px'
+    div.style.whiteSpace = 'pre-wrap'
+    div.innerText = text
+    document.body.appendChild(div)
+
+    const canvas = await html2canvas(div, { scale: 3, backgroundColor: null, logging: false })
+    document.body.removeChild(div)
+
+    const imgW = width
+    // Compensate for the vertical padding in height calculation
+    const imgH = (canvas.height / canvas.width) * imgW
+    // Shift slightly up to compensate for the padding we added to the div
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y - 0.5, imgW, imgH)
+    return imgH
+  } catch (e) {
+    console.error('Emoji render failed:', e)
+    pdf.setFont('helvetica', isBold ? 'bold' : 'normal'); pdf.setFontSize(fontSize)
+    pdf.setTextColor(71, 85, 105)
+    const lines = pdf.splitTextToSize(safeText(text), width)
+    pdf.text(lines, x, y + 4.2)
+    return lines.length * 4.5
+  }
 }
 
 // ── Core PDF generator ────────────────────────────────────────────────────
@@ -214,31 +270,36 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
     }
 
     drawTableHdr(y); y += 10
-    feedbackRows.forEach((r, i) => {
+    for (const [idx, r] of feedbackRows.entries()) {
       const mkShort = `${r.kodeKelas || ''} - ${r.mataKuliah || ''}`
       const mkLines = pdf.splitTextToSize(mkShort, 50)
-      const fbLines = pdf.splitTextToSize(r.feedbackDosen && r.feedbackDosen.trim() ? r.feedbackDosen : '-', 60)
-      const tpLines = pdf.splitTextToSize(r.topikBelumPaham && r.topikBelumPaham.trim() ? r.topikBelumPaham : '-', 58)
-      const rowHH = Math.max(mkLines.length, fbLines.length, tpLines.length) * 4.5 + 4
+      const mkHH = mkLines.length * 4.5 + 4
+      
+      const fbText = r.feedbackDosen && r.feedbackDosen.trim() ? r.feedbackDosen : '-'
+      const tpText = r.topikBelumPaham && r.topikBelumPaham.trim() ? r.topikBelumPaham : '-'
+      
+      // We need a pre-calculation of height to handle page breaks
+      // For standard text it's easy, for emojis we estimate based on characters/lines
+      const fbLines = pdf.splitTextToSize(fbText, 60)
+      const tpLines = pdf.splitTextToSize(tpText, 58)
+      const estimatedRowH = Math.max(mkLines.length, fbLines.length, tpLines.length) * 4.7 + 6
 
-      if (y + rowHH > 275) {
+      if (y + estimatedRowH > 275) {
         pdf.addPage(); y = 20; drawTableHdr(y); y += 10
       }
 
-      // Zebra striping for better readability
-      pdf.setFillColor(i % 2 === 0 ? 255 : 248, i % 2 === 0 ? 255 : 250, i % 2 === 0 ? 255 : 252)
-      pdf.rect(14, y, W - 28, rowHH, 'F')
+      pdf.setFillColor(idx % 2 === 0 ? 255 : 248, idx % 2 === 0 ? 255 : 250, idx % 2 === 0 ? 255 : 252)
+      pdf.rect(14, y, W - 28, estimatedRowH, 'F')
+      pdf.setDrawColor(...C.mid); pdf.rect(14, y, W - 28, estimatedRowH, 'D')
       
-      pdf.setDrawColor(...C.mid); pdf.rect(14, y, W - 28, rowHH, 'D')
-      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(71, 85, 105)
-      
+      // Render columns
       let cx = 16; 
-      pdf.setFont('helvetica', 'bold'); pdf.text(mkLines, cx, y + 4.5); cx += 55; 
-      pdf.setFont('helvetica', 'normal'); pdf.text(fbLines, cx, y + 4.5); cx += 65; 
-      pdf.text(tpLines, cx, y + 4.5)
+      await renderComplexText(pdf, mkShort, cx, y + 1, 52, 8, true); cx += 55; 
+      const actualFbH = await renderComplexText(pdf, fbText, cx, y + 1, 62, 8, false); cx += 65; 
+      const actualTpH = await renderComplexText(pdf, tpText, cx, y + 1, 58, 8, false)
       
-      y += rowHH
-    })
+      y += estimatedRowH // Use estimated for consistency in table layout
+    }
   }
 
   // Footer

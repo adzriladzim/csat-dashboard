@@ -149,6 +149,8 @@ const useStore = create((set, get) => ({
     const subset = parsedData.filter(r => {
       if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
       if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
+      if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
+      if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
       return true
     })
     return [...new Set(subset.map(r => r.namaDosen).filter(Boolean))].sort()
@@ -158,6 +160,8 @@ const useStore = create((set, get) => ({
     const subset = parsedData.filter(r => {
       if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
       if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
+      if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
+      if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
       return true
     })
     return [...new Set(subset.map(r => r.prodi).filter(Boolean))].sort()
@@ -167,6 +171,8 @@ const useStore = create((set, get) => ({
     const subset = parsedData.filter(r => {
       if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
       if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
+      if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
+      if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
       return true
     })
     return [...new Set(subset.map(r => r.mataKuliah).filter(Boolean))].sort()
@@ -188,6 +194,7 @@ const useStore = create((set, get) => ({
       if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
       if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
       if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
+      if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
       return true
     })
     return [...new Set(subset.map(r => r.kodeKelas).filter(Boolean))].sort()

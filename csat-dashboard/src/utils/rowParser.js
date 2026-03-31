@@ -52,7 +52,9 @@ function computeCsat(a, b, c) {
 }
 function cleanText(val) {
   if (!val) return null
-  const s = String(val).trim()
+  // Strip only control characters (0x00-0x1F, 0x7F). 
+  // We ALLOW the full Unicode range (including emojis) so they show in the dashboard.
+  let s = String(val).replace(/[\x00-\x1F\x7F]/g, '').trim()
   if (s.length < 2) return null
   if (['-','.','..','-','–','—','_','tidak ada','tdk ada','belum ada','tidak','tdk','belum',
        'n/a','na','none','nothing','no','nope','oke','ok','okay','baik','baik.','baik!'].includes(s.toLowerCase())) return null

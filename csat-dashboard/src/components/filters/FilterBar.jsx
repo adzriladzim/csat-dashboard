@@ -2,11 +2,12 @@ import { Search, X } from 'lucide-react'
 import useStore from '@/lib/store'
 
 export default function FilterBar({ showFull = false }) {
-  const { filters, setFilter, resetFilters, getDosenList, getProdiList, getMatkulList, getPertemuanList } = useStore()
+  const { filters, setFilter, resetFilters, getDosenList, getProdiList, getMatkulList, getPertemuanList, getKelasList } = useStore()
   const dosenList     = getDosenList()
   const prodiList     = getProdiList()
   const matkulList    = getMatkulList()
   const pertemuanList = getPertemuanList()
+  const kelasList    = getKelasList()
 
   const hasActive = filters.matkul !== 'all' || filters.prodi !== 'all' || filters.dosen !== 'all' ||
                     filters.pertemuan !== 'all' || !!filters.dateFrom || !!filters.dateTo
@@ -39,7 +40,7 @@ export default function FilterBar({ showFull = false }) {
               <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Kelas</label>
               <select value={filters.kelas} onChange={e=>setFilter('kelas',e.target.value)} className="input w-full text-xs font-bold">
                 <option value="all">Semua Kelas</option>
-                {useStore.getState().getKelasList().map(k=><option key={k} value={k}>{k}</option>)}
+                {kelasList.map(k=><option key={k} value={k}>{k}</option>)}
               </select>
             </div>
           </>
