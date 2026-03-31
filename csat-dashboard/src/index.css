@@ -96,13 +96,14 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Sora', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     letter-spacing: -0.02em;
   }
 
-  /* Academic/Humanized Serif Accent */
+  /* Academic/Humanized Sans-Serif Accent (Replacement for Serif) */
   .font-serif-accent {
-    font-family: 'Playfair Display', serif; /* Falling back to system serif if not loaded, but aiming for this feel */
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800; /* Use extra bold for that "serif-like" punch */
   }
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -218,7 +219,7 @@
   }
 
   .section-title {
-    font-family: 'Sora', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 0.95rem; font-weight: 800;
     @apply sm:text-[1.05rem];
     color: var(--foreground);
@@ -424,6 +425,7 @@
 
 /* ── AI CHAT MARKDOWN ─────────────────────────────────────────────────────── */
 .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 800;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
