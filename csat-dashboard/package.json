@@ -1,7 +1,7 @@
 {
   "name": "csat-dashboard",
   "private": true,
-  "version": "1.0.9",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,8 +11,6 @@
     "feat": "node scripts/release.js feat"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "@supabase/supabase-js": "^2.100.0",
     "clsx": "^2.1.1",
     "d3-cloud": "^1.2.7",
     "date-fns": "^3.6.0",

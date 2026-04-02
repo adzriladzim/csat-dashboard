@@ -19,37 +19,17 @@ import SEO from "@/components/common/SEO";
 import clsx from "clsx";
 
 export default function UploadPage() {
-  const { parseAndDisplay, syncToCloud, clearCloudData } = useStore();
+  const { parseAndDisplay } = useStore();
   const navigate = useNavigate();
   const inputRef = useRef();
   const [dragging, setDragging] = useState(false);
-  const [status, setStatus] = useState("idle"); // idle, parsing, syncing, done, error
+  const [status, setStatus] = useState("idle"); // idle, parsing, done, error
   const [error, setError] = useState("");
   const [info, setInfo] = useState(null);
-  const [isClearing, setIsClearing] = useState(false);
   const { removedCount } = useStore();
 
   const [progress, setProgress] = useState(0);
-  const [isProcessingAI, setIsProcessingAI] = useState(false);
-  const [aiRecommendation, setAiRecommendation] = useState("");
 
-  const analyzeWithAI = async (data) => {
-    setIsProcessingAI(true);
-    setAiRecommendation("");
-
-    try {
-      const { GoogleGenerativeAI } = await import("@google/generative-ai");
-      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-      // Wait, I should make sure I don't break the original logic if there was one.
-      // But looking at the older version of the file, this was the placeholder anyway.
-      setAiRecommendation("AI analysis complete!");
-    } catch (e) {
-      console.error("Error during AI analysis:", e);
-      setAiRecommendation("Failed to get AI recommendation.");
-    } finally {
-      setIsProcessingAI(false);
-    }
-  };
 
   const process = useCallback(
     async (file) => {
@@ -108,11 +88,7 @@ export default function UploadPage() {
         setProgress(75); // Phase 4: CSAT & Local Store Updated
         await new Promise((r) => setTimeout(r, 50));
 
-        // -- SYNC TO SUPABASE --
-        const allData = useStore.getState().parsedData;
-        syncToCloud(allData);
-
-        setProgress(100); // Phase 5: Cloud Sync Initiated/Done
+        setProgress(100); 
         setInfo({ name: file.name, count });
         setStatus("done");
 
@@ -122,7 +98,7 @@ export default function UploadPage() {
         setStatus("error");
       }
     },
-    [parseAndDisplay, navigate, syncToCloud],
+    [parseAndDisplay, navigate],
   );
 
   const onDrop = (e) => {
@@ -313,11 +289,7 @@ export default function UploadPage() {
                         ? "Mengurai struktur dokumen..."
                         : progress <= 50
                           ? "Memvalidasi data responden..."
-                          : progress <= 75
-                            ? "Lirzda AI: Kalkulasi CSAT & Sentimen..."
-                            : progress < 100
-                              ? "Menyinkronkan ke Cloud Database..."
-                              : "Membuka Dashboard Pintar..."}
+                          : "Membuka Dashboard Pintar..."}
                   </p>
                 </div>
               </div>
@@ -367,8 +339,8 @@ export default function UploadPage() {
             },
             {
               icon: Sparkles,
-              label: "Lirzda AI Engine",
-              desc: "Analisis sentimen otomatis & rekomendasi strategis.",
+              label: "High Performance",
+              desc: "Engine analisis super cepat dengan optimasi memori modern.",
               color: "text-emerald-500",
               bg: "bg-emerald-500/10",
               border: "group-hover:border-emerald-500/50",
