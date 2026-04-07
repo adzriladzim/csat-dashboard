@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { RefreshCw, Plus, CheckCircle2, AlertCircle, ExternalLink, Copy, Check } from 'lucide-react'
 import { getGSheetsConfigs, upsertGSheetsConfig } from '@/lib/supabase'
+import { formatDate } from '@/utils/analytics'
 import clsx from 'clsx'
 
 const SCRIPT_PREVIEW = `// Paste di Google Apps Script
@@ -192,7 +193,7 @@ export default function GSheetsPage() {
                       Tersync
                     </div>
                     <p className="text-[10px] text-slate-600 mt-0.5">
-                      {new Date(c.last_synced_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {formatDate(c.last_synced_at, true)}
                     </p>
                   </>
                 ) : (

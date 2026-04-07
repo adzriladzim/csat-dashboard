@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { AlertCircle, UserX, BookX, Download, Info, CheckCircle2 } from 'lucide-react'
 import useStore from '@/lib/store'
-import { fmt } from '@/utils/analytics'
+import { fmt, formatDate } from '@/utils/analytics'
 import clsx from 'clsx'
 
 export default function MappingIssuesPage() {
@@ -30,7 +30,7 @@ export default function MappingIssuesPage() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement("a")
     link.href = URL.createObjectURL(blob)
-    link.download = `Mapping_Issues_${new Date().toISOString().slice(0,10)}.csv`
+    link.download = `Mapping_Issues_${formatDate(new Date())}.csv`
     link.click()
   }
 
@@ -128,7 +128,7 @@ export default function MappingIssuesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-[11px] font-mono text-[var(--muted)]">
-                      {issue.timestamp !== '-' ? new Date(issue.timestamp).toLocaleString('id-ID') : '-'}
+                      {issue.timestamp !== '-' ? formatDate(issue.timestamp, true) : '-'}
                     </td>
                     <td className="px-6 py-4">
                       <p className={clsx("text-[13px] font-medium max-w-[200px] truncate", issue.isDosenEmpty ? "text-red-400 italic" : "text-[var(--foreground)]")}>

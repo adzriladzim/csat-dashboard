@@ -36,6 +36,7 @@ export function TrendChart({ data, height = 220 }) {
           type="monotone" dataKey="csat" stroke="var(--brand)" strokeWidth={4}
           dot={{ fill: 'var(--brand)', r: 5, strokeWidth: 2, stroke: 'var(--bg-card)' }}
           activeDot={{ r: 8, fill: 'var(--foreground)', stroke: 'var(--brand)', strokeWidth: 2 }}
+          connectNulls
         />
       </LineChart>
     </ResponsiveContainer>
@@ -57,10 +58,10 @@ export function MultiTrendChart({ data, height = 240 }) {
           formatter={(v) => fmt(v)} 
         />
         <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-        <Line type="monotone" dataKey="csat"       name="CSAT Gabungan" stroke="var(--brand)" strokeWidth={3} dot={false} />
-        <Line type="monotone" dataKey="pemahaman"  name="Pemahaman"     stroke="#34d399" strokeWidth={2} dot={false} strokeDasharray="4 2" />
-        <Line type="monotone" dataKey="interaktif" name="Interaktivitas" stroke="#fbbf24" strokeWidth={2} dot={false} strokeDasharray="4 2" />
-        <Line type="monotone" dataKey="performa"   name="Performa"      stroke="#a78bfa" strokeWidth={2} dot={false} strokeDasharray="4 2" />
+        <Line type="monotone" dataKey="csat"       name="CSAT Gabungan" stroke="var(--brand)" strokeWidth={3} dot={false} connectNulls />
+        <Line type="monotone" dataKey="pemahaman"  name="Pemahaman"     stroke="#34d399" strokeWidth={2} dot={false} strokeDasharray="4 2" connectNulls />
+        <Line type="monotone" dataKey="interaktif" name="Interaktivitas" stroke="#fbbf24" strokeWidth={2} dot={false} strokeDasharray="4 2" connectNulls />
+        <Line type="monotone" dataKey="performa"   name="Performa"      stroke="#a78bfa" strokeWidth={2} dot={false} strokeDasharray="4 2" connectNulls />
       </LineChart>
     </ResponsiveContainer>
   )

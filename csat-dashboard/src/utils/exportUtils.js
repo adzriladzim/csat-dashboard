@@ -1,4 +1,4 @@
-import { fmt, scoreLabel, analyzeSentiment, avg } from './analytics'
+import { fmt, scoreLabel, analyzeSentiment, avg, formatDate } from './analytics'
 
 const C = {
   brand: [61,78,232], dark:[15,23,42], muted:[100,116,139],
@@ -118,7 +118,7 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
   pdf.setTextColor(180, 200, 255)
   // Logic: Always show date if it exists (not '-')
   const showDate = dInfo !== '-'
-  const dateStr = showDate ? `   ·   Tanggal Kelas: ${dInfo}` : ''
+  const dateStr = showDate ? `   ·   Tanggal Kelas: ${formatDate(dInfo)}` : ''
   pdf.text(`${pInfo}${dateStr}`, 12, 44)
 
   y = 54
@@ -308,7 +308,7 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
     pdf.setPage(i)
     pdf.setFillColor(...C.light); pdf.rect(0,287,W,10,'F')
     pdf.setFontSize(7.5); pdf.setTextColor(...C.muted)
-    pdf.text(`Laporan Kinerja Dosen · Cakrawala University · ${new Date().toLocaleDateString('id-ID',{dateStyle:'long'})} ${getTimezone()}`,W/2,292,{align:'center'})
+    pdf.text(`Laporan Kinerja Dosen · Cakrawala University · ${formatDate(new Date())} ${getTimezone()}`,W/2,292,{align:'center'})
     pdf.text(`Halaman ${i}/${pages}`,W-14,292,{align:'right'})
     pdf.setTextColor(180,190,255)
     pdf.text('Dibuat oleh Adzril Adzim Hendrynov',14,292)
@@ -322,7 +322,7 @@ export async function exportDosenReport(dosenData) {
   await buildDosenPDF(pdf, dosenData, null)
   const isSingleKelas = dosenData.kodeKelas && !dosenData.kodeKelas.includes(',')
   const suffix = isSingleKelas ? `_Kelas_${dosenData.kodeKelas.replace(/[^a-zA-Z0-9]/g,'_')}` : '_SemuaKelas'
-  const localDate = new Date().toLocaleDateString('en-CA')
+  const localDate = formatDate(new Date())
   pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}${suffix}_${localDate}.pdf`)
 }
 
@@ -332,7 +332,7 @@ export async function exportDosenReportPerKelas(dosenData, kelasData) {
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
   await buildDosenPDF(pdf, dosenData, kelasData)
   const kelasSuffix = (kelasData.kodeKelas || kelasData.mataKuliah || 'kelas').replace(/[^a-zA-Z0-9]/g,'_')
-  const localDate = new Date().toLocaleDateString('en-CA')
+  const localDate = formatDate(new Date())
   pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}_Kelas${kelasSuffix}_${localDate}.pdf`)
 }
 
@@ -344,7 +344,7 @@ export async function exportDashboardPDF(dosenList) {
   pdf.setFillColor(...C.brand); pdf.rect(0,0,W,30,'F')
   pdf.setFontSize(16); pdf.setFont('helvetica','bold'); pdf.setTextColor(...C.white); pdf.text('Laporan Kinerja Dosen — Cakrawala University',14,14)
   pdf.setFontSize(9); pdf.setFont('helvetica','normal'); pdf.setTextColor(200,210,255)
-  pdf.text(`${new Date().toLocaleDateString('id-ID',{dateStyle:'full'})} ${getTimezone()}   ·   Total Dosen: ${dosenList.length}`,14,22)
+  pdf.text(`${formatDate(new Date(), true)} ${getTimezone()}   ·   Total Dosen: ${dosenList.length}`,14,22)
   pdf.setTextColor(180,200,255); pdf.text('Dibuat oleh Adzril Adzim Hendrynov - Ilkom24',14,28)
   // Ringkasan Metrik (Global)
     const allCsat = dosenList.map(d => d.csatGabungan).filter(Boolean)
@@ -443,8 +443,8 @@ export async function exportDashboardPDF(dosenList) {
       y += rowH
     })
   const pages=pdf.internal.getNumberOfPages()
-  for (let i=1;i<=pages;i++) { pdf.setPage(i); pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(`Laporan CSAT · Cakrawala University · Adzril Adzim Hendrynov · Hal. ${i}/${pages}`,W/2,H-4,{align:'center'}) }
-  const localDate = new Date().toLocaleDateString('en-CA')
+  for (let i=1;i<=pages;i++) { pdf.setPage(i); pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(`Laporan CSAT · Cakrawala University · Adzril Adzim Hendrynov · ${formatDate(new Date())} · Hal. ${i}/${pages}`,W/2,H-4,{align:'center'}) }
+  const localDate = formatDate(new Date())
   pdf.save(`Laporan_CSAT_Semua_Dosen_${localDate}.pdf`)
 }
 
@@ -453,8 +453,8 @@ export async function exportDosenExcel(dosenList) {
   const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.map((d,i)=>({'Rank':i+1,'Nama Dosen':d.namaDosen,'Program Studi':d.prodi,'Mata Kuliah':d.mataKuliah,'Kode Kelas':d.kodeKelas,'CSAT Gabungan':d.csatGabungan,'Performa Dosen':d.skorPerforma,'Pemahaman Materi':d.skorPemahaman,'Interaktivitas':d.skorInteraktif,'Total Responden':d.totalRespon,'Status':scoreLabel(d.csatGabungan)}))), 'Ranking Dosen')
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.flatMap(d=>d.rows.map(r=>({'Timestamp':r.timestamp?new Date(r.timestamp).toLocaleString('id-ID'):'',' Nama Dosen':r.namaDosen,'Prodi':r.prodi,'Mata Kuliah':r.mataKuliah,'Kode Kelas':r.kodeKelas,'Pertemuan':r.pertemuan,'CSAT':r.csatGabungan,'Performa':r.skorPerforma,'Pemahaman':r.skorPemahaman,'Interaktivitas':r.skorInteraktif,'Feedback':r.feedbackDosen,'Topik Belum Paham':r.topikBelumPaham})))), 'Data Detail')
-  const localDate = new Date().toLocaleDateString('en-CA')
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.flatMap(d=>d.rows.map(r=>({'Timestamp':formatDate(r.timestamp, true),' Nama Dosen':r.namaDosen,'Prodi':r.prodi,'Mata Kuliah':r.mataKuliah,'Kode Kelas':r.kodeKelas,'Pertemuan':r.pertemuan,'CSAT':r.csatGabungan,'Performa':r.skorPerforma,'Pemahaman':r.skorPemahaman,'Interaktivitas':r.skorInteraktif,'Feedback':r.feedbackDosen,'Topik Belum Paham':r.topikBelumPaham})))), 'Data Detail')
+  const localDate = formatDate(new Date())
   XLSX.writeFile(wb, `CSAT_Export_${localDate}.xlsx`)
 }
 
@@ -466,6 +466,6 @@ export async function exportSingleDosenExcel(dosenData) {
   if (dosenData.kelasList?.length>1) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.kelasList.map(k=>({'Kode Kelas':k.kodeKelas,'Mata Kuliah':k.mataKuliah,'CSAT':k.csatGabungan,'Performa':k.skorPerforma,'Pemahaman':k.skorPemahaman,'Interaktivitas':k.skorInteraktif,'Responden':k.totalRespon}))),'Per Kelas')
   if (dosenData.feedbacks?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.feedbacks.map(f=>({'Komentar':f,'Sentimen':analyzeSentiment(f)}))),'Komentar')
   if (dosenData.topikBelum?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.topikBelum.map(t=>({'Topik Belum Dipahami':t}))),'Topik')
-  const localDate = new Date().toLocaleDateString('en-CA')
+  const localDate = formatDate(new Date())
   XLSX.writeFile(wb, `Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}_${localDate}.xlsx`)
 }

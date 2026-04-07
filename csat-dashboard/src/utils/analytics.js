@@ -40,6 +40,22 @@ export function fmt(s) {
 }
 export function fmtPct(v, t) { return t ? `${Math.round(v/t*100)}%` : '0%' }
 
+export function formatDate(dateInput, includeTime = false) {
+  if (!dateInput || dateInput === '-') return '–'
+  try {
+    const d = new Date(dateInput)
+    if (isNaN(d)) return dateInput
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    const datePart = `${day}-${month}-${year}`
+    if (!includeTime) return datePart
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    return `${datePart} ${hours}:${minutes}`
+  } catch (e) { return dateInput }
+}
+
 function newBucket(namaDosen, overrides = {}) {
   return { 
     namaDosen, 
@@ -79,14 +95,15 @@ function pushRow(d, r) {
 function finalize(d) {
   const pKeys = Object.keys(d.pertemuanMap).map(Number).filter(n => !isNaN(n))
   const maxP = pKeys.length ? Math.max(...pKeys) : 0
-  const trend = pKeys.sort((a,b)=>a-b).map(p => {
+  const trend = []
+  for (let p = 1; p <= maxP; p++) {
     const vals = d.pertemuanMap[p] || []
-    return {
+    trend.push({
       pertemuan: `P${p.toString().padStart(2, '0')}`,
       csat: vals.length ? avg(vals) : null,
       count: vals.length
-    }
-  })
+    })
+  }
   let trendDir='stable'
   const valid = trend.filter(t=>t.csat!=null)
   if (valid.length >= 2) {

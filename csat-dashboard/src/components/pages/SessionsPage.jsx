@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { History, Trash2, CheckCircle2, Database, Upload, AlertCircle, FileSpreadsheet, RefreshCw } from 'lucide-react'
 import useStore from '@/lib/store'
+import { formatDate } from '@/utils/analytics'
 import clsx from 'clsx'
 
 export default function SessionsPage() {
@@ -86,9 +86,7 @@ export default function SessionsPage() {
             const isActive  = s.id === activeSessionId
             const isDeleting = deletingId === s.id
             const isConfirm  = confirmId  === s.id
-            const date = new Date(s.created_at).toLocaleDateString('id-ID', {
-              day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-            })
+            const date = formatDate(s.created_at, true)
 
             return (
               <div
