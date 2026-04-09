@@ -18,7 +18,7 @@ const useStore = create((set, get) => ({
   mappingAccuracy: 0,
   removedCount: 0,
   lastUpdated: null,
-  version:     '1.1.0',
+  version:     '1.1.1',
 
   parseAndDisplay: (rawRows, headers, fileName) => {
     const issues = []
@@ -116,7 +116,11 @@ const useStore = create((set, get) => ({
       if (filters.kelas     !== 'all' && r.kodeKelas !== filters.kelas)    return false
       if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
       if (filters.dateFrom  && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-      if (filters.dateTo    && r.timestamp && r.timestamp !== '-' && new Date(r.timestamp) > new Date(filters.dateTo))   return false
+      if (filters.dateTo    && r.timestamp && r.timestamp !== '-') {
+        const end = new Date(filters.dateTo)
+        end.setHours(23, 59, 59, 999)
+        if (new Date(r.timestamp) > end) return false
+      }
       return true
     })
   },
