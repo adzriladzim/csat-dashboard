@@ -228,17 +228,15 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
       }
     }
 
-    // Solid Dots
+    // Solid Dots & Labels
     points.forEach((p, idx) => {
-      if (p.y != null) {
+      if (p.val != null && p.y != null) {
         pdf.setFillColor(15, 52, 62)
         pdf.circle(p.x, p.y, 1, 'F')
         
-        // Floating label (Last point only to keep it clean)
-        if (idx === points.length - 1) {
-           pdf.setFontSize(8); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(16, 185, 129) // Green like dashboard
-           pdf.text(fmt(p.val), p.x, p.y - 4, { align: 'center' })
-        }
+        // Numerical label for all valid points (EMERALD GREEN)
+        pdf.setFontSize(7.5); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(16, 185, 129)
+        pdf.text(fmt(p.val), p.x, p.y - 3, { align: 'center' })
       }
     })
     

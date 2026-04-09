@@ -2,7 +2,7 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  ScatterChart, Scatter, ReferenceLine,
+  ScatterChart, Scatter, ReferenceLine, LabelList
 } from 'recharts'
 import { scoreColor, fmt } from '@/utils/analytics'
 
@@ -21,7 +21,7 @@ export function TrendChart({ data, height = 220 }) {
   if (!data?.length) return <EmptyChart />
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+      <LineChart data={data} margin={{ top: 25, right: 10, left: -20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
         <XAxis dataKey="pertemuan" tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
         <YAxis domain={[1, 5]} tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -37,7 +37,18 @@ export function TrendChart({ data, height = 220 }) {
           dot={{ fill: 'var(--brand)', r: 5, strokeWidth: 2, stroke: 'var(--bg-card)' }}
           activeDot={{ r: 8, fill: 'var(--foreground)', stroke: 'var(--brand)', strokeWidth: 2 }}
           connectNulls
-        />
+        >
+          <LabelList 
+            dataKey="csat" 
+            position="top" 
+            offset={12}
+            formatter={(v) => (v && v !== null ? fmt(v) : '')}
+            fill="#10b981"
+            fontSize={11}
+            fontWeight="800"
+            style={{ pointerEvents: 'none' }}
+          />
+        </Line>
       </LineChart>
     </ResponsiveContainer>
   )
