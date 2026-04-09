@@ -132,6 +132,14 @@ const useStore = create((set, get) => ({
       if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
       if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
       if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
+      
+      // Date filtering
+      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
+      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
+        const end = new Date(filters.dateTo)
+        end.setHours(23, 59, 59, 999)
+        if (new Date(r.timestamp) > end) return false
+      }
       return true
     })
     return [...new Set(subset.map(r => r.namaDosen).filter(Boolean))].sort()
@@ -143,6 +151,14 @@ const useStore = create((set, get) => ({
       if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
       if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
       if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
+
+      // Date filtering
+      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
+      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
+        const end = new Date(filters.dateTo)
+        end.setHours(23, 59, 59, 999)
+        if (new Date(r.timestamp) > end) return false
+      }
       return true
     })
     return [...new Set(subset.map(r => r.prodi).filter(Boolean))].sort()
@@ -154,6 +170,14 @@ const useStore = create((set, get) => ({
       if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
       if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
       if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
+
+      // Date filtering
+      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
+      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
+        const end = new Date(filters.dateTo)
+        end.setHours(23, 59, 59, 999)
+        if (new Date(r.timestamp) > end) return false
+      }
       return true
     })
     return [...new Set(subset.map(r => r.mataKuliah).filter(Boolean))].sort()
@@ -165,6 +189,14 @@ const useStore = create((set, get) => ({
       if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
       if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
       if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
+
+      // Date filtering
+      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
+      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
+        const end = new Date(filters.dateTo)
+        end.setHours(23, 59, 59, 999)
+        if (new Date(r.timestamp) > end) return false
+      }
       return true
     })
     return [...new Set(subset.map(r => r.pertemuan).filter(Boolean))].sort((a,b)=>a-b)
@@ -176,6 +208,14 @@ const useStore = create((set, get) => ({
       if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
       if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
       if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
+
+      // Date filtering
+      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
+      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
+        const end = new Date(filters.dateTo)
+        end.setHours(23, 59, 59, 999)
+        if (new Date(r.timestamp) > end) return false
+      }
       return true
     })
     return [...new Set(subset.map(r => r.kodeKelas).filter(Boolean))].sort()
