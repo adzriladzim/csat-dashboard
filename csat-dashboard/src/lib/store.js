@@ -1,5 +1,73 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { parseRow } from '@/utils/rowParser'
+
+// Native IndexedDB wrapper for high-performance, quota-free state persistence
+const idb = {
+  db: null,
+  init() {
+    if (this.db) return Promise.resolve(this.db)
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('csat_dashboard_db', 1)
+      req.onupgradeneeded = () => req.result.createObjectStore('store')
+      req.onsuccess = () => { this.db = req.result; resolve(this.db) }
+      req.onerror = () => reject(req.error)
+    })
+  },
+  async get(key) {
+    try {
+      const db = await this.init()
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('store', 'readonly')
+        const req = tx.objectStore('store').get(key)
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = () => reject(req.error)
+      })
+    } catch (e) {
+      console.warn('IndexedDB read failed, falling back', e)
+      return null
+    }
+  },
+  async set(key, val) {
+    try {
+      const db = await this.init()
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('store', 'readwrite')
+        const req = tx.objectStore('store').put(val, key)
+        req.onsuccess = () => resolve()
+        req.onerror = () => reject(req.error)
+      })
+    } catch (e) {
+      console.warn('IndexedDB write failed', e)
+    }
+  },
+  async del(key) {
+    try {
+      const db = await this.init()
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('store', 'readwrite')
+        const req = tx.objectStore('store').delete(key)
+        req.onsuccess = () => resolve()
+        req.onerror = () => reject(req.error)
+      })
+    } catch (e) {
+      console.warn('IndexedDB delete failed', e)
+    }
+  }
+}
+
+const idbStorage = {
+  getItem: async (name) => {
+    const val = await idb.get(name)
+    return val || null
+  },
+  setItem: async (name, value) => {
+    await idb.set(name, value)
+  },
+  removeItem: async (name) => {
+    await idb.del(name)
+  }
+}
 
 // Unified ID Logic for stable matching
 const generateID = (r) => {
@@ -9,7 +77,9 @@ const generateID = (r) => {
   return base.slice(0, 150)
 }
 
-const useStore = create((set, get) => ({
+const useStore = create(
+  persist(
+    (set, get) => ({
   parsedData:  [],
   mappingIssues: [], 
   isLoaded:    false,
@@ -19,6 +89,8 @@ const useStore = create((set, get) => ({
   removedCount: 0,
   lastUpdated: null,
   version:     '1.1.1',
+  hasHydrated: false,
+  setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
   parseAndDisplay: (rawRows, headers, fileName) => {
     const issues = []
@@ -125,6 +197,23 @@ const useStore = create((set, get) => ({
     })
   },
 
+  getFilteredExceptPertemuan: () => {
+    const { parsedData, filters } = get()
+    return parsedData.filter(r => {
+      if (filters.matkul    !== 'all' && r.mataKuliah !== filters.matkul) return false
+      if (filters.prodi     !== 'all' && r.prodi     !== filters.prodi)    return false
+      if (filters.dosen     !== 'all' && r.namaDosen !== filters.dosen)    return false
+      if (filters.kelas     !== 'all' && r.kodeKelas !== filters.kelas)    return false
+      if (filters.dateFrom  && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
+      if (filters.dateTo    && r.timestamp && r.timestamp !== '-') {
+        const end = new Date(filters.dateTo)
+        end.setHours(23, 59, 59, 999)
+        if (new Date(r.timestamp) > end) return false
+      }
+      return true
+    })
+  },
+
   getDosenList: () => {
     const { parsedData, filters } = get()
     const subset = parsedData.filter(r => {
@@ -219,6 +308,12 @@ const useStore = create((set, get) => ({
       return true
     })
     return [...new Set(subset.map(r => r.kodeKelas).filter(Boolean))].sort()
+  }
+}), {
+  name: 'csat-dashboard-store',
+  storage: createJSONStorage(() => idbStorage),
+  onRehydrateStorage: () => (state) => {
+    if (state) state.setHasHydrated(true);
   }
 }))
 

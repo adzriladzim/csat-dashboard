@@ -53,7 +53,11 @@ const PageLoader = () => (
 );
 
 export default function App() {
-  const { isLoaded } = useStore();
+  const { isLoaded, hasHydrated } = useStore();
+
+  if (!hasHydrated) {
+    return <PageLoader />;
+  }
 
   return (
     <HelmetProvider>

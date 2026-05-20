@@ -47,12 +47,12 @@ const PAGE_SIZE = 50;
 export default function DashboardPage() {
   const {
     getFiltered,
+    getFilteredExceptPertemuan,
     fileName,
     mappingAccuracy,
     rawCount,
     removedCount,
     filters,
-    parsedData,
   } = useStore();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
@@ -63,13 +63,14 @@ export default function DashboardPage() {
   const [sortDir, setSortDir] = useState("desc");
 
   const filtered = getFiltered();
+  const filteredExceptPertemuan = getFilteredExceptPertemuan();
   const maxP =
     filters.pertemuan === "all"
       ? Infinity
       : parseInt(filters.pertemuan.toString().replace(/[^0-9]/g, "") || 100);
   const rawDosenList = useMemo(
-    () => aggregateByDosen(filtered, parsedData, maxP),
-    [filtered, parsedData, maxP],
+    () => aggregateByDosen(filtered, filteredExceptPertemuan, maxP),
+    [filtered, filteredExceptPertemuan, maxP],
   );
 
   const dosenList = useMemo(() => {
@@ -119,13 +120,8 @@ export default function DashboardPage() {
         : parseInt(filters.pertemuan.toString().replace(/[^0-9]/g, "") || 100);
 
     // Manual filtering for trend to recover historical data (P1 to Selected P)
-    parsedData.forEach((r) => {
+    filteredExceptPertemuan.forEach((r) => {
       if (!r.pertemuan || !r.csatGabungan) return;
-
-      // Apply other filters (matkul, prodi, dosen). We IGNORE the specific 'pertemuan' filter here.
-      if (filters.matkul !== "all" && r.mataKuliah !== filters.matkul) return;
-      if (filters.prodi !== "all" && r.prodi !== filters.prodi) return;
-      if (filters.dosen !== "all" && r.namaDosen !== filters.dosen) return;
 
       // For trend, we show ALL meetings up to the selected one
       const pNum = Number(r.pertemuan);
@@ -138,7 +134,7 @@ export default function DashboardPage() {
     return Object.entries(map)
       .sort(([a], [b]) => +a - +b)
       .map(([p, vals]) => ({ pertemuan: `P${p}`, csat: avg(vals) }));
-  }, [parsedData, filters]);
+  }, [filteredExceptPertemuan, filters]);
 
   const totalPages = Math.ceil(dosenList.length / PAGE_SIZE);
   const paginated = dosenList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -498,7 +494,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-start gap-2">
                         <ExportMenu
                           dosenData={d}
-                          fullRows={parsedData}
+                          fullRows={filteredExceptPertemuan}
                           filters={filters}
                         />
                         <button

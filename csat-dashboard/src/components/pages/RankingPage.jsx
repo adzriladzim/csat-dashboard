@@ -32,14 +32,15 @@ const SORT_FIELDS = {
 };
 
 export default function RankingPage() {
-  const { getFiltered } = useStore();
+  const { getFiltered, getFilteredExceptPertemuan, filters } = useStore();
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState("csatGabungan");
   const [sortDir, setSortDir] = useState("desc");
   const [exportingId, setExportingId] = useState(null);
 
   const filtered = getFiltered();
-  const dosenList = useMemo(() => aggregateByDosen(filtered), [filtered]);
+  const filteredExceptPertemuan = getFilteredExceptPertemuan();
+  const dosenList = useMemo(() => aggregateByDosen(filtered, filteredExceptPertemuan), [filtered, filteredExceptPertemuan]);
 
   const sorted = useMemo(() => {
     return [...dosenList].sort((a, b) => {
@@ -237,7 +238,11 @@ export default function RankingPage() {
                   <td>
                     <div className="flex items-center justify-end gap-1.5">
                       <div className="scale-75 sm:scale-100 origin-right">
-                        <ExportMenu dosenData={d} />
+                        <ExportMenu
+                          dosenData={d}
+                          fullRows={filteredExceptPertemuan}
+                          filters={filters}
+                        />
                       </div>
                       <button
                         onClick={() =>
