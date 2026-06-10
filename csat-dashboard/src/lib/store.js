@@ -88,7 +88,7 @@ const useStore = create(
   mappingAccuracy: 0,
   removedCount: 0,
   lastUpdated: null,
-  version:     '1.2.0',
+  version:     '1.2.1',
   hasHydrated: false,
   setHasHydrated: (hasHydrated) => set({ hasHydrated }),
   isSyncingSentiment: false,
@@ -385,6 +385,11 @@ const useStore = create(
   storage: createJSONStorage(() => idbStorage),
   onRehydrateStorage: () => (state) => {
     if (state) state.setHasHydrated(true);
+  },
+  // Mencegah status sementara dan versi aplikasi ditimpa oleh cache IndexedDB lama
+  partialize: (state) => {
+    const { version, hasHydrated, isSyncingSentiment, syncProgress, ...rest } = state;
+    return rest;
   }
 }))
 
