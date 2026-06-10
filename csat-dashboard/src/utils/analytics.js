@@ -318,8 +318,55 @@ export function analyzeSentiment(text) {
   if (pos>neg) return 'positive'; if (neg>pos) return 'negative'; if (pos>0) return 'positive'
   return 'neutral'
 }
-const STOPWORDS=new Set(['yang','dan','di','ke','dari','ini','itu','ada','untuk','dengan','pada','atau','juga','sudah','saya','kamu','kami','kita','mereka','adalah','dalam','tidak','bisa','akan','bagi','oleh','seperti','lebih','sudah','belum','sangat','hari','kelas','dosen','materi','kuliah','pembelajaran','pertemuan','mahasiswa','mengajar','penyampaian','agar','karena','tetapi','tapi','namun','jadi','jika','bila','maka','nya','kan','lah','pun','ya','iya','dr','dgn','utk','krn','tp','pak','bu','mas','mbak','bpk','ibu','bang','kak','prof','sih','nih','deh','dong','jg','sm','lg','yg','jd','bs','sy','km','hrs','sdh','blm','ada','hal','cara','setiap','semua','selalu','sering','jarang','satu','dua','tiga','empat','lima','the','and','for','are','but','not','you','all','can','was','have'])
-export function buildWordCloud(texts,maxWords=80){const freq={};texts.forEach(text=>{if(!text)return;text.toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).forEach(word=>{word=word.trim();if(word.length<3||STOPWORDS.has(word))return;freq[word]=(freq[word]||0)+1})});return Object.entries(freq).sort(([,a],[,b])=>b-a).slice(0,maxWords).map(([text,value])=>({text,value}))}
+const STOPWORDS=new Set([
+  // Kata hubung & Preposisi
+  'yang','dan','di','ke','dari','ini','itu','ada','untuk','dengan','pada','atau','juga','sudah','saya','kamu','kami','kita','mereka','adalah','dalam','tidak','bisa','akan','bagi','oleh','seperti','lebih','sudah','belum','sangat','hari','agar','karena','tetapi','tapi','namun','jadi','jika','bila','maka','nya','kan','lah','pun','ya','iya','sih','nih','deh','dong','jg','sm','lg','yg','jd','bs','sy','km','hrs','sdh','blm','ada','hal','cara','setiap','semua','selalu','sering','jarang','satu','dua','tiga','empat','lima','the','and','for','are','but','not','you','all','can','was','have','dr','dgn','utk','krn','tp','pak','bu','mas','mbak','bpk','ibu','bang','kak','prof',
+  // Kata generik ruang lingkup kuliah/belajar
+  'kelas','dosen','materi','kuliah','pembelajaran','pertemuan','mahasiswa','mengajar','penyampaian','penjelasannya','belajar','dimengerti','detail','diskusi','sesi','tugas','perkuliahan','penerapan','diberikan','disampaikan','memberikan','tadi','saat','malam','semester','makul','matkul',
+  // Kata keterangan, penegas & evaluasi generik
+  'cukup','masih','jelas','paham','memahami','pahami','faham','secara','tentang','keseluruhan','baik','ingin','sejauh','beberapa','sedang','mungkin','mudah','kurang','bagus','banyak','mengerti','perlu','overall','dapat','harus','lumayan','mengenai','penjelasan','lagi','thanks','bagian','agak','seruu','apa','profesional','banget','aja','lanjut','praktek','gak','sistem','amann','mengetahui','terima','kasih','terimakasih','atas','bapak','dosennya','sehat','menyampaikan','langsung','terus','sama','pelan','mau','sehingga','asik','best','buat','baru','kalau','suka','cepat','keren','aman','good','thank','seru','amat','saja'
+])
+
+export function buildWordCloud(texts, maxWords = 80) {
+  const freq = {};
+  
+  texts.forEach(text => {
+    if (!text) return;
+    
+    // Normalisasi teks
+    let cleanText = text.toLowerCase()
+      // Gabungkan frasa 'terima kasih' agar tidak terpisah menjadi 'terima' dan 'kasih'
+      .replace(/terima\s+kasih/g, 'terimakasih')
+      // Bersihkan karakter selain huruf dan spasi
+      .replace(/[^a-z\s]/g, ' ');
+      
+    cleanText.split(/\s+/).forEach(word => {
+      word = word.trim();
+      
+      // Lakukan stemming sederhana (memotong akhiran umum bahasa Indonesia)
+      // Contoh: 'materinya' -> 'materi', 'jelasnya' -> 'jelas', 'dosenlah' -> 'dosen'
+      if (word.endsWith('nya') && word.length > 5) {
+        word = word.slice(0, -3);
+      } else if ((word.endsWith('lah') || word.endsWith('kah') || word.endsWith('pun')) && word.length > 5) {
+        word = word.slice(0, -3);
+      } else if (word.endsWith('mu') && word.length > 5) {
+        word = word.slice(0, -2);
+      } else if (word.endsWith('ku') && word.length > 5) {
+        word = word.slice(0, -2);
+      }
+
+      // Bersihkan sekali lagi jika hasil pemotongan menghasilkan kata yang ada di STOPWORDS
+      if (word.length < 3 || STOPWORDS.has(word)) return;
+      
+      freq[word] = (freq[word] || 0) + 1;
+    });
+  });
+  
+  return Object.entries(freq)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, maxWords)
+    .map(([text, value]) => ({ text, value }));
+}
 export function detectAnomalies(dosenList){const all=dosenList.map(d=>d.csatGabungan).filter(Boolean);if(all.length<3)return[];const mean=avg(all),std=Math.sqrt(all.reduce((a,s)=>a+Math.pow(s-mean,2),0)/all.length);return dosenList.filter(d=>d.csatGabungan&&Math.abs(d.csatGabungan-mean)>std).map(d=>({...d,zScore:+((d.csatGabungan-mean)/std).toFixed(2),type:d.csatGabungan>mean?'outstanding':'concern'}))}
 
 // ── Correlation ───────────────────────────────────────────────────────────

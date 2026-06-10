@@ -1,13 +1,13 @@
 # 📊 CSAT Dashboard — Cakrawala University
 
-**Client-Side Analytics · React + Vite + Tailwind · No-DB Architecture**
+**Fullstack Analytics · React + Vite + Tailwind · Vercel Serverless · Hugging Face AI & IndexedDB Persistence**
 
-Dashboard analisis kinerja dosen berbasis feedback mahasiswa yang bekerja sepenuhnya di sisi client.  
-Data diimpor melalui file XLSX/CSV hasil export Google Forms, diproses secara instan di browser, dan divisualisasikan tanpa memerlukan database atau server backend.
+Dashboard analisis kinerja dosen berbasis feedback mahasiswa yang diolah secara instan.  
+Data diimpor melalui file XLSX/CSV hasil export Google Forms, diproses di browser, dan dianalisis menggunakan kecerdasan buatan (AI) secara aman dan persisten.
 
 ---
 
-## 🏗️ Alur Kerja Sistem (Local-Only)
+## 🏗️ Alur Kerja Sistem (Fullstack & AI)
 
 ```
 Google Forms (Mahasiswa isi feedback)
@@ -16,13 +16,19 @@ Google Sheets (Admin export ke .xlsx / .csv)
         ↓
 React Dashboard (User upload file ke browser)
         ↓
-Instant Analytics (Data diolah & ditampilkan secara lokal)
+IndexedDB Store (Data disimpan persisten di browser lokal)
         ↓
 Export PDF / Excel (Laporan siap cetak)
+        ↓
+Hugging Face Inference API (Analisis sentimen asinkronus via Vercel Serverless)
+        ↓
+Sanity Check System (Deteksi lokal menyempurnakan klasifikasi AI)
+        ↓
+Interactive Analytics (Dashboard Visualisasi & Word Cloud siap digunakan)
 ```
 
 > [!NOTE]
-> **Privasi & Keamanan:** Data feedback tidak pernah meninggalkan browser anda. Semua perhitungan skor dan analisis dilakukan secara lokal di perangkat anda.
+> **Privasi & Keamanan:** Data feedback diproses di sisi klien secara aman. Kunci API Hugging Face terlindungi di sisi server (Vercel Serverless Function Proxy) sehingga tidak bocor ke publik.
 
 ---
 
@@ -38,18 +44,24 @@ Export PDF / Excel (Laporan siap cetak)
    npm install
    ```
 
-2. **Jalankan Aplikasi**
+2. **Pengaturan Environment Variables**
+   Buat file `.env.local` di root direktori dan masukkan konfigurasi token Hugging Face Anda:
+   ```env
+   VITE_HF_API_TOKEN=your_hugging_face_token_here
+   ```
+
+3. **Jalankan Aplikasi**
 
    ```bash
    npm run dev
    ```
 
-   Buka `http://localhost:5173` di browser anda. ✅
+   Buka `http://localhost:5173` di browser Anda. ✅
 
-3. **Gunakan Dashboard**
+4. **Gunakan Dashboard**
    - Download hasil respon dari Google Forms dalam format `.xlsx` atau `.csv`.
    - Drag & drop file tersebut ke halaman **Upload** di dashboard.
-   - Semua menu analisis akan terbuka secara otomatis.
+   - Sistem akan memproses data dasar secara instan, lalu antrean sinkronisasi latar belakang (*Background Sync*) akan berjalan otomatis untuk menganalisis sentimen menggunakan Hugging Face AI.
 
 ---
 
@@ -58,12 +70,14 @@ Export PDF / Excel (Laporan siap cetak)
 | Fitur                     | Keterangan                                                                              |
 | ------------------------- | --------------------------------------------------------------------------------------- |
 | 📤 **Instant Upload**     | Drag & drop XLSX/CSV dengan auto-mapping kolom pintar.                                  |
+| 💾 **IndexedDB Persistence** | Data tersimpan secara aman di browser lokal. Data **tidak akan hilang** walau halaman di-refresh. |
+| 🤖 **AI Sentiment Analysis** | Klasifikasi sentimen komentar menggunakan model **Hugging Face Indonesian Roberta**. |
+| 🛡️ **Sanity Check System**  | Pemfilteran & koreksi hasil AI otomatis untuk mengatasi salah deteksi kata typo/slang.   |
 | 📊 **Dashboard Overview** | Ringkasan CSAT, Tren per semester, dan Skor performa global.                            |
 | 🏆 **Ranking Dosen**      | Tabel performa sortable untuk melihat Top 5 & Bottom 5 dosen.                           |
 | 👤 **Detail Per Dosen**   | Radar chart kompetensi, tren per pertemuan, dan daftar komentar.                        |
 | 📄 **Export Laporan**     | Cetak detail per dosen ke PDF atau rekap ranking ke Excel.                              |
-| 💬 **Analisis Sentimen**  | Deteksi otomatis komentar Positif, Negatif, atau Netral.                                |
-| ☁️ **Word Cloud**         | Visualisasi kata kunci feedback & topik yang belum dipahami mahasiswa.                  |
+| ☁️ **Word Cloud**         | Visualisasi kata kunci feedback (Unggulan & Evaluasi) bersih dari kata-kata generik.    |
 | 🔍 **Anomaly Detection**  | Identifikasi dosen dengan skor luar biasa atau yang perlu perhatian khusus via Z-Score. |
 | 🌓 **Dark Mode**          | Tampilan premium dengan dukungan mode gelap dan terang.                                 |
 
@@ -74,22 +88,25 @@ Export PDF / Excel (Laporan siap cetak)
 ```
 csat-dashboard/
 │
+├── api/
+│   └── sentiment.js           ← Vercel Serverless Function Proxy (Menghubungkan ke Hugging Face secara aman)
+│
 ├── src/
 │   ├── lib/
-│   │   └── store.js               ← Zustand global state (penyimpanan data in-memory)
+│   │   └── store.js           ← Zustand store dengan IndexedDB Storage (Penyimpanan data persisten)
 │   │
 │   ├── utils/
-│   │   ├── rowParser.js           ← Logic pemetaan kolom & pembersihan data teknis
-│   │   ├── analytics.js           ← Inti perhitungan CSAT, Sentimen, & Anomali
-│   │   └── exportUtils.js         ← Export PDF (jsPDF) & Excel (xlsx)
+│   │   ├── rowParser.js       ← Logic pemetaan kolom & pembersihan data teknis
+│   │   ├── analytics.js       ← Inti perhitungan CSAT, Word Cloud dengan Stemmer, & Anomali
+│   │   └── sentimentApi.js    ← Client-side API caller & Post-Processing Sanity Check AI
 │   │
 │   └── components/
-│       ├── layout/Layout.jsx      ← Sidebar & Navigasi Utama
-│       ├── charts/                ← Komponen visualisasi Recharts (Radar, Line, Bar)
-│       └── pages/                 ← Halaman utama: Upload, Dashboard, Ranking, Detail, dll
+│       ├── layout/Layout.jsx  ← Sidebar & Navigasi Utama
+│       ├── charts/            ← Komponen visualisasi Recharts (Radar, Line, Bar)
+│       └── pages/             ← Halaman utama: Upload, Dashboard, Ranking, Detail, dll
 │
 ├── package.json
-├── tailwind.config.js             ← Konfigurasi tema & warna brand
+├── tailwind.config.js         ← Konfigurasi tema & warna brand
 └── vite.config.js
 ```
 
@@ -97,27 +114,11 @@ csat-dashboard/
 
 ## 🔧 Kustomisasi Pemetaan Data
 
-Jika format kolom di Google Forms anda berubah, anda dapat menyesuaikannya di file `src/utils/rowParser.js`.
+Jika format kolom di Google Forms Anda berubah, Anda dapat menyesuaikannya di file `src/utils/rowParser.js`.
 
-### Menambah Kata Kunci Struggling (Word Cloud)
+### Menambah Kata Kunci Word Cloud (Stopwords)
 
-Cari konstanta `STRUGGLE_WORDS` untuk menambah kata kunci yang menandakan mahasiswa belum paham suatu materi:
-
-```javascript
-const STRUGGLE_WORDS = [
-  "bingung",
-  "belum paham",
-  "perlu latihan lebih", // tambahkan di sini
-];
-```
-
-### Memfilter Feedback Sampah (Junk Filter)
-
-Edit konstanta `FB_JUNK` untuk membuang komentar yang tidak informatif (seperti "oke", "siap", dll):
-
-```javascript
-const FB_JUNK = new Set(['oke', 'aman', 'tidak ada', // tambahkan di sini])
-```
+Anda bisa mengedit daftar `STOPWORDS` di `src/utils/analytics.js` untuk menyaring kata-kata tidak bermakna yang lolos filter agar Word Cloud tetap bersih dan informatif.
 
 ---
 
@@ -127,11 +128,9 @@ const FB_JUNK = new Set(['oke', 'aman', 'tidak ada', // tambahkan di sini])
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
 | File tidak terbaca       | Pastikan format file adalah `.xlsx`, `.xls`, atau `.csv`.                                                                       |
 | Kolom tidak terdeteksi   | Sesuaikan keyword kolom di `src/utils/rowParser.js`.                                                                            |
-| Tampilan berantakan      | Pastikan anda menjalankan `npm install` untuk mengunduh Tailwind CSS.                                                           |
-| Data hilang saat refresh | Karena sistem ini No-DB, data hanya disimpan sementara di memory browser. Anda perlu upload ulang file jika browser di-refresh. |
+| Analisis AI macet / 0%   | Pastikan token `VITE_HF_API_TOKEN` sudah terkonfigurasi dengan benar di file `.env.local` (local) atau Dashboard Vercel (production). |
+| Salah klasifikasi kata kunci | Sesuaikan aturan penyaring kata di fungsi `sanityCheckSentiment` dalam file `src/utils/sentimentApi.js`. |
 
 ---
 
 # Dibuat oleh **Adzril Adzim Hendrynov** untuk keperluan evaluasi & peningkatan kualitas pengajaran dosen **Cakrawala University** 🎓
-
-# csat-dashboard

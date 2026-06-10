@@ -13,19 +13,62 @@ const labelMap = {
 // Post-processing sanity check untuk menyaring kesalahan klasifikasi dari model AI
 function sanityCheckSentiment(text, aiSentiment) {
     if (!text) return aiSentiment;
-    const clean = text.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    const clean = text.trim().toLowerCase()
+        // Bersihkan tanda baca dan huruf berulang yang berlebihan (misal: seruuuu -> seru)
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "")
+        .replace(/(.)\1{2,}/g, "$1$1"); // Batasi huruf berulang max 2
+        
     const cleanWords = clean.split(/\s+/);
 
-    const clearPosWords = ['baik', 'bagus', 'aman', 'lancar', 'mantap', 'oke', 'ok', 'asik', 'asyik', 'seru', 'jelas'];
-    const negations = ['tidak', 'tdk', 'ga', 'gak', 'belum', 'kurang', 'bukan', 'jangan', 'slow', 'lambat', 'cepat', 'membosankan', 'monoton', 'bingung'];
+    // Kumpulan kata positif yang sangat jelas (termasuk slang & variasi)
+    const clearPosWords = [
+        'baik', 'bagus', 'aman', 'lancar', 'mantap', 'oke', 'ok', 'asik', 'asyik', 
+        'seru', 'jelas', 'enjoy', 'hebat', 'keren', 'suka', 'menarik', 'membantu', 
+        'terimakasih', 'terima kasih', 'makasih', 'thanks', 'thankyou', 'nice', 'good'
+    ];
+    
+    // Kata yang mengindikasikan keluhan / kritik
+    const negativeIndicators = [
+        'cepat', 'lambat', 'membosankan', 'monoton', 'bingung', 'pusing', 'kurang', 
+        'tidak jelas', 'tdk jelas', 'gak jelas', 'ga jelas', 'sulit', 'susah', 
+        'ngantuk', 'boring', 'mendem', 'kecil', 'pecah', 'macet', 'lag', 'kendor'
+    ];
 
+    // Deteksi kalimat netral / tidak ada saran
+    const isNoComplaint = [
+        /^(tidak ada|tidak ada saran|tidak ada masukan|tdk ada|gak ada|ga ada|nothing|nihil|belum ada|blm ada)\s*(untuk hari ini|hari ini|saja)?$/i,
+        /^(aman|aman aman saja|sejauh ini aman|sudah aman)\s*(saja|pak|bu|mas|mbak)?$/i,
+        /^(lanjut|lanjutkan|next)\s*$/i
+    ].some(regex => regex.test(clean));
+
+    if (isNoComplaint) {
+        return 'neutral';
+    }
+
+    // Jika AI mendeteksi negatif, mari kita periksa apakah ini false negative
     if (aiSentiment === 'negative') {
-        const hasNegation = negations.some(w => cleanWords.includes(w) || clean.includes(w + ' '));
-        const hasClearPos = clearPosWords.some(w => cleanWords.includes(w));
+        // Cek apakah ada kata positif yang jelas
+        const hasClearPos = clearPosWords.some(w => cleanWords.some(cw => cw.startsWith(w) || cw.endsWith(w)) || clean.includes(w));
+        // Cek apakah ada indikasi keluhan/kritik
+        const hasNegativeIndicator = negativeIndicators.some(w => clean.includes(w));
 
-        // Jika ada kata positif yang sangat jelas tanpa kata negasi/keluhan, ubah ke positive
-        if (hasClearPos && !hasNegation) {
+        // Jika ada kata positif, tapi tidak ada keluhan sama sekali, koreksi ke positive
+        if (hasClearPos && !hasNegativeIndicator) {
             return 'positive';
+        }
+    }
+
+    // Jika AI mendeteksi neutral/positive tapi ada kritik yang sangat jelas
+    if (aiSentiment !== 'negative') {
+        const hasNegativeIndicator = negativeIndicators.some(w => cleanWords.includes(w) || clean.includes(' ' + w));
+        const hasClearPos = clearPosWords.some(w => cleanWords.includes(w));
+        
+        // Jika ada kritik yang jelas, dan tidak didahului kata "tidak" (misal: "tidak membosankan" -> ini positif)
+        if (hasNegativeIndicator && !clean.includes('tidak ' + negativeIndicators.find(w => clean.includes(w)))) {
+            // Kecuali jika ada kata positif yang lebih dominan
+            if (!hasClearPos) {
+                return 'negative';
+            }
         }
     }
 
