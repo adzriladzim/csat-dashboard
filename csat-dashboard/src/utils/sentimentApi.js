@@ -66,12 +66,27 @@ export async function analyzeSentimentOnlineBatch(texts) {
 
         const result = await response.json();
         
+        // Memformat hasil respon agar seragam (baik format standar Hugging Face maupun format Router baru)
+        let predictionsList = [];
+        if (Array.isArray(result)) {
+            // Format Router Baru: result adalah [[pred_teks1, pred_teks2, ...]]
+            if (result.length === 1 && Array.isArray(result[0]) && result[0].length === inputsToSend.length) {
+                predictionsList = result[0].map(item => Array.isArray(item) ? item : [item]);
+            } 
+            // Format Standar: result adalah [[scores_teks1], [scores_teks2], ...]
+            else {
+                predictionsList = result.map(item => Array.isArray(item) ? item : [item]);
+            }
+        } else {
+            throw new Error("Format respon API tidak valid");
+        }
+
         // Memetakan hasil kembali ke indeks teks asli
         let resultIdx = 0;
         return validTexts.map(t => {
             if (t === '') return 'neutral';
             
-            const predictions = result[resultIdx++];
+            const predictions = predictionsList[resultIdx++];
             if (predictions && Array.isArray(predictions)) {
                 const topSentiment = predictions.reduce((prev, current) =>
                     (prev.score > current.score) ? prev : current
