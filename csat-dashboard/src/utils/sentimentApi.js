@@ -10,6 +10,28 @@ const labelMap = {
     'positive': 'positive'
 };
 
+// Post-processing sanity check untuk menyaring kesalahan klasifikasi dari model AI
+function sanityCheckSentiment(text, aiSentiment) {
+    if (!text) return aiSentiment;
+    const clean = text.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    const cleanWords = clean.split(/\s+/);
+
+    const clearPosWords = ['baik', 'bagus', 'aman', 'lancar', 'mantap', 'oke', 'ok', 'asik', 'asyik', 'seru', 'jelas'];
+    const negations = ['tidak', 'tdk', 'ga', 'gak', 'belum', 'kurang', 'bukan', 'jangan', 'slow', 'lambat', 'cepat', 'membosankan', 'monoton', 'bingung'];
+
+    if (aiSentiment === 'negative') {
+        const hasNegation = negations.some(w => cleanWords.includes(w) || clean.includes(w + ' '));
+        const hasClearPos = clearPosWords.some(w => cleanWords.includes(w));
+
+        // Jika ada kata positif yang sangat jelas tanpa kata negasi/keluhan, ubah ke positive
+        if (hasClearPos && !hasNegation) {
+            return 'positive';
+        }
+    }
+
+    return aiSentiment;
+}
+
 /**
  * Menganalisis sentimen untuk satu teks secara online (Inference API).
  * Menggunakan batch di belakang layar untuk efisiensi jika dipanggil berulang.
@@ -91,7 +113,8 @@ export async function analyzeSentimentOnlineBatch(texts) {
                 const topSentiment = predictions.reduce((prev, current) =>
                     (prev.score > current.score) ? prev : current
                 );
-                return labelMap[topSentiment.label] || 'neutral';
+                const rawSentiment = labelMap[topSentiment.label] || 'neutral';
+                return sanityCheckSentiment(t, rawSentiment);
             }
             return 'neutral';
         });
