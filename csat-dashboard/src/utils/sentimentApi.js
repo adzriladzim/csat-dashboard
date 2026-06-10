@@ -1,5 +1,5 @@
 const HF_TOKEN = import.meta.env.VITE_HF_API_TOKEN;
-const MODEL_URL = "https://api-inference.huggingface.co/models/w11wo/indonesian-roberta-base-sentiment-classifier";
+const MODEL_URL = "https://router.huggingface.co/hf-inference/models/w11wo/indonesian-roberta-base-sentiment-classifier";
 
 const labelMap = {
     'LABEL_0': 'negative',
