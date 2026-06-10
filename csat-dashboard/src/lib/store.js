@@ -88,7 +88,7 @@ const useStore = create(
   mappingAccuracy: 0,
   removedCount: 0,
   lastUpdated: null,
-  version:     '1.2.1',
+  version:     '1.2.2',
   hasHydrated: false,
   setHasHydrated: (hasHydrated) => set({ hasHydrated }),
   isSyncingSentiment: false,

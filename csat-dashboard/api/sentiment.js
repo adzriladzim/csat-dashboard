@@ -1,3 +1,5 @@
+import https from 'https';
+
 export default async function handler(req, res) {
   // Hanya izinkan metode POST
   if (req.method !== 'POST') {
@@ -5,29 +7,52 @@ export default async function handler(req, res) {
   }
 
   const { inputs } = req.body;
-  
-  // Ambil token dari Environment Variable di Vercel (Production)
   const HF_TOKEN = process.env.VITE_HF_API_TOKEN;
 
   if (!HF_TOKEN) {
     return res.status(500).json({ error: 'Hugging Face API token is not configured on the server.' });
   }
 
+  const postData = JSON.stringify({ inputs });
+
+  const options = {
+    hostname: 'api-inference.huggingface.co',
+    port: 443,
+    path: '/models/w11wo/indonesian-roberta-base-sentiment-classifier',
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${HF_TOKEN}`,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(postData)
+    }
+  };
+
   try {
-    const response = await fetch('https://api-inference.huggingface.co/models/w11wo/indonesian-roberta-base-sentiment-classifier', {
-      headers: {
-        Authorization: `Bearer ${HF_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      method: "POST",
-      body: JSON.stringify({ inputs }),
+    const data = await new Promise((resolve, reject) => {
+      const reqPost = https.request(options, (resPost) => {
+        let body = '';
+        resPost.on('data', (chunk) => body += chunk);
+        resPost.on('end', () => {
+          if (resPost.statusCode >= 200 && resPost.statusCode < 300) {
+            try {
+              resolve(JSON.parse(body));
+            } catch (e) {
+              reject(new Error('Gagal mengurai JSON respon dari Hugging Face'));
+            }
+          } else {
+            reject(new Error(`HF API Error: ${resPost.statusCode} - ${body}`));
+          }
+        });
+      });
+
+      reqPost.on('error', (e) => {
+        reject(e);
+      });
+
+      reqPost.write(postData);
+      reqPost.end();
     });
 
-    if (!response.ok) {
-      throw new Error(`HF API Error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
     return res.status(200).json(data);
   } catch (error) {
     console.error("Vercel Serverless function error:", error);
