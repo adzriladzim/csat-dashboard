@@ -19,7 +19,7 @@ import SEO from "@/components/common/SEO";
 import clsx from "clsx";
 
 export default function UploadPage() {
-  const { parseAndDisplay } = useStore();
+  const { parseAndDisplay, isAnalyzingSentiment, sentimentProgress } = useStore();
   const navigate = useNavigate();
   const inputRef = useRef();
   const [dragging, setDragging] = useState(false);
@@ -83,9 +83,9 @@ export default function UploadPage() {
         setProgress(50); // Phase 3: Data Extracted
         await new Promise((r) => setTimeout(r, 50));
 
-        const count = parseAndDisplay(rows, headers, file.name);
+        const count = await parseAndDisplay(rows, headers, file.name);
 
-        setProgress(75); // Phase 4: CSAT & Local Store Updated
+        setProgress(90); // Phase 4: CSAT & Local Store Updated
         await new Promise((r) => setTimeout(r, 50));
 
         setProgress(100); 
@@ -240,59 +240,69 @@ export default function UploadPage() {
                 </div>
               </div>
             ) : status === "parsing" ? (
-              <div className="flex flex-col items-center gap-6 py-10 w-full max-w-sm mx-auto">
-                <div className="relative w-20 h-20 flex items-center justify-center">
-                  <svg className="absolute inset-0 w-full h-full -rotate-90">
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r="36"
-                      stroke="var(--border)"
-                      strokeWidth="6"
-                      fill="none"
-                    />
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r="36"
-                      stroke="var(--brand)"
-                      strokeWidth="6"
-                      fill="none"
-                      strokeDasharray="226"
-                      strokeDashoffset={226 - (226 * progress) / 100}
-                      className="transition-all duration-300 ease-out"
-                    />
-                  </svg>
-                  <span
-                    className="text-base font-black"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {progress}%
-                  </span>
-                </div>
-                <div className="text-center w-full">
-                  <p
-                    className="font-black text-lg"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {progress < 100
-                      ? "Sedang Memproses..."
-                      : "Sinkronisasi Selesai!"}
-                  </p>
-                  <p
-                    className="text-sm mt-1 font-medium"
-                    style={{ color: "var(--muted)", opacity: 0.8 }}
-                  >
-                    {progress <= 10
-                      ? "Menghubungkan file data..."
-                      : progress <= 30
-                        ? "Mengurai struktur dokumen..."
-                        : progress <= 50
-                          ? "Memvalidasi data responden..."
-                          : "Membuka Dashboard Pintar..."}
-                  </p>
-                </div>
-              </div>
+              (() => {
+                const displayProgress = isAnalyzingSentiment
+                  ? Math.round(50 + (sentimentProgress.processed / (sentimentProgress.total || 1)) * 40)
+                  : progress;
+                const getSubtext = () => {
+                  if (isAnalyzingSentiment) {
+                    return `Menganalisis sentimen komentar dengan AI... (${sentimentProgress.processed}/${sentimentProgress.total})`;
+                  }
+                  if (progress <= 10) return "Menghubungkan file data...";
+                  if (progress <= 30) return "Mengurai struktur dokumen...";
+                  if (progress <= 50) return "Memvalidasi data responden...";
+                  return "Membuka Dashboard Pintar...";
+                };
+                return (
+                  <div className="flex flex-col items-center gap-6 py-10 w-full max-w-sm mx-auto">
+                    <div className="relative w-20 h-20 flex items-center justify-center">
+                      <svg className="absolute inset-0 w-full h-full -rotate-90">
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="36"
+                          stroke="var(--border)"
+                          strokeWidth="6"
+                          fill="none"
+                        />
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="36"
+                          stroke="var(--brand)"
+                          strokeWidth="6"
+                          fill="none"
+                          strokeDasharray="226"
+                          strokeDashoffset={226 - (226 * displayProgress) / 100}
+                          className="transition-all duration-300 ease-out"
+                        />
+                      </svg>
+                      <span
+                        className="text-base font-black"
+                        style={{ color: "var(--foreground)" }}
+                      >
+                        {displayProgress}%
+                      </span>
+                    </div>
+                    <div className="text-center w-full">
+                      <p
+                        className="font-black text-lg"
+                        style={{ color: "var(--foreground)" }}
+                      >
+                        {displayProgress < 100
+                          ? "Sedang Memproses..."
+                          : "Sinkronisasi Selesai!"}
+                      </p>
+                      <p
+                        className="text-sm mt-1 font-medium"
+                        style={{ color: "var(--muted)", opacity: 0.8 }}
+                      >
+                        {getSubtext()}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()
             ) : (
               <div className="flex flex-col items-center gap-4 py-8">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center bg-emerald-500/10 border border-emerald-500/30">

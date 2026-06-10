@@ -11,14 +11,14 @@ export function useFileParser() {
     if (['xlsx', 'xls'].includes(ext)) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           try {
             const data    = new Uint8Array(e.target.result)
             const wb      = XLSX.read(data, { type: 'array', cellDates: true })
             const ws      = wb.Sheets[wb.SheetNames[0]]
             const rows    = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' })
             const headers = rows.length > 0 ? Object.keys(rows[0]) : []
-            const count   = parseAndDisplay(rows, headers, file.name)
+            const count   = await parseAndDisplay(rows, headers, file.name)
             resolve({ count, fileName: file.name })
           } catch (err) { reject(err) }
         }
@@ -33,9 +33,9 @@ export function useFileParser() {
         Papa.parse(file, {
           header: true,
           skipEmptyLines: true,
-          complete: ({ data, meta }) => {
+          complete: async ({ data, meta }) => {
             try {
-              const count = parseAndDisplay(data, meta.fields, file.name)
+              const count = await parseAndDisplay(data, meta.fields, file.name)
               resolve({ count, fileName: file.name })
             } catch (err) { reject(err) }
           },

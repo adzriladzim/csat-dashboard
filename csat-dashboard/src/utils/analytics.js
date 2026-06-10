@@ -265,8 +265,56 @@ export function analyzeSentiment(text) {
   if (CLEAR_NEG.some(p=>p.test(clean))) return 'negative'
   if (CLEAR_NEUTRAL.some(p=>p.test(clean))) return 'neutral'
   let pos=0,neg=0
-  for (const {w,words} of POS_W) for (const word of words) if (lower.includes(word)) { const idx=lower.indexOf(word); const before=lower.substring(Math.max(0,idx-30),idx); if (NEGASI.some(n=>before.includes(n))) neg+=w; else pos+=w }
-  for (const {w,words} of NEG_W) for (const word of words) if (lower.includes(word)) neg+=w
+  for (const {w,words} of POS_W) {
+    for (const word of words) {
+      if (lower.includes(word)) {
+        const idx=lower.indexOf(word)
+        const before=lower.substring(Math.max(0,idx-30),idx)
+        
+        const isNegated = NEGASI.some(n => {
+          if (!before.includes(n)) return false
+          
+          // Jika negasi adalah bagian dari "tidak ada" / "gak ada" / "tidak masalah", jangan digolongkan sebagai negasi yang merusak
+          if (['tidak ', 'gak ', 'tdk ', 'ga '].includes(n)) {
+            if (before.includes('tidak ada') || 
+                before.includes('gak ada') || 
+                before.includes('tdk ada') || 
+                before.includes('ga ada') || 
+                before.includes('tidak ad') || 
+                before.includes('gak ad') || 
+                before.includes('tdk ad') || 
+                before.includes('ga ad') || 
+                before.includes('tidak masalah') || 
+                before.includes('gak masalah') || 
+                before.includes('tdk masalah') ||
+                before.includes('ga masalah')) {
+              return false
+            }
+          }
+          return true
+        })
+
+        if (isNegated) neg+=w; else pos+=w
+      }
+    }
+  }
+  for (const {w,words} of NEG_W) {
+    for (const word of words) {
+      if (lower.includes(word)) {
+        const idx = lower.indexOf(word)
+        const before = lower.substring(Math.max(0, idx - 30), idx)
+        
+        // Cek apakah kata negatif ini dinegasikan (misal: "tidak membosankan" -> malah bermakna positif)
+        const isNegated = NEGASI.some(n => before.includes(n))
+        
+        if (isNegated) {
+          pos += w
+        } else {
+          neg += w
+        }
+      }
+    }
+  }
   if (pos>neg) return 'positive'; if (neg>pos) return 'negative'; if (pos>0) return 'positive'
   return 'neutral'
 }

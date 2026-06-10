@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Loader2 } from "lucide-react";
@@ -53,7 +53,13 @@ const PageLoader = () => (
 );
 
 export default function App() {
-  const { isLoaded, hasHydrated } = useStore();
+  const { isLoaded, hasHydrated, enrichSentimentWithAI, parsedData } = useStore();
+
+  useEffect(() => {
+    if (isLoaded && hasHydrated) {
+      enrichSentimentWithAI();
+    }
+  }, [isLoaded, hasHydrated, enrichSentimentWithAI, parsedData.length]);
 
   if (!hasHydrated) {
     return <PageLoader />;

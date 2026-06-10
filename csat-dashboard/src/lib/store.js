@@ -88,11 +88,15 @@ const useStore = create(
   mappingAccuracy: 0,
   removedCount: 0,
   lastUpdated: null,
-  version:     '1.1.1',
+  version:     '1.2.0',
   hasHydrated: false,
   setHasHydrated: (hasHydrated) => set({ hasHydrated }),
+  isSyncingSentiment: false,
+  syncProgress: { processed: 0, total: 0 },
 
-  parseAndDisplay: (rawRows, headers, fileName) => {
+  parseAndDisplay: async (rawRows, headers, fileName) => {
+    const { analyzeSentiment } = await import('@/utils/analytics')
+
     const issues = []
     
     const processed = rawRows
@@ -130,6 +134,11 @@ const useStore = create(
 
     const newParsed = processed.map(r => {
       const { _rowNum, _isJunk, ...clean } = r
+      
+      // Hitung sentimen lokal secara instan (untuk placeholder cepat)
+      const isFbValid = clean.feedbackDosen && clean.feedbackDosen.trim().length >= 4;
+      const initialSentiment = isFbValid ? analyzeSentiment(clean.feedbackDosen) : 'neutral';
+
       return {
         timestamp:        clean.timestampResponse,
         tanggal:          clean.tanggal,
@@ -153,7 +162,9 @@ const useStore = create(
         faktorInteraktif: clean.faktorInteraktif,
         moda:             clean.moda,
         sesi:             clean.sesi,
-        semesterConflict: clean.semesterConflict
+        semesterConflict: clean.semesterConflict,
+        sentiment:        initialSentiment,
+        sentimentEnriched: false // Flag untuk mendeteksi apakah sudah di-enrich dengan AI
       }
     })
 
@@ -167,6 +178,66 @@ const useStore = create(
       removedCount: 0
     })
     return newParsed.length
+  },
+
+  enrichSentimentWithAI: async () => {
+    const { parsedData, isSyncingSentiment } = get()
+    if (isSyncingSentiment) return
+
+    // Ambil semua data yang mempunyai feedback valid dan belum di-enrich oleh AI
+    const itemsToSync = parsedData.filter(r => r.feedbackDosen && r.feedbackDosen.trim().length >= 4 && !r.sentimentEnriched)
+    const total = itemsToSync.length
+    if (total === 0) return
+
+    set({ isSyncingSentiment: true, syncProgress: { processed: 0, total } })
+
+    const { analyzeSentimentOnlineBatch } = await import('@/utils/sentimentApi')
+    const updatedData = [...parsedData]
+    const BATCH_SIZE = 10
+
+    for (let i = 0; i < total; i += BATCH_SIZE) {
+      const batch = itemsToSync.slice(i, i + BATCH_SIZE)
+      const texts = batch.map(b => b.feedbackDosen)
+
+      try {
+        const onlineSentiments = await analyzeSentimentOnlineBatch(texts)
+
+        batch.forEach((item, index) => {
+          const onlineVal = onlineSentiments[index]
+          // Temukan indeks item di array utama
+          const idx = updatedData.findIndex(r => 
+            r.feedbackDosen === item.feedbackDosen && 
+            r.namaDosen === item.namaDosen && 
+            r.timestamp === item.timestamp
+          )
+          
+          if (idx !== -1) {
+            updatedData[idx] = {
+              ...updatedData[idx],
+              // Gunakan hasil AI, jika error/null tetap gunakan sentimen lokal sebelumnya
+              sentiment: onlineVal || updatedData[idx].sentiment,
+              sentimentEnriched: true
+            }
+          }
+        })
+
+        // Simpan progress secara bertahap agar UI ter-update secara real-time
+        set({
+          parsedData: [...updatedData],
+          syncProgress: {
+            processed: Math.min(i + BATCH_SIZE, total),
+            total
+          }
+        })
+      } catch (err) {
+        console.error("Gagal melakukan background sync batch:", err)
+      }
+
+      // Berikan jeda antar batch agar tidak memberatkan server/API
+      await new Promise(res => setTimeout(res, 80))
+    }
+
+    set({ isSyncingSentiment: false })
   },
 
   clearData: () => set({ parsedData: [], mappingIssues: [], isLoaded: false, fileName: '' }),

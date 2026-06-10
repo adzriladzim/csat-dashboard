@@ -8,7 +8,7 @@ import clsx from 'clsx'
 const SENTIMEN_FILTER = ['all', 'positive', 'neutral', 'negative']
 
 export default function SentimenPage() {
-  const { getFiltered } = useStore()
+  const { getFiltered, isSyncingSentiment, syncProgress } = useStore()
   const [sentimenFilter, setSentimenFilter] = useState('all')
   const [searchText, setSearchText] = useState('')
   const filtered = getFiltered()
@@ -22,7 +22,7 @@ export default function SentimenPage() {
         text:      r.feedbackDosen.trim(),
         dosen:     r.namaDosen,
         pertemuan: r.pertemuan,
-        sentiment: analyzeSentiment(r.feedbackDosen),
+        sentiment: r.sentiment || analyzeSentiment(r.feedbackDosen),
         mataKuliah:r.mataKuliah,
       }))
   , [filtered])
@@ -79,12 +79,26 @@ export default function SentimenPage() {
   return (
     <div className="p-6 space-y-6 animate-enter">
       <div>
-        <h1 className="font-serif-accent text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
-          Analisis <span style={{ color: 'var(--brand)' }}>Sentimen & Komentar</span>
-        </h1>
-        <p className="text-sm mt-1.5 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
-          Mengekstrak wawasan dari {fmt(allFeedbacks.length)} masukan mahasiswa · Universitas Cakrawala
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="font-serif-accent text-3xl font-extrabold tracking-tight" style={{ color: 'var(--foreground)' }}>
+              Analisis <span style={{ color: 'var(--brand)' }}>Sentimen & Komentar</span>
+            </h1>
+            <p className="text-sm mt-1.5 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
+              Mengekstrak wawasan dari {fmt(allFeedbacks.length)} masukan mahasiswa · Universitas Cakrawala
+            </p>
+          </div>
+
+          {isSyncingSentiment && (
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400 shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+              </span>
+              <span>Sinkronisasi AI: {syncProgress.processed}/{syncProgress.total} komentar</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <FilterBar />
