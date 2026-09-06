@@ -19,7 +19,7 @@ import SEO from "@/components/common/SEO";
 import clsx from "clsx";
 
 export default function UploadPage() {
-  const { parseAndDisplay, loadDummyData, isAnalyzingSentiment, sentimentProgress } = useStore();
+  const { parseAndDisplay, isAnalyzingSentiment, sentimentProgress } = useStore();
   const navigate = useNavigate();
   const inputRef = useRef();
   const [dragging, setDragging] = useState(false);
@@ -107,21 +107,7 @@ export default function UploadPage() {
     process(e.dataTransfer.files[0]);
   };
 
-  const loadDemo = useCallback(async () => {
-    setError("");
-    setStatus("parsing");
-    setProgress(10);
-    try {
-      await loadDummyData();
-      setProgress(100);
-      setInfo({ name: "dummy_feedback.json", count: 100 });
-      setStatus("done");
-      setTimeout(() => navigate("/"), 600);
-    } catch (e) {
-      setError(`Gagal memuat data demo: ${e.message}`);
-      setStatus("error");
-    }
-  }, [loadDummyData, navigate]);
+
 
   return (
     <div
@@ -351,26 +337,6 @@ export default function UploadPage() {
             )}
           </div>
         </div>
-
-        {/* Demo data shortcut — pre-parsed dummy (scripts/generate_dummy.js) */}
-        {(status === "idle" || status === "error") && (
-          <div className="flex items-center gap-3 px-2">
-            <div className="h-px flex-1" style={{ background: "var(--border)" }} />
-            <button
-              onClick={loadDemo}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold border transition-all hover:scale-[1.03]"
-              style={{
-                color: "var(--brand)",
-                borderColor: "var(--brand-border)",
-                background: "var(--brand-dim)",
-              }}
-            >
-              <Sparkles size={13} />
-              Muat Data Demo (100 Responden)
-            </button>
-            <div className="h-px flex-1" style={{ background: "var(--border)" }} />
-          </div>
-        )}
 
         {/* Premium Feature Highlights */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 stagger">
