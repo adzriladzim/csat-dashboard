@@ -167,89 +167,62 @@ export function isValidFeedback(text) {
   return !FB_JUNK_PATTERNS.some(p => p.test(s))
 }
 
-// ── Main parser ────────────────────────────────────────────────────────────
+// ── Main parser (New Google Form structure — Sep 2026) ────────────────────
+// Headers: Timestamp, Email, NIM, Lectures Program, Year of Enrollment,
+// Semester, School, Major, Subject, Class Code, Nama Dosen, Number of Meetings,
+// + 5 pertanyaan skor/teks berbahasa Indonesia.
+// Legacy fallback keyword dipertahankan agar sheet lama masih bisa di-parse.
 export function parseRow(row, headers) {
   const tsRaw = getVal(row, headers, 'Timestamp')
   let tsISO = null
   if (tsRaw) { const d = new Date(tsRaw); if (!isNaN(d)) tsISO = d.toISOString() }
-  const pertemuanRaw = getVal(row, headers, 'Pertemuan ke') || getVal(row, headers, 'Pertemuan')
-  
-  // -- ROBUST EXTRACTION FOR PRODI, MK, KODE KELAS --
-  const prodi1    = cleanText(getVal(row, headers, 'Program Studi'))
-  const prodi2    = cleanText(getVal(row, headers, 'Prodi'))
-  const mk1       = cleanText(getVal(row, headers, 'Mata Kuliah')) || cleanText(getVal(row, headers, 'Matakuliah'))
-  const mk2       = cleanText(getVal(row, headers, 'MK'))
-  const kk1       = cleanText(getVal(row, headers, 'Kode Kelas'))
-  const kk2       = cleanText(getVal(row, headers, 'Sesi')) || cleanText(getVal(row, headers, 'Kelas'))
-  
-  // -- ULTRA-STRICT KEYWORD-SET MATCHING (EXCLUDES FAKTOR/REASONING) --
+
+  // Email (NEW) — validasi ringan, hanya simpan yang berformat email
+  const emailRaw = getVal(row, headers, 'Email')
+  const email = emailRaw.includes('@') ? emailRaw.toLowerCase() : null
+
+  // Number of Meetings: "8 (Midterm Exam)" → 8
+  const pertRaw = getVal(row, headers, 'Number of Meetings') || getVal(row, headers, 'Meeting') || getVal(row, headers, 'Pertemuan')
+  const pertMatch = String(pertRaw ?? '').match(/\d+/)
+  const pertemuan = pertMatch ? parseInt(pertMatch[0], 10) : null
+
+  // Skor: keyword unik per pertanyaan; exclude kolom faktor/alasan (sheet lama)
   const scoreExcludes = ['faktor', 'mengapa', 'alasan', 'sebutkan']
-  
-  const hPemahaman  = getByKeywords(row, headers, ['Seberapa','paham','materi'], scoreExcludes) ||
-                      getByKeywords(row, headers, ['bagaimana','pemahaman','kelas'], scoreExcludes) ||
-                      getByKeywords(row, headers, ['kejelasan','penjelasan','materi'], scoreExcludes)
-                      
-  const hInteraktif = getByKeywords(row, headers, ['Interaktif','komunikasi','dua arah'], scoreExcludes) ||
-                      getByKeywords(row, headers, ['Interaktif','interaksi','moderator'], scoreExcludes)
-                      
-  const hPerforma   = getByKeywords(row, headers, ['Sejauh mana','kepuasan','performa'], scoreExcludes) ||
-                      getByKeywords(row, headers, ['Bagaimana','kepuasan','performa','mengajar'], scoreExcludes) ||
-                      getByKeywords(row, headers, ['Keseluruhan','kepuasan','pembelajaran'], scoreExcludes)
-  
-  // -- INDIVIDUAL ATTRIBUTES (FOR CORRELATION HEATMAP) --
-  const hDisiplin   = getByKeywords(row, headers, ['Kedisiplinan','waktu','presensi'], scoreExcludes)
-  const hKejelasan  = getByKeywords(row, headers, ['Kejelasan','penjelasan','materi'], scoreExcludes)
-  const hPenguasaan = getByKeywords(row, headers, ['Penguasaan','materi','substansi'], scoreExcludes)
-  const hKetuntasan = getByKeywords(row, headers, ['Ketuntasan','seluruh','silabus'], scoreExcludes)
-  const hInteraksi  = getByKeywords(row, headers, ['Interaksi','komunikasi','dua arah'], scoreExcludes)
-  
+  const hPemahaman  = getByKeywords(row, headers, ['pemahaman'], scoreExcludes) ||
+                      getByKeywords(row, headers, ['seberapa', 'paham'], scoreExcludes) // legacy "Seberapa paham kamu terhadap materi"
+  const hInteraktif = getByKeywords(row, headers, ['interaktif'], scoreExcludes)
+  const hPerforma   = getByKeywords(row, headers, ['performa'], scoreExcludes) ||
+                      getByKeywords(row, headers, ['kepuasan'], scoreExcludes)
   const pemahaman  = parseScore(hPemahaman)
   const interaktif = parseScore(hInteraktif)
   const performa   = parseScore(hPerforma)
-  
-  const disiplin   = parseScore(hDisiplin)
-  const kejelasan  = parseScore(hKejelasan)
-  const penguasaan = parseScore(hPenguasaan)
-  const ketuntasan = parseScore(hKetuntasan)
-  const interaksi  = parseScore(hInteraksi)
-  
-  const topikRaw    = getVal(row, headers, 'paham') || getVal(row, headers, 'topik') || getVal(row, headers, 'materi sulit')
-  const topikClean  = cleanText(topikRaw)
-  const feedbackRaw = getVal(row, headers, 'feedback') || getVal(row, headers, 'asaran') || getVal(row, headers, 'masukan') || getVal(row, headers, 'komentar')
-  const fbClean     = cleanText(feedbackRaw)
 
-  // -- Extract Factors from score sentences if present (Blok A style) --
-  const fp1 = cleanText(getVal(row, headers, 'faktor pendorong skor performa')) || extractFaktor(hPerforma)
-  const fp2 = cleanText(getVal(row, headers, 'faktor pendorong skor interaktif')) || extractFaktor(hInteraktif)
+  // Topik: "Topik apa yang masih belum kamu pahami..."
+  const topikRaw   = getByKeywords(row, headers, ['topik']) || getVal(row, headers, 'belum kamu pahami') || getVal(row, headers, 'materi sulit')
+  const topikClean = cleanText(topikRaw)
+
+  // Feedback: "Apakah ada feedback untuk DOSEN hari ini?"
+  const fbClean = cleanText(getVal(row, headers, 'feedback') || getVal(row, headers, 'masukan') || getVal(row, headers, 'komentar'))
+
   return {
-    timestampResponse:  tsISO,
-    tanggal:            tsISO ? tsISO.slice(0, 10) : null,
-    semester:           cleanText(getVal(row, headers, 'Semester Berjalan')) || cleanText(getVal(row, headers, 'Semester')) || null,
-    angkatan:           cleanText(getVal(row, headers, 'Angkatan')) || null,
-    fakultas:           cleanText(getVal(row, headers, 'Fakultas')) || null,
-    namaMahasiswa:      cleanText(getVal(row, headers, 'Nama Mahasiswa')) || null,
-    nim:                cleanText(getVal(row, headers, 'NIM')) || null,
-    prodi:              prodi1 || prodi2 || null,
-    mataKuliah:         normalizeMK(mk1 || mk2),
-    kodeKelas:          normalizeMK(kk1 || kk2),
-    namaDosen:          normalizeName(getVal(row, headers, 'Nama Dosen')),
-    pertemuan: parseInt(pertemuanRaw?.toString().replace(/[^0-9]/g, '')) || null,
-    skorPemahaman:      pemahaman,
-    skorInteraktif:     interaktif,
-    skorPerforma:       performa,
-    csatGabungan:       computeCsat(pemahaman, interaktif, performa),
-    // Detailed attributes
-    skorDisiplin:       disiplin,
-    skorKejelasan:      kejelasan,
-    skorPenguasaan:     penguasaan,
-    skorKetuntasan:     ketuntasan,
-    skorInteraksi:      interaksi,
-    topikBelumPaham:    (topikClean && isValidTopik(topikClean)) ? topikClean : null,
-    feedbackDosen:      (fbClean && isValidFeedback(fbClean)) ? fbClean : null,
-    faktorPerforma:     fp1,
-    faktorInteraktif:   fp2,
-    moda:               cleanText(getExact(row, headers, 'Moda')) || cleanText(getVal(row, headers, 'Delivery')) || null,
-    sesi:               cleanText(getExact(row, headers, 'Sesi')) || cleanText(getExact(row, headers, 'Shift')) || cleanText(getExact(row, headers, 'Waktu')) || null,
-    semesterConflict:   (String(tsRaw).toLowerCase().includes('genap') || true) && String(getVal(row, headers, 'Semester')).toLowerCase().includes('ganjil')
+    timestampResponse: tsISO,
+    tanggal:           tsISO ? tsISO.slice(0, 10) : null,
+    email,
+    nim:               cleanText(getVal(row, headers, 'NIM')) || null,
+    lecturesProgram:   cleanText(getVal(row, headers, 'Lectures Program')) || cleanText(getVal(row, headers, 'Moda')) || null,
+    angkatan:          cleanText(getVal(row, headers, 'Year of Enrollment')) || cleanText(getVal(row, headers, 'Angkatan')) || null,
+    semester:          cleanText(getVal(row, headers, 'Semester')) || null,
+    school:            cleanText(getVal(row, headers, 'School')) || cleanText(getVal(row, headers, 'Fakultas')) || null,
+    major:             cleanText(getVal(row, headers, 'Major')) || cleanText(getVal(row, headers, 'Program Studi')) || null,
+    mataKuliah:        normalizeMK(getVal(row, headers, 'Subject') || getVal(row, headers, 'Mata Kuliah')),
+    kodeKelas:         normalizeMK(getVal(row, headers, 'Class Code') || getVal(row, headers, 'Kode Kelas')),
+    namaDosen:         normalizeName(getVal(row, headers, 'Nama Dosen')),
+    pertemuan,
+    skorPemahaman:     pemahaman,
+    skorInteraktif:    interaktif,
+    skorPerforma:      performa,
+    csatGabungan:      computeCsat(pemahaman, interaktif, performa),
+    topikBelumPaham:   (topikClean && isValidTopik(topikClean)) ? topikClean : null,
+    feedbackDosen:     (fbClean && isValidFeedback(fbClean)) ? fbClean : null,
   }
 }

@@ -62,7 +62,7 @@ export default function WeeklyAnalysisPage() {
                     <td>
                       <p className="font-bold text-[var(--foreground)] leading-tight">{d.namaDosen}</p>
                       <p className="text-[10px] text-[var(--muted)] font-medium mt-0.5 truncate max-w-[200px] uppercase tracking-tighter">
-                        {d.prodi || 'Staf Pengajar'}
+                        {d.major || 'Staf Pengajar'}
                       </p>
                     </td>
                     <td className="text-left font-mono font-bold" style={{ color: 'var(--accent-sapphire)' }}>
@@ -105,7 +105,7 @@ export default function WeeklyAnalysisPage() {
                     <td>
                       <p className="font-bold text-[var(--foreground)] leading-tight">{d.namaDosen}</p>
                       <p className="text-[10px] text-[var(--muted)] font-medium mt-0.5 truncate max-w-[200px] uppercase tracking-tighter">
-                        {d.prodi || 'Staf Pengajar'}
+                        {d.major || 'Staf Pengajar'}
                       </p>
                     </td>
                     <td className="text-left font-mono font-bold" style={{ color: 'var(--accent-sapphire)' }}>

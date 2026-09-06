@@ -94,7 +94,6 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
 
   // Data extraction for Header
   const firstRow = data.rows?.[0] || {}
-  const prodi = data.prodi || (dosenData && dosenData.prodi) || '–'
   const resp = data.totalRespon || 0
   const mk = data.mataKuliah || (dosenData && dosenData.mataKuliah) || '–'
   
@@ -374,7 +373,7 @@ export async function exportDashboardPDF(dosenList) {
     pdf.setDrawColor(...C.brand); pdf.setLineWidth(0.5); pdf.line(14, y, 65, y); y += 6
 
     const top10 = dosenList.slice(0, 10).sort((a,b)=>(b.csatGabungan||0)-(a.csatGabungan||0))
-    const cols = [['Rank', 10], ['Nama Dosen', 75], ['Program Studi', 75], ['CSAT', 18], ['Performa', 20], ['Pemahaman', 22], ['Interaktif', 20], ['Jumlah Responden', 15]]
+    const cols = [['Rank', 10], ['Nama Dosen', 75], ['Major', 75], ['CSAT', 18], ['Performa', 20], ['Pemahaman', 22], ['Interaktif', 20], ['Jumlah Responden', 15]]
     
     const drawHdr = (yy) => {
       pdf.setFillColor(...C.brand); pdf.rect(14, yy, W - 28, 9, 'F')
@@ -385,8 +384,8 @@ export async function exportDashboardPDF(dosenList) {
     drawHdr(y); y += 10
     top10.forEach((d, i) => {
       const namaLines = pdf.splitTextToSize(d.namaDosen || '–', 72)
-      const prodiLines = pdf.splitTextToSize(d.prodi || '–', 72)
-      const rowH = Math.max(namaLines.length, prodiLines.length) * 4 + 4
+      const majorLines = pdf.splitTextToSize(d.major || '–', 72)
+      const rowH = Math.max(namaLines.length, majorLines.length) * 4 + 4
       
       pdf.setFillColor(255,255,255); pdf.rect(14, y, W - 28, rowH, 'F')
       if (i < 3) { // Highlight top 3
@@ -399,7 +398,7 @@ export async function exportDashboardPDF(dosenList) {
       let cx = 16; 
       pdf.text(String(i + 1), cx, y + 5); cx += 10; 
       pdf.text(namaLines, cx, y + 5); cx += 75; 
-      pdf.text(prodiLines, cx, y + 5); cx += 75
+      pdf.text(majorLines, cx, y + 5); cx += 75
       ;[d.csatGabungan, d.skorPerforma, d.skorPemahaman, d.skorInteraktif].forEach((s, si) => {
         pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...(si === 0 ? C.sapphire : C.dark)); 
         pdf.text(fmt(s), cx, y + 5); cx += [18, 20, 22, 20][si]
@@ -419,8 +418,8 @@ export async function exportDashboardPDF(dosenList) {
     drawHdr(y); y += 10
     dosenList.forEach((d, i) => {
       const namaLines = pdf.splitTextToSize(d.namaDosen || '–', 72)
-      const prodiLines = pdf.splitTextToSize(d.prodi || '–', 72)
-      const rowH = Math.max(namaLines.length, prodiLines.length) * 4 + 4
+      const majorLines = pdf.splitTextToSize(d.major || '–', 72)
+      const rowH = Math.max(namaLines.length, majorLines.length) * 4 + 4
 
       if (y + rowH > H - 15) {
         pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(`Hal. ${pdf.internal.getNumberOfPages()}`,W/2,H-4,{align:'center'})
@@ -431,7 +430,7 @@ export async function exportDashboardPDF(dosenList) {
       let cx = 16; 
       pdf.text(String(i + 1), cx, y + 5); cx += 10; 
       pdf.text(namaLines, cx, y + 5); cx += 75; 
-      pdf.text(prodiLines, cx, y + 5); cx += 75
+      pdf.text(majorLines, cx, y + 5); cx += 75
       ;[d.csatGabungan, d.skorPerforma, d.skorPemahaman, d.skorInteraktif].forEach((s, si) => {
         pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...(si === 0 ? C.sapphire : C.dark)); 
         pdf.text(fmt(s), cx, y + 5); cx += [18, 20, 22, 20][si]
@@ -450,8 +449,8 @@ export async function exportDashboardPDF(dosenList) {
 export async function exportDosenExcel(dosenList) {
   const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.map((d,i)=>({'Rank':i+1,'Nama Dosen':d.namaDosen,'Program Studi':d.prodi,'Mata Kuliah':d.mataKuliah,'Kode Kelas':d.kodeKelas,'CSAT Gabungan':d.csatGabungan,'Performa Dosen':d.skorPerforma,'Pemahaman Materi':d.skorPemahaman,'Interaktivitas':d.skorInteraktif,'Total Responden':d.totalRespon,'Status':scoreLabel(d.csatGabungan)}))), 'Ranking Dosen')
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.flatMap(d=>d.rows.map(r=>({'Timestamp':formatDate(r.timestamp, true),' Nama Dosen':r.namaDosen,'Prodi':r.prodi,'Mata Kuliah':r.mataKuliah,'Kode Kelas':r.kodeKelas,'Pertemuan':r.pertemuan,'CSAT':r.csatGabungan,'Performa':r.skorPerforma,'Pemahaman':r.skorPemahaman,'Interaktivitas':r.skorInteraktif,'Feedback':r.feedbackDosen,'Topik Belum Paham':r.topikBelumPaham})))), 'Data Detail')
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.map((d,i)=>({'Rank':i+1,'Nama Dosen':d.namaDosen,'Major':d.major,'Mata Kuliah':d.mataKuliah,'Kode Kelas':d.kodeKelas,'CSAT Gabungan':d.csatGabungan,'Performa Dosen':d.skorPerforma,'Pemahaman Materi':d.skorPemahaman,'Interaktivitas':d.skorInteraktif,'Total Responden':d.totalRespon,'Status':scoreLabel(d.csatGabungan)}))), 'Ranking Dosen')
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.flatMap(d=>d.rows.map(r=>({'Timestamp':formatDate(r.timestamp, true),' Nama Dosen':r.namaDosen,'Major':r.major,'Mata Kuliah':r.mataKuliah,'Kode Kelas':r.kodeKelas,'Pertemuan':r.pertemuan,'CSAT':r.csatGabungan,'Performa':r.skorPerforma,'Pemahaman':r.skorPemahaman,'Interaktivitas':r.skorInteraktif,'Feedback':r.feedbackDosen,'Topik Belum Paham':r.topikBelumPaham})))), 'Data Detail')
   const localDate = formatDate(new Date())
   XLSX.writeFile(wb, `CSAT_Export_${localDate}.xlsx`)
 }
@@ -459,7 +458,7 @@ export async function exportDosenExcel(dosenList) {
 export async function exportSingleDosenExcel(dosenData) {
   const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{'Nama Dosen':dosenData.namaDosen,'Program Studi':dosenData.prodi,'Mata Kuliah':dosenData.mataKuliah,'CSAT Gabungan':dosenData.csatGabungan,'Performa Dosen':dosenData.skorPerforma,'Pemahaman Materi':dosenData.skorPemahaman,'Interaktivitas':dosenData.skorInteraktif,'Total Responden':dosenData.totalRespon}]),'Ringkasan')
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{'Nama Dosen':dosenData.namaDosen,'Major':dosenData.major,'Mata Kuliah':dosenData.mataKuliah,'CSAT Gabungan':dosenData.csatGabungan,'Performa Dosen':dosenData.skorPerforma,'Pemahaman Materi':dosenData.skorPemahaman,'Interaktivitas':dosenData.skorInteraktif,'Total Responden':dosenData.totalRespon}]),'Ringkasan')
   if (dosenData.pertemuanTrend?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.pertemuanTrend.map(t=>({'Pertemuan':t.pertemuan,'CSAT':t.csat,'Responden':t.count}))),'Tren Pertemuan')
   if (dosenData.kelasList?.length>1) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.kelasList.map(k=>({'Kode Kelas':k.kodeKelas,'Mata Kuliah':k.mataKuliah,'CSAT':k.csatGabungan,'Performa':k.skorPerforma,'Pemahaman':k.skorPemahaman,'Interaktivitas':k.skorInteraktif,'Responden':k.totalRespon}))),'Per Kelas')
   if (dosenData.feedbacks?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenData.feedbacks.map(f=>({'Komentar':f,'Sentimen':analyzeSentiment(f)}))),'Komentar')

@@ -14,7 +14,7 @@ export default function StudentAnalysisPage() {
   
   // Local Filters
   const [search, setSearch] = useState('')
-  const [prodiFilter, setProdiFilter] = useState('all')
+  const [majorFilter, setMajorFilter] = useState('all')
   const [dosenFilter, setDosenFilter] = useState('all')
   const [pertemuanFilter, setPertemuanFilter] = useState('all')
   const [sortConfig, setSortConfig] = useState({ key: 'skorPerforma', direction: 'asc' })
@@ -29,15 +29,16 @@ export default function StudentAnalysisPage() {
     if (search) {
       const q = search.toLowerCase()
       base = base.filter(r => 
-        (r.namaMahasiswa || '').toLowerCase().includes(q) ||
+        String(r.nim    || '').toLowerCase().includes(q) ||
+        String(r.email  || '').toLowerCase().includes(q) ||
         (r.namaDosen     || '').toLowerCase().includes(q) ||
         (r.mataKuliah    || '').toLowerCase().includes(q) ||
         (r.feedbackDosen || '').toLowerCase().includes(q)
       )
     }
 
-    if (prodiFilter !== 'all') {
-      base = base.filter(r => r.prodi === prodiFilter)
+    if (majorFilter !== 'all') {
+      base = base.filter(r => r.major === majorFilter)
     }
 
     if (dosenFilter !== 'all') {
@@ -64,9 +65,9 @@ export default function StudentAnalysisPage() {
     }
 
     return base
-  }, [data, search, prodiFilter, dosenFilter, pertemuanFilter, sortConfig])
+  }, [data, search, majorFilter, dosenFilter, pertemuanFilter, sortConfig])
 
-  const prodiList = useMemo(() => [...new Set(data.map(r => r.prodi).filter(Boolean))].sort(), [data])
+  const majorList = useMemo(() => [...new Set(data.map(r => r.major).filter(Boolean))].sort(), [data])
   const dosenList = useMemo(() => [...new Set(data.map(r => r.namaDosen).filter(Boolean))].sort(), [data])
   const pertemuanList = useMemo(() => {
     return [...new Set(data.map(r => r.pertemuan).filter(v => v !== null && v !== undefined))]
@@ -79,13 +80,13 @@ export default function StudentAnalysisPage() {
   const fmt = globalFmt
 
   const handleExportCSV = () => {
-    const headers = ["Pertemuan", "Nama Mahasiswa", "Dosen", "Mata Kuliah", "Prodi", "Performa", "Pemahaman", "Interaktif", "Feedback", "Topik Sulit"]
+    const headers = ["Pertemuan", "NIM", "Dosen", "Mata Kuliah", "Major", "Performa", "Pemahaman", "Interaktif", "Feedback", "Topik Sulit"]
     const rows = criticalFeedbacks.map(r => [
       r.pertemuan,
-      r.namaMahasiswa || 'Anonim',
+      r.nim || r.email || 'Anonim',
       r.namaDosen,
       `"${r.mataKuliah}"`,
-      r.prodi,
+      r.major,
       r.skorPerforma,
       r.skorPemahaman,
       r.skorInteraktif,
@@ -127,7 +128,7 @@ export default function StudentAnalysisPage() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)] group-focus-within:text-[var(--brand)] transition-colors" size={16} />
             <input 
               type="text" 
-              placeholder="Mahasiswa/Dosen/Komentar..." 
+               placeholder="NIM/Email/Dosen/Komentar..." 
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--brand)] outline-none text-sm font-medium transition-all"
@@ -156,16 +157,16 @@ export default function StudentAnalysisPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1">Program Studi</label>
+          <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1">Major</label>
           <div className="relative">
             <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={15} />
             <select 
-              value={prodiFilter}
-              onChange={e => { setProdiFilter(e.target.value); setPage(1) }}
+              value={majorFilter}
+              onChange={e => { setMajorFilter(e.target.value); setPage(1) }}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-[var(--brand)] outline-none text-sm font-bold transition-all appearance-none"
             >
-              <option value="all">Semua Program Studi</option>
-              {prodiList.map(p => <option key={p} value={p}>{p}</option>)}
+              <option value="all">Semua Major</option>
+              {majorList.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
         </div>
@@ -200,7 +201,7 @@ export default function StudentAnalysisPage() {
                     {sortConfig.key === 'pertemuan' ? (sortConfig.direction === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>) : <ArrowUpDown size={12} className="opacity-20 group-hover:opacity-100"/>}
                   </div>
                 </th>
-                <th className="px-6 py-4">Nama Mahasiswa</th>
+                <th className="px-6 py-4">NIM / Email</th>
                 <th className="px-6 py-4">Dosen</th>
                 <th className="px-6 py-4">Mata Kuliah</th>
                 
@@ -254,8 +255,8 @@ export default function StudentAnalysisPage() {
                        </span>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-sm font-bold text-[var(--foreground)]">{r.namaMahasiswa || 'Anonim'}</p>
-                      <p className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wide mt-0.5">{r.prodi}</p>
+                      <p className="text-sm font-bold text-[var(--foreground)]">{r.nim || r.email || 'Anonim'}</p>
+                      <p className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wide mt-0.5">{r.major}</p>
                     </td>
                     <td className="px-6 py-4 text-[13px] text-[var(--muted)] max-w-[180px] truncate">{r.namaDosen}</td>
                     <td className="px-6 py-4 text-[11px] font-mono text-[var(--brand)] max-w-[180px] truncate">{r.mataKuliah}</td>

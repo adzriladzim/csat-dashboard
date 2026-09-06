@@ -17,12 +17,12 @@ export default function StrategicAnalysisPage() {
   const { getFiltered } = useStore();
   const filtered = getFiltered();
 
-  // 1. Perbandingan Atribut per Fakultas
-  const fakultasData = useMemo(() => {
+  // 1. Perbandingan Atribut per School
+  const schoolData = useMemo(() => {
     const map = {};
     filtered.forEach((r) => {
-      if (!r.fakultas) return;
-      const f = r.fakultas.trim();
+      if (!r.school) return;
+      const f = r.school.trim();
       if (!map[f]) map[f] = { name: f, p: [], m: [], i: [] };
       if (r.skorPemahaman) map[f].m.push(r.skorPemahaman);
       if (r.skorInteraktif) map[f].i.push(r.skorInteraktif);
@@ -53,12 +53,12 @@ export default function StrategicAnalysisPage() {
       }));
   }, [filtered]);
 
-  // 3. CSAT per Program Studi
-  const prodiData = useMemo(() => {
+  // 3. CSAT per Major
+  const majorData = useMemo(() => {
     const map = {};
     filtered.forEach((r) => {
-      if (!r.prodi) return;
-      const p = r.prodi.trim();
+      if (!r.major) return;
+      const p = r.major.trim();
       if (!map[p]) map[p] = [];
       map[p].push(r.csatGabungan);
     });
@@ -68,29 +68,12 @@ export default function StrategicAnalysisPage() {
       .slice(0, 10);
   }, [filtered]);
 
-  // 4. Analisis Berdasarkan Sesi Kuliah
-  const sesiData = useMemo(() => {
+  // 4. CSAT Online vs. On-site/Offline
+  const programData = useMemo(() => {
     const map = {};
     filtered.forEach((r) => {
-      if (!r.sesi) return;
-      const s = r.sesi.trim();
-      if (!map[s]) map[s] = [];
-      map[s].push(r.csatGabungan);
-    });
-    return Object.entries(map)
-      .map(([label, vals]) => ({
-        label,
-        count: avg(vals),
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [filtered]);
-
-  // 5. CSAT Onsite vs. Online
-  const modaData = useMemo(() => {
-    const map = {};
-    filtered.forEach((r) => {
-      if (!r.moda) return;
-      const m = r.moda.trim();
+      if (!r.lecturesProgram) return;
+      const m = r.lecturesProgram.trim();
       if (!map[m]) map[m] = [];
       map[m].push(r.csatGabungan);
     });
@@ -173,7 +156,7 @@ export default function StrategicAnalysisPage() {
     <div className="p-4 md:p-8 space-y-8 animate-enter">
       <SEO
         title="Analisis Strategis Institusi"
-        description="Tinjauan mendalam performa akademik antar Fakultas, Angkatan, dan Program Studi berbasis Data Intelligence."
+        description="Tinjauan mendalam performa akademik antar School, Angkatan, dan Major berbasis Data Intelligence."
       />
       <div className="flex flex-col gap-1">
         <h1
@@ -183,8 +166,8 @@ export default function StrategicAnalysisPage() {
           Analisis <span style={{ color: "var(--brand)" }}>Strategis</span>
         </h1>
         <p className="text-sm md:text-base font-medium text-[var(--muted)]">
-          Tinjauan institusi mendalam: membedah performa antar Fakultas,
-          Angkatan, dan Program Studi.
+          Tinjauan institusi mendalam: membedah performa antar School,
+          Angkatan, dan Major.
         </p>
       </div>
 
@@ -192,12 +175,12 @@ export default function StrategicAnalysisPage() {
 
 
       <div className="grid grid-cols-1 gap-8">
-        {/* Fakultas Section - Extra Tall */}
+        {/* School Section - Extra Tall */}
         <div className="card p-8">
           <h2 className="section-title mb-8">
-            Perbandingan Atribut per Fakultas
+            Perbandingan Atribut per School
           </h2>
-          <GroupedBarChart data={fakultasData} height={450} />
+          <GroupedBarChart data={schoolData} height={450} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -206,22 +189,14 @@ export default function StrategicAnalysisPage() {
             <DistributionBar data={angkatanData} height={400} />
           </div>
           <div className="card p-8">
-            <h2 className="section-title mb-8">CSAT per Program Studi</h2>
-            <RankingBarChart data={prodiData} height={400} />
+            <h2 className="section-title mb-8">CSAT per Major</h2>
+            <RankingBarChart data={majorData} height={400} />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="card p-8">
-            <h2 className="section-title mb-8">
-              Analisis Berdasarkan Sesi Kuliah
-            </h2>
-            <DistributionBar data={sesiData} height={400} />
-          </div>
-          <div className="card p-8">
-            <h2 className="section-title mb-8">CSAT Onsite vs. Online</h2>
-            <DistributionBar data={modaData} height={400} />
-          </div>
+        <div className="card p-8">
+          <h2 className="section-title mb-8">CSAT Online vs. On-site/Offline</h2>
+          <DistributionBar data={programData} height={400} />
         </div>
 
         <div className="card p-8">

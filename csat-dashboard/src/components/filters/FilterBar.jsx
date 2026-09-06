@@ -2,25 +2,35 @@ import { Search, X } from 'lucide-react'
 import useStore from '@/lib/store'
 
 export default function FilterBar({ showFull = false }) {
-  const { filters, setFilter, resetFilters, getDosenList, getProdiList, getMatkulList, getPertemuanList, getKelasList } = useStore()
+  const { filters, setFilter, resetFilters, getDosenList, getSchoolList, getMajorList, getMatkulList, getPertemuanList, getKelasList } = useStore()
   const dosenList     = getDosenList()
-  const prodiList     = getProdiList()
+  const schoolList    = getSchoolList()
+  const majorList     = getMajorList()
   const matkulList    = getMatkulList()
   const pertemuanList = getPertemuanList()
   const kelasList    = getKelasList()
 
-  const hasActive = filters.matkul !== 'all' || filters.prodi !== 'all' || filters.dosen !== 'all' ||
-                    filters.pertemuan !== 'all' || !!filters.dateFrom || !!filters.dateTo
+  const hasActive = filters.matkul !== 'all' || filters.school !== 'all' || filters.major !== 'all' ||
+                    filters.dosen !== 'all' || filters.pertemuan !== 'all' || !!filters.dateFrom || !!filters.dateTo
 
   return (
     <div className="card p-4 sm:p-5">
       <div className="flex flex-wrap gap-x-4 gap-y-5 items-end">
-        {/* Program Studi */}
+        {/* School */}
         <div className="flex-1 min-w-[160px] max-w-[240px] space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Program Studi</label>
-          <select value={filters.prodi} onChange={e=>setFilter('prodi',e.target.value)} className="input w-full text-xs font-bold">
-            <option value="all">Semua Prodi</option>
-            {prodiList.map(p=><option key={p} value={p}>{p}</option>)}
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">School</label>
+          <select value={filters.school} onChange={e=>setFilter('school',e.target.value)} className="input w-full text-xs font-bold">
+            <option value="all">Semua School</option>
+            {schoolList.map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+
+        {/* Major */}
+        <div className="flex-1 min-w-[160px] max-w-[240px] space-y-1.5">
+          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Major</label>
+          <select value={filters.major} onChange={e=>setFilter('major',e.target.value)} className="input w-full text-xs font-bold">
+            <option value="all">Semua Major</option>
+            {majorList.map(m=><option key={m} value={m}>{m}</option>)}
           </select>
         </div>
 

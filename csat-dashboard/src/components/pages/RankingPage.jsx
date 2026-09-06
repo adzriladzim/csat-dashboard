@@ -155,7 +155,7 @@ export default function RankingPage() {
             <thead>
               <tr>
                 <th className="w-10 sm:w-12 text-center">Rank</th>
-                <th className="min-w-[140px]">Dosen & Prodi</th>
+                <th className="min-w-[140px]">Dosen & Major</th>
                 {Object.entries(SORT_FIELDS).map(([key, label]) => (
                   <th
                     key={key}
@@ -203,7 +203,7 @@ export default function RankingPage() {
                       className="text-[10px] sm:text-[11px] font-medium mt-1 opacity-60 uppercase tracking-wide truncate max-w-[120px] sm:max-w-[240px]"
                       style={{ color: "var(--muted)" }}
                     >
-                      {d.prodi || d.mataKuliah || "Staf Pengajar"}
+                      {d.major || d.mataKuliah || "Staf Pengajar"}
                     </p>
                   </td>
                     <td>

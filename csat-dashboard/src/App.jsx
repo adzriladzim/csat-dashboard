@@ -61,6 +61,13 @@ export default function App() {
     }
   }, [isLoaded, hasHydrated, enrichSentimentWithAI, parsedData.length]);
 
+  // Auto-load dummy data when no data after hydration
+  useEffect(() => {
+    if (hasHydrated && !isLoaded && parsedData.length === 0) {
+      useStore.getState().loadDummyData();
+    }
+  }, [hasHydrated, isLoaded, parsedData.length]);
+
   if (!hasHydrated) {
     return <PageLoader />;
   }

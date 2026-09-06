@@ -77,6 +77,29 @@ const generateID = (r) => {
   return base.slice(0, 150)
 }
 
+// Shared filter matcher — skip = daftar key filter yang dikecualikan getter ini.
+// Key undefined/'all' dianggap nonaktif (aman utk state IndexedDB lama tanpa key baru).
+const matchFilters = (r, filters, skip = []) => {
+  const REC = { matkul: 'mataKuliah', school: 'school', major: 'major', prodi: 'prodi', dosen: 'namaDosen', kelas: 'kodeKelas', pertemuan: 'pertemuan' }
+  for (const k of Object.keys(REC)) {
+    if (skip.includes(k)) continue
+    const v = filters[k]
+    if (!v || v === 'all') continue
+    if (k === 'pertemuan' ? String(r[REC[k]]) !== String(v) : r[REC[k]] !== v) return false
+  }
+  if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
+  if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
+    const end = new Date(filters.dateTo)
+    end.setHours(23, 59, 59, 999)
+    if (new Date(r.timestamp) > end) return false
+  }
+  return true
+}
+const listValues = (get, field, skip) => {
+  const { parsedData, filters } = get()
+  return [...new Set(parsedData.filter(r => matchFilters(r, filters, skip)).map(r => r[field]).filter(Boolean))].sort()
+}
+
 const useStore = create(
   persist(
     (set, get) => ({
@@ -88,7 +111,7 @@ const useStore = create(
   mappingAccuracy: 0,
   removedCount: 0,
   lastUpdated: null,
-  version:     '1.2.3',
+  version:     '1.3.0',
   hasHydrated: false,
   setHasHydrated: (hasHydrated) => set({ hasHydrated }),
   isSyncingSentiment: false,
@@ -106,7 +129,7 @@ const useStore = create(
         const reasons = []
         if (!parsed.namaDosen) reasons.push('Dosen Kosong')
         if (!parsed.mataKuliah) reasons.push('Mata Kuliah Kosong')
-        if (!parsed.prodi) reasons.push('Prodi Kosong')
+        if (!parsed.major) reasons.push('Major Kosong')
         if (parsed.csatGabungan === null) reasons.push('Skor Tidak Valid')
 
         if (reasons.length > 0) {
@@ -115,9 +138,9 @@ const useStore = create(
             alasan: reasons.join(', '),
             timestamp: parsed.timestampResponse || '-',
             dosenRaw: (r['Nama Dosen'] || r['Dosen'] || '-').toString().trim(),
-            mkRaw: (r['Mata Kuliah'] || r['Matakuliah'] || r['MK'] || '-').toString().trim(),
-            fakultas: parsed.fakultas || '-',
-            prodi: parsed.prodi || '-',
+            mkRaw: (r['Subject'] || r['Mata Kuliah'] || r['Matakuliah'] || r['MK'] || '-').toString().trim(),
+            school: parsed.school || '-',
+            major: parsed.major || '-',
             isDosenEmpty: !parsed.namaDosen,
             isMKEmpty: !parsed.mataKuliah
           })
@@ -142,12 +165,13 @@ const useStore = create(
       return {
         timestamp:        clean.timestampResponse,
         tanggal:          clean.tanggal,
-        namaMahasiswa:    clean.namaMahasiswa,
+        email:            clean.email,
         nim:              clean.nim,
         angkatan:         clean.angkatan,
         semester:         clean.semester,
-        fakultas:         clean.fakultas,
-        prodi:            clean.prodi,
+        school:           clean.school,
+        major:            clean.major,
+        lecturesProgram:  clean.lecturesProgram,
         mataKuliah:       clean.mataKuliah,
         kodeKelas:        clean.kodeKelas,
         namaDosen:        clean.namaDosen,
@@ -158,11 +182,10 @@ const useStore = create(
         csatGabungan:     clean.csatGabungan,
         topikBelumPaham:  clean.topikBelumPaham,
         feedbackDosen:    clean.feedbackDosen,
-        faktorPerforma:   clean.faktorPerforma,
-        faktorInteraktif: clean.faktorInteraktif,
-        moda:             clean.moda,
-        sesi:             clean.sesi,
-        semesterConflict: clean.semesterConflict,
+        // ponytail: alias utk halaman lama (FilterBar/Strategic/Student) yg masih baca
+        // key fakultas/prodi. Hapus saat semua page pindah ke school/major.
+        fakultas:         clean.school,
+        prodi:            clean.major,
         sentiment:        initialSentiment,
         sentimentEnriched: false // Flag untuk mendeteksi apakah sudah di-enrich dengan AI
       }
@@ -240,146 +263,56 @@ const useStore = create(
     set({ isSyncingSentiment: false })
   },
 
+  // Dummy/pre-parsed data (public/dummy_feedback.json, dari scripts/generate_dummy.js).
+  // Set parsedData langsung — tidak lewat parseRow karena sudah dalam format parsed.
+  loadDummyData: async () => {
+    const res = await fetch('/dummy_feedback.json')
+    if (!res.ok) throw new Error(`Gagal memuat data demo (${res.status})`)
+    const rows = await res.json()
+    const newParsed = rows.map((r) => ({ ...r, fakultas: r.school, prodi: r.major }))
+    set({
+      parsedData: newParsed,
+      mappingIssues: [],
+      isLoaded: true,
+      fileName: 'dummy_feedback.json',
+      rawCount: newParsed.length,
+      mappingAccuracy: 100,
+      removedCount: 0,
+    })
+    return newParsed.length
+  },
+
   clearData: () => set({ parsedData: [], mappingIssues: [], isLoaded: false, fileName: '' }),
 
   filters: {
-    matkul: 'all', prodi: 'all', dosen: 'all', kelas: 'all',
+    matkul: 'all', prodi: 'all', major: 'all', school: 'all', dosen: 'all', kelas: 'all',
     pertemuan: 'all', dateFrom: '', dateTo: '',
   },
 
   setFilter:    (key, value) => set(s => ({ filters: { ...s.filters, [key]: value } })),
-  resetFilters: () => set({ filters: { matkul: 'all', prodi: 'all', dosen: 'all', kelas: 'all', pertemuan: 'all', dateFrom: '', dateTo: '' } }),
+  resetFilters: () => set({ filters: { matkul: 'all', prodi: 'all', major: 'all', school: 'all', dosen: 'all', kelas: 'all', pertemuan: 'all', dateFrom: '', dateTo: '' } }),
 
   getFiltered: () => {
     const { parsedData, filters } = get()
-    return parsedData.filter(r => {
-      if (filters.matkul    !== 'all' && r.mataKuliah !== filters.matkul) return false
-      if (filters.prodi     !== 'all' && r.prodi     !== filters.prodi)    return false
-      if (filters.dosen     !== 'all' && r.namaDosen !== filters.dosen)    return false
-      if (filters.kelas     !== 'all' && r.kodeKelas !== filters.kelas)    return false
-      if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
-      if (filters.dateFrom  && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-      if (filters.dateTo    && r.timestamp && r.timestamp !== '-') {
-        const end = new Date(filters.dateTo)
-        end.setHours(23, 59, 59, 999)
-        if (new Date(r.timestamp) > end) return false
-      }
-      return true
-    })
+    return parsedData.filter(r => matchFilters(r, filters))
   },
 
   getFilteredExceptPertemuan: () => {
     const { parsedData, filters } = get()
-    return parsedData.filter(r => {
-      if (filters.matkul    !== 'all' && r.mataKuliah !== filters.matkul) return false
-      if (filters.prodi     !== 'all' && r.prodi     !== filters.prodi)    return false
-      if (filters.dosen     !== 'all' && r.namaDosen !== filters.dosen)    return false
-      if (filters.kelas     !== 'all' && r.kodeKelas !== filters.kelas)    return false
-      if (filters.dateFrom  && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-      if (filters.dateTo    && r.timestamp && r.timestamp !== '-') {
-        const end = new Date(filters.dateTo)
-        end.setHours(23, 59, 59, 999)
-        if (new Date(r.timestamp) > end) return false
-      }
-      return true
-    })
+    return parsedData.filter(r => matchFilters(r, filters, ['pertemuan']))
   },
 
-  getDosenList: () => {
-    const { parsedData, filters } = get()
-    const subset = parsedData.filter(r => {
-      if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
-      if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
-      if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
-      if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
-      
-      // Date filtering
-      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
-        const end = new Date(filters.dateTo)
-        end.setHours(23, 59, 59, 999)
-        if (new Date(r.timestamp) > end) return false
-      }
-      return true
-    })
-    return [...new Set(subset.map(r => r.namaDosen).filter(Boolean))].sort()
-  },
-  getProdiList: () => {
-    const { parsedData, filters } = get()
-    const subset = parsedData.filter(r => {
-      if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
-      if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
-      if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
-      if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
-
-      // Date filtering
-      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
-        const end = new Date(filters.dateTo)
-        end.setHours(23, 59, 59, 999)
-        if (new Date(r.timestamp) > end) return false
-      }
-      return true
-    })
-    return [...new Set(subset.map(r => r.prodi).filter(Boolean))].sort()
-  },
-  getMatkulList: () => {
-    const { parsedData, filters } = get()
-    const subset = parsedData.filter(r => {
-      if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
-      if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
-      if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
-      if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
-
-      // Date filtering
-      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
-        const end = new Date(filters.dateTo)
-        end.setHours(23, 59, 59, 999)
-        if (new Date(r.timestamp) > end) return false
-      }
-      return true
-    })
-    return [...new Set(subset.map(r => r.mataKuliah).filter(Boolean))].sort()
-  },
+  getDosenList: () => listValues(get, 'namaDosen', ['dosen']),
+  getMajorList: () => listValues(get, 'major', ['major', 'prodi']),
+  // Backward-compat: FilterBar lama masih panggil getProdiList
+  getProdiList: () => listValues(get, 'major', ['major', 'prodi']),
+  getSchoolList: () => listValues(get, 'school', ['school']),
+  getMatkulList: () => listValues(get, 'mataKuliah', ['matkul']),
   getPertemuanList: () => {
     const { parsedData, filters } = get()
-    const subset = parsedData.filter(r => {
-      if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
-      if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
-      if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
-      if (filters.kelas !== 'all' && r.kodeKelas !== filters.kelas) return false
-
-      // Date filtering
-      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
-        const end = new Date(filters.dateTo)
-        end.setHours(23, 59, 59, 999)
-        if (new Date(r.timestamp) > end) return false
-      }
-      return true
-    })
-    return [...new Set(subset.map(r => r.pertemuan).filter(Boolean))].sort((a,b)=>a-b)
+    return [...new Set(parsedData.filter(r => matchFilters(r, filters, ['pertemuan'])).map(r => r.pertemuan).filter(Boolean))].sort((a,b)=>a-b)
   },
-  getKelasList: () => {
-    const { parsedData, filters } = get()
-    const subset = parsedData.filter(r => {
-      if (filters.matkul !== 'all' && r.mataKuliah !== filters.matkul) return false
-      if (filters.dosen !== 'all' && r.namaDosen !== filters.dosen) return false
-      if (filters.prodi !== 'all' && r.prodi !== filters.prodi) return false
-      if (filters.pertemuan !== 'all' && String(r.pertemuan) !== String(filters.pertemuan)) return false
-
-      // Date filtering
-      if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-      if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
-        const end = new Date(filters.dateTo)
-        end.setHours(23, 59, 59, 999)
-        if (new Date(r.timestamp) > end) return false
-      }
-      return true
-    })
-    return [...new Set(subset.map(r => r.kodeKelas).filter(Boolean))].sort()
-  }
+  getKelasList: () => listValues(get, 'kodeKelas', ['kelas'])
 }), {
   name: 'csat-dashboard-store',
   storage: createJSONStorage(() => idbStorage),

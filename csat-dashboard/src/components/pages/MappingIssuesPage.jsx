@@ -15,15 +15,15 @@ export default function MappingIssuesPage() {
 
   const handleExportIssues = () => {
     if (issues.length === 0) return
-    const headers = ["Baris", "Alasan Gagal", "Timestamp", "Nama Dosen (Raw)", "Mata Kuliah (Raw)", "Fakultas", "Prodi"]
+    const headers = ["Baris", "Alasan Gagal", "Timestamp", "Nama Dosen (Raw)", "Mata Kuliah (Raw)", "School", "Major"]
     const rows = issues.map(i => [
       i.row,
       i.alasan,
       i.timestamp,
       `"${i.dosenRaw}"`,
       `"${i.mkRaw}"`,
-      i.fakultas,
-      i.prodi
+      i.school,
+      i.major
     ])
 
     const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n")
@@ -97,8 +97,8 @@ export default function MappingIssuesPage() {
                 <th className="px-6 py-4 w-[180px]">Timestamp</th>
                 <th className="px-6 py-4">Nama Dosen (Raw)</th>
                 <th className="px-6 py-4">Mata Kuliah (Raw)</th>
-                <th className="px-6 py-4 w-[120px]">Fakultas</th>
-                <th className="px-6 py-4 w-[150px]">Prodi</th>
+                <th className="px-6 py-4 w-[120px]">School</th>
+                <th className="px-6 py-4 w-[150px]">Major</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
@@ -140,8 +140,8 @@ export default function MappingIssuesPage() {
                         {issue.mkRaw}
                       </p>
                     </td>
-                    <td className="px-6 py-4 text-[12px] text-[var(--muted)]">{issue.fakultas}</td>
-                    <td className="px-6 py-4 text-[12px] text-[var(--muted)]">{issue.prodi}</td>
+                    <td className="px-6 py-4 text-[12px] text-[var(--muted)]">{issue.school}</td>
+                    <td className="px-6 py-4 text-[12px] text-[var(--muted)]">{issue.major}</td>
                   </tr>
                 ))
               )}

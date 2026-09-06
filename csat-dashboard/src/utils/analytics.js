@@ -59,17 +59,16 @@ export function formatDate(dateInput, includeTime = false) {
 function newBucket(namaDosen, overrides = {}) {
   return { 
     namaDosen, 
-    prodiSet:new Set(), mataKuliahSet:new Set(), kodeKelasSet:new Set(),
+    majorSet:new Set(), mataKuliahSet:new Set(), kodeKelasSet:new Set(),
     rows:[], csatList:[], pemahamanList:[], interaktifList:[], performaList:[],
-    disiplinList:[], kejelasanList:[], penguasaanList:[], ketuntasanList:[], interaksiList:[],
     feedbacks:[], topikBelum:[], pertemuanMap:{}, 
-    kodeKelas:null, mataKuliah:null, prodi:null, tanggal:null,
+    kodeKelas:null, mataKuliah:null, major:null, tanggal:null,
     ...overrides
   }
 }
 function pushRow(d, r) {
   d.rows.push(r)
-  if (r.prodi)      d.prodiSet.add(r.prodi)
+  if (r.major)      d.majorSet.add(r.major)
   if (r.mataKuliah) d.mataKuliahSet.add(r.mataKuliah)
   if (r.kodeKelas)  d.kodeKelasSet.add(r.kodeKelas)
   if (r.csatGabungan)    d.csatList.push(r.csatGabungan)
@@ -77,11 +76,6 @@ function pushRow(d, r) {
   if (r.skorInteraktif)  d.interaktifList.push(r.skorInteraktif)
   if (r.skorPerforma)    d.performaList.push(r.skorPerforma)
   
-  if (r.skorDisiplin)    d.disiplinList.push(r.skorDisiplin)
-  if (r.skorKejelasan)   d.kejelasanList.push(r.skorKejelasan)
-  if (r.skorPenguasaan)  d.penguasaanList.push(r.skorPenguasaan)
-  if (r.skorKetuntasan)  d.ketuntasanList.push(r.skorKetuntasan)
-  if (r.skorInteraksi)   d.interaksiList.push(r.skorInteraksi)
   if (r.feedbackDosen && isValidFeedback(r.feedbackDosen))   d.feedbacks.push(r.feedbackDosen.trim())
   if (r.topikBelumPaham && isValidTopik(r.topikBelumPaham)) d.topikBelum.push(r.topikBelumPaham.trim())
   if (r.pertemuan != null) {
@@ -113,7 +107,7 @@ function finalize(d) {
     const varVal = variance(d.csatList)
     return { 
       namaDosen:d.namaDosen, 
-      prodi:d.prodi||[...d.prodiSet].filter(Boolean).join(', '), 
+      major:d.major||[...d.majorSet].filter(Boolean).join(', '), 
       mataKuliah:d.mataKuliah||[...d.mataKuliahSet].filter(Boolean).join(', '), 
       kodeKelas:d.kodeKelas||[...d.kodeKelasSet].filter(Boolean).join(', '), 
       tanggal:d.tanggal, 
@@ -124,14 +118,8 @@ function finalize(d) {
       stabilitas: varVal > 1.0 ? 'Fluktuatif' : varVal > 0.4 ? 'Moderat' : 'Stabil',
       skorPemahaman:avg(d.pemahamanList), 
       skorInteraktif:avg(d.interaktifList), 
-      skorPerforma:avg(d.performaList),
-      // Detailed attributes
-      skorDisiplin:avg(d.disiplinList),
-      skorKejelasan:avg(d.kejelasanList),
-      skorPenguasaan:avg(d.penguasaanList),
-      skorKetuntasan:avg(d.ketuntasanList),
-      skorInteraksi:avg(d.interaksiList),
-      feedbacks:[...new Set(d.feedbacks)], 
+       skorPerforma:avg(d.performaList),
+       feedbacks:[...new Set(d.feedbacks)], 
       topikBelum:[...new Set(d.topikBelum)], 
       pertemuanTrend:trend, 
       trend:trendDir, 
@@ -200,7 +188,7 @@ export function aggregateByDosenKelas(rows, fullRows = null, maxPertemuan = Infi
     const kelas = r.kodeKelas || r.mataKuliah || 'Kelas Tidak Diketahui'
     const key = `${r.namaDosen}|||${kelas}`
     if (!r.namaDosen) return
-    if (!map[key]) map[key] = newBucket(r.namaDosen, { mataKuliah:r.mataKuliah, kodeKelas:r.kodeKelas, prodi:r.prodi })
+    if (!map[key]) map[key] = newBucket(r.namaDosen, { mataKuliah:r.mataKuliah, kodeKelas:r.kodeKelas, major:r.major })
     pushRow(map[key], r)
   })
 
@@ -244,7 +232,7 @@ export function aggregateByDosenSesi(rows) {
     const tgl=r.tanggal||(r.timestamp?r.timestamp.slice(0,10):'Tanpa Tanggal')
     const key=`${r.namaDosen}|||${kelas}|||${tgl}`
     if (!r.namaDosen) return
-    if (!map[key]) { map[key]=newBucket(r.namaDosen); map[key].kodeKelas=kelas; map[key].mataKuliah=r.mataKuliah||''; map[key].prodi=r.prodi||''; map[key].tanggal=tgl }
+    if (!map[key]) { map[key]=newBucket(r.namaDosen); map[key].kodeKelas=kelas; map[key].mataKuliah=r.mataKuliah||''; map[key].major=r.major||''; map[key].tanggal=tgl }
     pushRow(map[key],r)
   })
   return Object.values(map).map(finalize)
@@ -388,7 +376,7 @@ export function getCorrelationMatrix(dosenList) {
   const data = dosenList.map(d => ({
     performa: d.skorPerforma || 0,
     pemahaman: d.skorPemahaman || 0,
-    interaksi: d.skorInteraksi || d.skorInteraktif || 0,
+    interaksi: d.skorInteraktif || 0,
     respon: d.totalRespon || 0
   }))
 
@@ -467,7 +455,7 @@ export function detectPerformanceDrops(dosenList, threshold = 0.5) {
 export function getGlobalCatalog(allRows) {
   if (!allRows || !allRows.length) return {}
   
-  const lecturerMap = {} // name -> { prodis: Set, subjects: Set, avg: [], count: 0 }
+  const lecturerMap = {} // name -> { schools: Set, majors: Set, subjects: Set, csat: [] }
   const meetingLeaders = {} // pNum -> { name: score }
   
   allRows.forEach(r => {
@@ -475,10 +463,11 @@ export function getGlobalCatalog(allRows) {
     
     // 1. Lecturer Map
     if (!lecturerMap[r.namaDosen]) {
-      lecturerMap[r.namaDosen] = { prodis: new Set(), subjects: new Set(), csat: [] }
+      lecturerMap[r.namaDosen] = { schools: new Set(), majors: new Set(), subjects: new Set(), csat: [] }
     }
     const l = lecturerMap[r.namaDosen]
-    if (r.prodi) l.prodis.add(r.prodi)
+    if (r.school) l.schools.add(r.school)
+    if (r.major) l.majors.add(r.major)
     if (r.mataKuliah) l.subjects.add(r.mataKuliah)
     if (r.csatGabungan) l.csat.push(r.csatGabungan)
     
@@ -494,7 +483,8 @@ export function getGlobalCatalog(allRows) {
   // Format Lecturer Catalog
   const lecturerCatalog = Object.entries(lecturerMap).map(([name, data]) => ({
     nama: name,
-    prodi: [...data.prodis],
+    school: [...data.schools],
+    major: [...data.majors],
     matakuliah: [...data.subjects],
     avgOverall: avg(data.csat),
     totalRespon: data.csat.length

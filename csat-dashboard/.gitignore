@@ -30,3 +30,11 @@ Thumbs.db
 
 # Vite
 *.local
+
+# Testing / dummy data
+public/dummy_feedback.json
+scripts/gen_4000.js
+scripts/generate_dummy.js
+dashboard-overview.png
+.playwright-mcp/
+vite.config.js.timestamp-*

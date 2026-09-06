@@ -80,7 +80,7 @@ export default function DashboardPage() {
       let vB = b[sortBy];
 
       // Special Cases
-      if (sortBy === "namaDosen" || sortBy === "prodi") {
+      if (sortBy === "namaDosen" || sortBy === "major") {
         vA = (vA || "").toLowerCase();
         vB = (vB || "").toLowerCase();
       } else if (sortBy === "rank") {
@@ -403,10 +403,10 @@ export default function DashboardPage() {
                 </th>
                 <th
                   className="hidden sm:table-cell cursor-pointer hover:bg-[var(--brand-dim)] transition-colors select-none"
-                  onClick={() => handleSort("prodi")}
+                  onClick={() => handleSort("major")}
                 >
                   <div className="flex items-center gap-1">
-                    Prodi {getSortIcon("prodi")}
+                    Major {getSortIcon("major")}
                   </div>
                 </th>
                 <th
@@ -484,7 +484,7 @@ export default function DashboardPage() {
                         className="text-[11px] font-bold uppercase tracking-wide opacity-70"
                         style={{ color: "var(--muted)" }}
                       >
-                        {d.prodi || "Staf Pengajar"}
+                        {d.major || "Staf Pengajar"}
                       </span>
                     </td>
                     <td>

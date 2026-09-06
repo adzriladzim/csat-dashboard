@@ -51,8 +51,9 @@ export default function FactorAnalysisPage() {
       .slice(0, 10)
   }
 
-  const performaFactors = getFrequencies('faktorPerforma')
-  const interaktivitasFactors = getFrequencies('faktorInteraktif')
+  // Data model baru tidak punya field faktor* — pakai teks feedback & topik tersering
+  const performaFactors = getFrequencies('feedbackDosen')
+  const interaktivitasFactors = getFrequencies('topikBelumPaham')
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -71,7 +72,7 @@ export default function FactorAnalysisPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
         {/* Performa Chart */}
         <div className="bg-[var(--bg-surface)] p-5 md:p-8 rounded-2xl md:rounded-3xl border border-[var(--border)] shadow-xl overflow-hidden">
-          <h2 className="text-sm md:text-base font-bold mb-4 md:mb-6 text-[var(--foreground)] border-l-4 border-[var(--brand)] pl-3">Faktor Pendorong Performa Dosen</h2>
+          <h2 className="text-sm md:text-base font-bold mb-4 md:mb-6 text-[var(--foreground)] border-l-4 border-[var(--brand)] pl-3">Umpan Balik Dosen Paling Sering</h2>
           <div className="h-[350px] md:h-[450px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={performaFactors} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
@@ -95,7 +96,7 @@ export default function FactorAnalysisPage() {
 
         {/* Interaktivitas Chart */}
         <div className="bg-[var(--bg-surface)] p-4 md:p-6 rounded-2xl border border-[var(--border)] shadow-xl overflow-hidden">
-          <h2 className="text-sm md:text-base font-bold mb-4 md:mb-6 text-[var(--foreground)] border-l-4 border-[#10b981] pl-3">Faktor Pendorong Interaktivitas Kelas</h2>
+          <h2 className="text-sm md:text-base font-bold mb-4 md:mb-6 text-[var(--foreground)] border-l-4 border-[#10b981] pl-3">Topik Paling Sering Belum Dipahami</h2>
           <div className="h-[350px] md:h-[450px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={interaktivitasFactors} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>

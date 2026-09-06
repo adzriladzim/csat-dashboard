@@ -232,7 +232,7 @@ export default function DosenDetailPage() {
                 className="text-xs font-bold uppercase tracking-wide opacity-60 truncate"
                 style={{ color: "var(--muted)" }}
               >
-                {dosenData.prodi || "Fakultas Utama"}
+                {dosenData.major || "Staf Pengajar"}
               </span>
               <span
                 className="w-1 h-1 rounded-full opacity-20 bg-current hidden sm:inline"
@@ -546,7 +546,7 @@ export default function DosenDetailPage() {
                           {k.mataKuliah || "Mata Kuliah Umum"}
                         </p>
                         <p className="text-[10px] opacity-50 uppercase font-medium mt-0.5">
-                          {k.prodi || "–"}
+                          {k.major || "–"}
                         </p>
                       </td>
                       <td>
