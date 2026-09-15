@@ -1,15 +1,37 @@
 import { Outlet, useNavigate } from "react-router-dom";
-import { useState, lazy, Suspense } from "react";
-import { Upload, HelpCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Upload, HelpCircle, Settings } from "lucide-react";
 import TabNav from "./TabNav";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import UserGuideModal from "@/components/common/UserGuideModal";
 import useStore from "@/lib/store";
+import clsx from "clsx";
+
+function SyncDot() {
+  const { sheetsConfig, isSheetsSyncing } = useStore();
+  const color = isSheetsSyncing
+    ? "bg-amber-400 animate-pulse"
+    : sheetsConfig.syncError
+      ? "bg-red-500"
+      : sheetsConfig.lastSyncedAt && sheetsConfig.enabled
+        ? "bg-emerald-400"
+        : "bg-slate-500";
+  return <span aria-hidden className={clsx("absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-[var(--bg-surface)]", color)} />;
+}
 
 export default function Layout() {
-  const { fileName, clearData } = useStore();
+  const { fileName, clearData, sheetsConfig } = useStore();
   const navigate = useNavigate();
   const [showHelp, setShowHelp] = useState(false);
+
+  // Auto-refresh sheets: aktif saat enabled, restart saat interval/autoRefresh ganti
+  useEffect(() => {
+    const store = useStore.getState();
+    if (sheetsConfig.enabled) {
+      store.startAutoRefresh();
+      return () => store.stopAutoRefresh();
+    }
+  }, [sheetsConfig.enabled, sheetsConfig.autoRefresh, sheetsConfig.refreshInterval]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-base)]">
@@ -63,6 +85,15 @@ export default function Layout() {
             {/* Icons only on mobile top-right, for clean look */}
             <div className="flex lg:hidden items-center gap-2.5">
               <button
+                onClick={() => navigate("/sync-settings")}
+                className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 transition-all hover:bg-emerald-500 hover:text-white"
+                title="Sinkronisasi Google Sheets"
+                aria-label="Sinkronisasi Google Sheets"
+              >
+                <Settings size={16} />
+                <SyncDot />
+              </button>
+              <button
                 onClick={() => setShowHelp(true)}
                 className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 transition-all hover:bg-blue-500 hover:text-white"
                 title="Panduan Penguna"
@@ -99,6 +130,14 @@ export default function Layout() {
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
+              <button
+                onClick={() => navigate("/sync-settings")}
+                className="relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white"
+                aria-label="Sinkronisasi Google Sheets"
+              >
+                <Settings size={14} /> <span>Sync Sheets</span>
+                <SyncDot />
+              </button>
               <button
                 onClick={() => setShowHelp(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white"

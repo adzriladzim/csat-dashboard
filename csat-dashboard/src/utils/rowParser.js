@@ -167,6 +167,18 @@ export function isValidFeedback(text) {
   return !FB_JUNK_PATTERNS.some(p => p.test(s))
 }
 
+// ── Kalender WIB (UTC+7) ───────────────────────────────────────────────────
+// Tanggal kalender WIB ("YYYY-MM-DD") dari timestamp apa pun. null bila kosong/tak valid.
+// Dipakai agar rentang tanggal filter tidak bergeser oleh boundary UTC midnight.
+const WIB_DTF = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit',
+})
+export function wibDate(ts) {
+  if (!ts || ts === '-') return null
+  const d = new Date(ts)
+  return isNaN(d) ? null : WIB_DTF.format(d)
+}
+
 // ── Main parser (New Google Form structure — Sep 2026) ────────────────────
 // Headers: Timestamp, Email, NIM, Lectures Program, Year of Enrollment,
 // Semester, School, Major, Subject, Class Code, Nama Dosen, Number of Meetings,
@@ -206,7 +218,7 @@ export function parseRow(row, headers) {
 
   return {
     timestampResponse: tsISO,
-    tanggal:           tsISO ? tsISO.slice(0, 10) : null,
+    tanggal:           tsISO ? wibDate(tsISO) : null,
     email,
     nim:               cleanText(getVal(row, headers, 'NIM')) || null,
     lecturesProgram:   cleanText(getVal(row, headers, 'Lectures Program')) || cleanText(getVal(row, headers, 'Moda')) || null,

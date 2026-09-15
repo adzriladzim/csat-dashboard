@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { fmt } from '@/utils/analytics'
 import useStore from '@/lib/store'
 import {
@@ -33,7 +33,8 @@ const CustomYAxisTick = ({ x, y, payload, textWidth }) => {
 }
 
 export default function FactorAnalysisPage() {
-  const data = useStore(s => s.parsedData) || []
+  const { getDateFiltered, parsedData, filters } = useStore()
+  const data = useMemo(() => getDateFiltered(), [parsedData, filters])
   const windowWidth = useWindowWidth()
   const isMobile = windowWidth < 768
   const chartWidth = isMobile ? 120 : 280

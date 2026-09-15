@@ -47,15 +47,22 @@ export default function DosenDetailPage() {
   const initialKelas = searchParams.get("kelas");
   const [activeTab, setActiveTab] = useState(initialKelas || "semua");
   const [filterPertemuan, setFilterPertemuan] = useState("all");
-  const { parsedData } = useStore();
+  const { getDateFiltered, parsedData, filters } = useStore();
   const [exporting, setExporting] = useState(null); // null | 'all' | kodeKelas
 
   const decodedName = decodeURIComponent(name);
 
-  // 1. Data FULL (Historical Context)
+  // 0. Baris setelah filter TANGGAL global (filter kolom lain diabaikan — halaman
+  // ini punya filter pertemuan lokal sendiri).
+  const dateFiltered = useMemo(
+    () => getDateFiltered(),
+    [parsedData, filters],
+  );
+
+  // 1. Data FULL (Historical Context) — sudah date-filtered, bukan raw parsedData
   const dosenRowsFull = useMemo(
-    () => parsedData.filter((r) => r.namaDosen === decodedName),
-    [parsedData, decodedName],
+    () => dateFiltered.filter((r) => r.namaDosen === decodedName),
+    [dateFiltered, decodedName],
   );
 
   // 2. Data FILTERED BY MEETING (for Stats, Cards, Feedback)

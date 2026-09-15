@@ -7,7 +7,9 @@ import clsx from 'clsx'
 const PAGE_SIZE = 50
 
 export default function StudentAnalysisPage() {
-  const data = useStore(s => s.parsedData) || []
+  const { getDateFiltered, parsedData, filters } = useStore()
+  // Baris setelah filter TANGGAL global; filter lokal (search/major/dosen/pertemuan) tetap di bawah.
+  const data = useMemo(() => getDateFiltered(), [parsedData, filters])
   const [page, setPage] = useState(1)
   const [jumpIdx, setJumpIdx] = useState(null)
   const [jumpVal, setJumpVal] = useState('')

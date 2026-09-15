@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { parseRow } from '@/utils/rowParser'
+import { parseRow, wibDate } from '@/utils/rowParser'
+import { SHEETS_CONFIG } from '@/config'
 
 // Native IndexedDB wrapper for high-performance, quota-free state persistence
 const idb = {
@@ -87,11 +88,14 @@ const matchFilters = (r, filters, skip = []) => {
     if (!v || v === 'all') continue
     if (k === 'pertemuan' ? String(r[REC[k]]) !== String(v) : r[REC[k]] !== v) return false
   }
-  if (filters.dateFrom && r.timestamp && new Date(r.timestamp) < new Date(filters.dateFrom)) return false
-  if (filters.dateTo && r.timestamp && r.timestamp !== '-') {
-    const end = new Date(filters.dateTo)
-    end.setHours(23, 59, 59, 999)
-    if (new Date(r.timestamp) > end) return false
+  // Rentang tanggal dihitung pada kalender WIB (UTC+7), bukan UTC midnight.
+  // Tanpa timestamp valid saat filter tanggal aktif → EXCLUDE (cegah null-timestamp
+  // lolos filter). Tanpa filter tanggal aktif → semua baris lolos.
+  if (filters.dateFrom || filters.dateTo) {
+    const d = wibDate(r.timestamp)
+    if (!d) return false
+    if (filters.dateFrom && d < filters.dateFrom) return false
+    if (filters.dateTo && d > filters.dateTo) return false
   }
   return true
 }
@@ -99,6 +103,31 @@ const listValues = (get, field, skip) => {
   const { parsedData, filters } = get()
   return [...new Set(parsedData.filter(r => matchFilters(r, filters, skip)).map(r => r[field]).filter(Boolean))].sort()
 }
+
+// ── Google Sheets sync config ─────────────────────────────────────────────
+// Sumber kebenaran default = src/config.js (SHEETS_CONFIG) — dipaket ke build,
+// berlaku utk SEMUA user tanpa setup. localStorage hanya OVERRIDE per-device.
+// Persist ke localStorage (settings, bukan data — jangan ikut IndexedDB).
+const LS_SHEETS_KEY = 'csat-sheets-config'
+// Default = config.js + field volatil (status sync) yang tidak ikut di-override user.
+const SHEETS_DEFAULTS = {
+  ...SHEETS_CONFIG,
+  lastSyncedAt: null,
+  syncError: null,
+}
+// Field yang boleh di-override user: spreadsheetId, gid, sheetName, enabled,
+// autoRefresh, refreshInterval — UI membandingkan nilai vs SHEETS_CONFIG per field.
+// readSheetsConfig: localStorage menang bila ada; selain itu pakai default config.js.
+const readSheetsConfig = () => {
+  try {
+    return { ...SHEETS_DEFAULTS, ...(JSON.parse(localStorage.getItem(LS_SHEETS_KEY)) || {}) }
+  } catch {
+    return { ...SHEETS_DEFAULTS }
+  }
+}
+// Timer hidup di module scope — tidak boleh ikut ter-persist
+let sheetsTimer = null
+let sheetsVisHandler = null
 
 const useStore = create(
   persist(
@@ -116,6 +145,9 @@ const useStore = create(
   setHasHydrated: (hasHydrated) => set({ hasHydrated }),
   isSyncingSentiment: false,
   syncProgress: { processed: 0, total: 0 },
+
+  sheetsConfig: readSheetsConfig(),
+  isSheetsSyncing: false,
 
   parseAndDisplay: async (rawRows, headers, fileName) => {
     const { analyzeSentiment } = await import('@/utils/analytics')
@@ -155,6 +187,13 @@ const useStore = create(
       })
       .filter(p => !p._isJunk)
 
+    // Snapshot hasil enrich AI sebelumnya (keyed stable ID) agar auto-sync tidak
+    // re-enrich baris yang sama dari nol setiap cycle.
+    const prevEnriched = new Map()
+    for (const old of get().parsedData) {
+      if (old.sentimentEnriched) prevEnriched.set(generateID(old), old.sentiment)
+    }
+
     const newParsed = processed.map(r => {
       const { _rowNum, _isJunk, ...clean } = r
       
@@ -162,7 +201,7 @@ const useStore = create(
       const isFbValid = clean.feedbackDosen && clean.feedbackDosen.trim().length >= 4;
       const initialSentiment = isFbValid ? analyzeSentiment(clean.feedbackDosen) : 'neutral';
 
-      return {
+      const obj = {
         timestamp:        clean.timestampResponse,
         tanggal:          clean.tanggal,
         email:            clean.email,
@@ -188,7 +227,11 @@ const useStore = create(
         prodi:            clean.major,
         sentiment:        initialSentiment,
         sentimentEnriched: false // Flag untuk mendeteksi apakah sudah di-enrich dengan AI
-      }
+       }
+      // Pakai hasil AI lama bila baris ini identik dengan sebelumnya (sync berkala)
+      const cached = prevEnriched.get(generateID(obj))
+      if (cached !== undefined) { obj.sentiment = cached; obj.sentimentEnriched = true }
+      return obj
     })
 
     set({ 
@@ -282,6 +325,64 @@ const useStore = create(
     return newParsed.length
   },
 
+  // ── Google Sheets actions ────────────────────────────────────────────────
+  setSheetsConfig: (patch) => {
+    const next = { ...get().sheetsConfig, ...patch }
+    try { localStorage.setItem(LS_SHEETS_KEY, JSON.stringify(next)) } catch { /* quota */ }
+    set({ sheetsConfig: next })
+  },
+
+  // Kosongkan override localStorage → kembali pakai default dari config.js.
+  resetSheetsConfig: () => {
+    try { localStorage.removeItem(LS_SHEETS_KEY) } catch { /* quota */ }
+    // Pertahankan status sync terakhir (volatil), tapi timpa semua field config dg default.
+    const { lastSyncedAt, syncError } = get().sheetsConfig
+    set({ sheetsConfig: { ...SHEETS_DEFAULTS, lastSyncedAt, syncError } })
+  },
+
+  // Tarik CSV dari Sheets → parse → display. Return jumlah baris, atau lempar error.
+  // preRows opsional ( utk halaman settings kirim hasil preview tanpa fetch ulang ).
+  syncFromSheets: async (preRows) => {
+    const cfg = get().sheetsConfig
+    if (!cfg.enabled) throw new Error('Auto-sync belum diaktifkan.')
+    const { fetchSheetsRows } = await import('@/utils/sheetsSync')
+    set({ isSheetsSyncing: true })
+    try {
+      const { rows, headers } = preRows || await fetchSheetsRows(cfg)
+      const count = await get().parseAndDisplay(rows, headers, `Google Sheets — ${cfg.sheetName || 'Live'}`)
+      get().setSheetsConfig({ lastSyncedAt: new Date().toISOString(), syncError: null })
+      return count
+    } catch (e) {
+      get().setSheetsConfig({ syncError: e.message })
+      throw e
+    } finally {
+      set({ isSheetsSyncing: false })
+    }
+  },
+
+  startAutoRefresh: () => {
+    const { sheetsConfig } = get()
+    get().stopAutoRefresh()
+    if (!sheetsConfig.enabled || !sheetsConfig.autoRefresh) return
+
+    const ms = Math.max(15, sheetsConfig.refreshInterval) * 1000
+    const run = () => {
+      // Pause saat tab tak visible (hemat quota + hindari fetch background)
+      if (document.visibilityState !== 'visible') return
+      get().syncFromSheets().catch(err => console.warn('Auto-refresh failed:', err.message))
+    }
+    sheetsTimer = setInterval(run, ms)
+
+    // Saat tab kembali visible, langsung sync biar data fresh, lalu pasang listener
+    sheetsVisHandler = () => { if (document.visibilityState === 'visible') run() }
+    document.addEventListener('visibilitychange', sheetsVisHandler)
+  },
+
+  stopAutoRefresh: () => {
+    if (sheetsTimer) { clearInterval(sheetsTimer); sheetsTimer = null }
+    if (sheetsVisHandler) { document.removeEventListener('visibilitychange', sheetsVisHandler); sheetsVisHandler = null }
+  },
+
   clearData: () => set({ parsedData: [], mappingIssues: [], isLoaded: false, fileName: '' }),
 
   filters: {
@@ -302,6 +403,16 @@ const useStore = create(
     return parsedData.filter(r => matchFilters(r, filters, ['pertemuan']))
   },
 
+  // Hanya filter TANGGAL global (abaikan filter kolom: matkul/school/major/dosen/
+  // kelas/pertemuan). Dipakai halaman yg punya filter lokal sendiri (DosenDetail,
+  // StudentAnalysis, FactorAnalysis) agar rentang tanggal tidak bocor.
+  getDateFiltered: () => {
+    const { parsedData, filters } = get()
+    return parsedData.filter(r =>
+      matchFilters(r, filters, ['matkul', 'prodi', 'major', 'school', 'dosen', 'kelas', 'pertemuan'])
+    )
+  },
+
   getDosenList: () => listValues(get, 'namaDosen', ['dosen']),
   getMajorList: () => listValues(get, 'major', ['major', 'prodi']),
   // Backward-compat: FilterBar lama masih panggil getProdiList
@@ -319,9 +430,10 @@ const useStore = create(
   onRehydrateStorage: () => (state) => {
     if (state) state.setHasHydrated(true);
   },
-  // Mencegah status sementara dan versi aplikasi ditimpa oleh cache IndexedDB lama
+  // Mencegah status sementara dan versi aplikasi ditimpa oleh cache IndexedDB lama.
+  // sheetsConfig punya persistensi sendiri (localStorage), jangan ikut ke IndexedDB.
   partialize: (state) => {
-    const { version, hasHydrated, isSyncingSentiment, syncProgress, ...rest } = state;
+    const { version, hasHydrated, isSyncingSentiment, isSheetsSyncing, syncProgress, sheetsConfig, ...rest } = state;
     return rest;
   }
 }))
