@@ -21,6 +21,18 @@ function safeText(str) {
   return str.replace(/[\x00-\x1F\x7F]/g, '').trim()
 }
 
+// Download timestamp in WIB (Asia/Jakarta), format YYYYMMDD.
+function yyyymmdd(d) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Jakarta', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d)
+  const get = t => parts.find(p => p.type === t).value
+  return `${get('year')}${get('month')}${get('day')}`
+}
+
+// Non-alphanumeric → single '-', collapse repeats, trim edges.
+function slug(s) {
+  return String(s || '').replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'')
+}
+
 function secTitle(pdf, title, y, W=210) {
   pdf.setFontSize(11); pdf.setFont('helvetica','bold'); pdf.setTextColor(30,41,59)
   pdf.text(title, 14, y)
@@ -318,9 +330,8 @@ export async function exportDosenReport(dosenData) {
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
   await buildDosenPDF(pdf, dosenData, null)
   const isSingleKelas = dosenData.kodeKelas && !dosenData.kodeKelas.includes(',')
-  const suffix = isSingleKelas ? `_Kelas_${dosenData.kodeKelas.replace(/[^a-zA-Z0-9]/g,'_')}` : '_SemuaKelas'
-  const localDate = formatDate(new Date())
-  pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}${suffix}_${localDate}.pdf`)
+  const kelas = isSingleKelas ? `-${slug(dosenData.kodeKelas)}` : ''
+  pdf.save(`Laporan-CSAT-${slug(dosenData.namaDosen)}${kelas}-${yyyymmdd(new Date())}.pdf`)
 }
 
 // ── Export per kelas tertentu ─────────────────────────────────────────────
@@ -328,9 +339,8 @@ export async function exportDosenReportPerKelas(dosenData, kelasData) {
   const { default: jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
   await buildDosenPDF(pdf, dosenData, kelasData)
-  const kelasSuffix = (kelasData.kodeKelas || kelasData.mataKuliah || 'kelas').replace(/[^a-zA-Z0-9]/g,'_')
-  const localDate = formatDate(new Date())
-  pdf.save(`Laporan_${dosenData.namaDosen.replace(/[^a-zA-Z0-9]/g,'_')}_Kelas${kelasSuffix}_${localDate}.pdf`)
+  const kelas = slug(kelasData.kodeKelas || kelasData.mataKuliah || 'kelas')
+  pdf.save(`Laporan-CSAT-${slug(dosenData.namaDosen)}-${kelas}-${yyyymmdd(new Date())}.pdf`)
 }
 
 // ── Dashboard PDF semua dosen ─────────────────────────────────────────────
@@ -441,8 +451,7 @@ export async function exportDashboardPDF(dosenList) {
     })
   const pages=pdf.internal.getNumberOfPages()
   for (let i=1;i<=pages;i++) { pdf.setPage(i); pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(`Laporan CSAT · Cakrawala University · Adzril Adzim Hendrynov · ${formatDate(new Date())} · Hal. ${i}/${pages}`,W/2,H-4,{align:'center'}) }
-  const localDate = formatDate(new Date())
-  pdf.save(`Laporan_CSAT_Semua_Dosen_${localDate}.pdf`)
+  pdf.save(`Laporan-CSAT-Semua-Dosen-${yyyymmdd(new Date())}.pdf`)
 }
 
 // ── Excel ─────────────────────────────────────────────────────────────────
