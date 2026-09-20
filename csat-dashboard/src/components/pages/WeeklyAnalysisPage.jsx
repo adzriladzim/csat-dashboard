@@ -18,7 +18,7 @@ export default function WeeklyAnalysisPage() {
     return last5.reverse() // Now it's 3.9, 4.2, 4.3
   }, [dosenList])
 
-  const pertemuanText = filters.pertemuan === 'all' ? 'Seluruh Pertemuan' : `Pertemuan Ke-${filters.pertemuan}`
+  const pertemuanText = filters.pertemuan === 'all' ? 'Seluruh Pertemuan' : filters.pertemuan
 
   return (
     <div className="p-4 md:p-8 space-y-8 animate-enter">

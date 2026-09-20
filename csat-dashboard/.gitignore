@@ -33,9 +33,14 @@ Thumbs.db
 
 # Testing / dummy data
 public/dummy_feedback.json
+public/test-data.xlsx
 scripts/gen_4000.js
+scripts/gen_4000_v2.js
 scripts/generate_dummy.js
 dashboard-overview.png
 sync-settings.png
+preview-*.png
+verify-*.png
+dev-serve.*.log
 .playwright-mcp/
 vite.config.js.timestamp-*

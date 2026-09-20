@@ -71,12 +71,15 @@ export default function App() {
     setBootSyncing(true);
     syncFromSheets()
       .then((count) => {
-        // Data sheets masuk → dashboard (penting bila user mendarat di /upload).
-        // Jangan genggam paksa user yang sedang di halaman settings.
         if (count && !cancelled && window.location.pathname !== "/sync-settings")
           navigate("/", { replace: true });
+        else if (!count && !cancelled)
+          useStore.getState().loadDummyData().catch(() => {});
       })
-      .catch(() => { /* error tercatat di sheetsConfig.syncError; fallback ke upload */ })
+      .catch(() => {
+        /* sheets kosong/offline — fallback ke dummy data local */
+        useStore.getState().loadDummyData().catch(() => {});
+      })
       .finally(() => { if (!cancelled) setBootSyncing(false); });
     return () => { cancelled = true; };
   }, [hasHydrated, navigate]);

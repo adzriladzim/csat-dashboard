@@ -9,11 +9,11 @@ import {
 import clsx from 'clsx'
 
 export default function MeetingAnalysisPage() {
-  const { getFiltered } = useStore()
+  const { getFiltered, mergeMode } = useStore()
   const filtered = getFiltered()
   const [selectedRange, setSelectedRange] = useState('1-16')
 
-  const dosenList = useMemo(() => aggregateByDosen(filtered), [filtered])
+  const dosenList = useMemo(() => aggregateByDosen(filtered, null, Infinity, mergeMode), [filtered, mergeMode])
   const globalStats = useMemo(() => getGlobalMeetingStats(filtered), [filtered])
   
   // Detect drops 
@@ -215,7 +215,7 @@ export default function MeetingAnalysisPage() {
                 <tr key={d.namaDosen} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
                   <td className="px-6 py-4 text-xs font-bold text-[var(--foreground)] sticky left-0 bg-[var(--bg-card)] group-hover:bg-[var(--bg-input)] z-10 border-r border-[var(--border)] transition-colors">{d.namaDosen}</td>
                   {Array.from({ length: 16 }, (_, i) => {
-                    const pName = `P${(i+1).toString().padStart(2, '0')}`
+                    const pName = `P${(i+1)}`
                     const session = d.pertemuanTrend.find(t => t.pertemuan === pName)
                     const score = session?.csat
                     return (

@@ -32,7 +32,7 @@ const SORT_FIELDS = {
 };
 
 export default function RankingPage() {
-  const { getFiltered, getFilteredExceptPertemuan, filters } = useStore();
+  const { getFiltered, getFilteredExceptPertemuan, filters, mergeMode } = useStore();
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState("csatGabungan");
   const [sortDir, setSortDir] = useState("desc");
@@ -40,7 +40,7 @@ export default function RankingPage() {
 
   const filtered = getFiltered();
   const filteredExceptPertemuan = getFilteredExceptPertemuan();
-  const dosenList = useMemo(() => aggregateByDosen(filtered, filteredExceptPertemuan), [filtered, filteredExceptPertemuan]);
+  const dosenList = useMemo(() => aggregateByDosen(filtered, filteredExceptPertemuan, Infinity, mergeMode), [filtered, filteredExceptPertemuan, mergeMode]);
 
   const sorted = useMemo(() => {
     return [...dosenList].sort((a, b) => {

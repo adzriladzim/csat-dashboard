@@ -1,4 +1,4 @@
-import { isValidTopik, isValidFeedback } from './rowParser'
+import { isValidTopik, isValidFeedback } from './rowParser.js'
 export { isValidTopik, isValidFeedback }
 
 export function avg(arr) {
@@ -56,6 +56,106 @@ export function formatDate(dateInput, includeTime = false) {
   } catch (e) { return dateInput }
 }
 
+// Start meeting number dari label "P3-P4" → 3; "P3" → 3. Legacy number → number.
+export function labelStart(label) {
+  const nums = String(label).match(/\d+/g)
+  const n = nums ? parseInt(nums[0], 10) : Number(label)
+  return isNaN(n) ? 0 : n
+}
+
+// ── Mode Gabung (dashboard-side meeting merge, multi-pasangan) ─────────────
+// mergeConfig = { active, pairs: [{a, b}, ...] } (a/b = label seperti "P3").
+// Baris "masuk merge" bila rentang pertemuannya overlap salah satu sisi sebuah
+// pasangan lengkap (kini mendukung 0..N pasangan sekaligus).
+
+// Pasangan lengkap (a & b terisi) — pasangan placeholder diabaikan.
+export function completePairs(merge) {
+  if (!merge || !Array.isArray(merge.pairs)) return []
+  return merge.pairs.filter(p => p && p.a && p.b)
+}
+
+// Overlap satu sisi pasangan (label "P3" atau rentang "P3-P4") vs rentang baris.
+function sideOverlaps(r, side) {
+  const nums = String(side).match(/\d+/g) || []
+  if (!nums.length) return false
+  const fStart = +nums[0]
+  const fEnd = nums.length > 1 ? +nums[1] : +nums[0]
+  const rStart = r.pertemuanStart ?? r.pertemuan
+  const rEnd = r.pertemuanEnd ?? r.pertemuan
+  return rStart != null && rEnd != null && rStart <= fEnd && rEnd >= fStart
+}
+
+export function rowInMerge(r, merge) {
+  if (!merge || !merge.active || !r) return false
+  return completePairs(merge).some(p => sideOverlaps(r, p.a) || sideOverlaps(r, p.b))
+}
+
+// Label pasangan PERTAMA yang di-overlap baris ("P3-P4"); null bila tidak ada.
+// Dipakai utk stempel per-baris: P3→"P3-P4" dan P7→"P7-P8" bisa hidup bersama.
+export function mergedLabelFor(r, merge) {
+  if (!merge || !merge.active || !r) return null
+  for (const p of completePairs(merge)) {
+    if (sideOverlaps(r, p.a) || sideOverlaps(r, p.b)) return `${p.a}-${p.b}`
+  }
+  return null
+}
+
+// ── Validasi pintar pasangan merge ─────────────────────────────────────────
+// Pasangan "Pa-Pb" HANYA benar-benar merge bila KEDUA sisi punya data di
+// konteks data yang sedang diproses. Sisi yang datanya tidak ada → baris
+// memakai label asli ("P5", bukan "P5-P6" hantu).
+
+// Set nomor pertemuan yang ADA di rows. Ambil dari rentang
+// (pertemuanStart/pertemuanEnd, baris multi-form ikut dihitung) plus fallback
+// legacy r.pertemuan dan token angka pada r.pertemuanLabel.
+export function getExistingMeetingNums(rows) {
+  const nums = new Set()
+  rows.forEach(r => {
+    ;[r.pertemuanStart ?? r.pertemuan, r.pertemuanEnd ?? r.pertemuan, r.pertemuanLabel].forEach(v => {
+      if (v == null) return
+      ;(String(v).match(/\d+/g) || []).forEach(t => nums.add(+t))
+    })
+  })
+  return nums
+}
+
+// Satu sisi "P3"→rentang [3,3]; "P3-P5"→rentang [3,5]. Ada angka existingNums di dalamnya?
+function sideRangeHasAny(side, existingNums) {
+  const nums = String(side ?? '').match(/\d+/g) || []
+  if (!nums.length) return false
+  const fStart = +nums[0]
+  const fEnd = nums.length > 1 ? +nums[1] : +nums[0]
+  for (const n of existingNums) if (n >= fStart && n <= fEnd) return true
+  return false
+}
+
+// Kedua SISI pasangan harus punya ≥1 nomor yang hadir di existingNums.
+export function pairHasBothSidesPresent(pair, existingNums) {
+  if (!pair || !pair.a || !pair.b) return false
+  return sideRangeHasAny(pair.a, existingNums) && sideRangeHasAny(pair.b, existingNums)
+}
+
+// Sisi a dan b identik (mis. {a:'P5', b:'P5'}) → merge no-op + label "P5-P5" aneh.
+// Saring: angka-angkanya sama persis berarti pasangan men-degenerate.
+function isDegeneratePair(pair) {
+  const a = (String(pair.a ?? '').match(/\d+/g) || []).map(Number)
+  const b = (String(pair.b ?? '').match(/\d+/g) || []).map(Number)
+  return a.length > 0 && a.length === b.length && a.every((v, i) => v === b[i])
+}
+
+// MergeConfig yang sudah divalidasi terhadap data nyata rows.
+// active dipertahankan; pasangan tanpa kedua sisi → dibuang. Semua terfilter
+// sekalipun, hasilnya tetap objek dengan pairs [] (rowInMerge natural false).
+export function filterMergeConfigByData(mergeConfig, rows) {
+  if (!mergeConfig || !mergeConfig.active) return mergeConfig
+  const existing = getExistingMeetingNums(rows || [])
+  const pairs = Array.isArray(mergeConfig.pairs) ? mergeConfig.pairs : []
+  return {
+    ...mergeConfig,
+    pairs: pairs.filter(p => p && p.a && p.b && !isDegeneratePair(p) && pairHasBothSidesPresent(p, existing))
+  }
+}
+
 function newBucket(namaDosen, overrides = {}) {
   return { 
     namaDosen, 
@@ -66,7 +166,7 @@ function newBucket(namaDosen, overrides = {}) {
     ...overrides
   }
 }
-function pushRow(d, r) {
+function pushRow(d, r, mergeConfig = null) {
   d.rows.push(r)
   if (r.major)      d.majorSet.add(r.major)
   if (r.mataKuliah) d.mataKuliahSet.add(r.mataKuliah)
@@ -78,26 +178,27 @@ function pushRow(d, r) {
   
   if (r.feedbackDosen && isValidFeedback(r.feedbackDosen))   d.feedbacks.push(r.feedbackDosen.trim())
   if (r.topikBelumPaham && isValidTopik(r.topikBelumPaham)) d.topikBelum.push(r.topikBelumPaham.trim())
-  if (r.pertemuan != null) {
-    const pNum = typeof r.pertemuan === 'number' ? r.pertemuan : parseInt(r.pertemuan.toString().replace(/[^0-9]/g, ''))
-    if (!isNaN(pNum)) {
-      if (!d.pertemuanMap[pNum]) d.pertemuanMap[pNum] = []
-      d.pertemuanMap[pNum].push(r.csatGabungan)
-    }
+  // Grup tren per LABEL sesi ("P3" atau "P3-P4") — Multi jadi 1 titik data.
+  // Mode gabung: baris dalam pasangan merge dikelompokkan ke label sintetis gabungan.
+  let label = r.mergedLabel || null
+  if (!label && mergeConfig && mergeConfig.active) label = mergedLabelFor(r, mergeConfig)
+  if (!label) label = r.pertemuanLabel || (r.pertemuan != null ? `P${r.pertemuan}` : null)
+  if (label) {
+    if (!d.pertemuanMap[label]) d.pertemuanMap[label] = []
+    d.pertemuanMap[label].push(r.csatGabungan)
   }
 }
 function finalize(d) {
-  const pKeys = Object.keys(d.pertemuanMap).map(Number).filter(n => !isNaN(n))
-  const maxP = pKeys.length ? Math.max(...pKeys) : 0
-  const trend = []
-  for (let p = 1; p <= maxP; p++) {
-    const vals = d.pertemuanMap[p] || []
-    trend.push({
-      pertemuan: `P${p.toString().padStart(2, '0')}`,
-      csat: vals.length ? avg(vals) : null,
-      count: vals.length
+  const trend = Object.keys(d.pertemuanMap)
+    .sort((a, b) => labelStart(a) - labelStart(b))
+    .map(k => {
+      const vals = d.pertemuanMap[k] || []
+      return {
+        pertemuan: k,
+        csat: vals.length ? avg(vals) : null,
+        count: vals.length
+      }
     })
-  }
   let trendDir='stable'
   const valid = trend.filter(t=>t.csat!=null)
   if (valid.length >= 2) {
@@ -128,9 +229,14 @@ function finalize(d) {
 }
 
 /** Agregasi semua kelas digabung */
-export function aggregateByDosen(rows, fullRows = null, maxPertemuan = Infinity) {
+export function aggregateByDosen(rows, fullRows = null, maxPertemuan = Infinity, mergeConfig = null) {
   const map = new Map()
-  
+  // Validasi pintar: pasangan tanpa kedua sisi hadir pada rows → jangan merge.
+  const mc = filterMergeConfigByData(mergeConfig, rows)
+  // Recovery memakai data LENGKAP: kalau full data punya kedua sisi, merge tetap
+  // konsisten; kalau tidak, sisi yang ada kembali ke label asli.
+  const mcFull = fullRows && fullRows.length > 0 ? filterMergeConfigByData(mergeConfig, fullRows) : mc
+
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i]
     if (!r.namaDosen) continue
@@ -138,10 +244,12 @@ export function aggregateByDosen(rows, fullRows = null, maxPertemuan = Infinity)
     if (!map.has(r.namaDosen)) {
       map.set(r.namaDosen, newBucket(r.namaDosen))
     }
-    pushRow(map.get(r.namaDosen), r)
+    pushRow(map.get(r.namaDosen), r, mc)
   }
 
-  // Recovery: If filtered, pull full trend from allRows for each lecturer in map
+  // Recovery: If filtered, pull full trend from allRows for each lecturer in map.
+  // Mode gabung: recovery jalan agar meeting lain (P1/P2/P5/P6) ikut tampil,
+  // baris pasangan merge dikunci ke 1 label gabungan (lihat loop di bawah).
   if (fullRows && fullRows.length > 0) {
     const trendRecoveryMap = new Map()
     const nameToCanonical = new Map()
@@ -152,20 +260,23 @@ export function aggregateByDosen(rows, fullRows = null, maxPertemuan = Infinity)
 
     for (let i = 0; i < fullRows.length; i++) {
       const r = fullRows[i]
-      if (!r.namaDosen || r.pertemuan == null) continue
+      if (!r.namaDosen) continue
       
       const rNameUpper = r.namaDosen.toUpperCase()
       const canonicalName = nameToCanonical.get(rNameUpper)
       if (!canonicalName) continue
       
-      const pNum = typeof r.pertemuan === 'number' ? r.pertemuan : parseInt(r.pertemuan.toString().replace(/[^0-9]/g, ''))
-      if (!isNaN(pNum) && pNum <= maxPertemuan) {
+      const rLabel = (mcFull && mcFull.active)
+        ? (mergedLabelFor(r, mcFull) || (r.pertemuanLabel || (r.pertemuan != null ? `P${r.pertemuan}` : null)))
+        : (r.pertemuanLabel || (r.pertemuan != null ? `P${r.pertemuan}` : null))
+      const pNum = rLabel ? labelStart(rLabel) : Infinity
+      if (rLabel && pNum <= maxPertemuan) {
         if (!trendRecoveryMap.has(canonicalName)) {
           trendRecoveryMap.set(canonicalName, new Map())
         }
         const pMap = trendRecoveryMap.get(canonicalName)
-        if (!pMap.has(pNum)) pMap.set(pNum, [])
-        pMap.get(pNum).push(r.csatGabungan)
+        if (!pMap.has(rLabel)) pMap.set(rLabel, [])
+        pMap.get(rLabel).push(r.csatGabungan)
       }
     }
     
@@ -182,34 +293,62 @@ export function aggregateByDosen(rows, fullRows = null, maxPertemuan = Infinity)
 }
 
 /** Agregasi per kelas (semua tanggal digabung) */
-export function aggregateByDosenKelas(rows, fullRows = null, maxPertemuan = Infinity) {
+export function aggregateByDosenKelas(rows, fullRows = null, maxPertemuan = Infinity, mergeConfig = null) {
   const map = {}
+  // Validasi pintar PER BUCKET (dosen+kelas): pasangan boleh valid di kelas A
+  // (kedua sisi ada) tapi invalid di kelas B (hanya satu sisi).
+  const bucketRows = {}
   rows.forEach(r => {
+    if (!r.namaDosen) return
     const kelas = r.kodeKelas || r.mataKuliah || 'Kelas Tidak Diketahui'
     const key = `${r.namaDosen}|||${kelas}`
-    if (!r.namaDosen) return
-    if (!map[key]) map[key] = newBucket(r.namaDosen, { mataKuliah:r.mataKuliah, kodeKelas:r.kodeKelas, major:r.major })
-    pushRow(map[key], r)
+    if (!bucketRows[key]) bucketRows[key] = []
+    bucketRows[key].push(r)
+  })
+  const bucketMc = {}
+  Object.keys(bucketRows).forEach(k => { bucketMc[k] = filterMergeConfigByData(mergeConfig, bucketRows[k]) })
+
+  Object.entries(bucketRows).forEach(([key, bucket]) => {
+    const r = bucket[0]
+    map[key] = newBucket(r.namaDosen, { mataKuliah: r.mataKuliah, kodeKelas: r.kodeKelas, major: r.major })
+    bucket.forEach(row => pushRow(map[key], row, bucketMc[key]))
   })
 
-  // Recovery: If filtered, pull full trend from allRows for each specific (lecturer+class) in map
+  // Recovery: If filtered, pull full trend from allRows for each specific (lecturer+class) in map.
+  // Mode gabung: recovery jalan (label gabungan untuk pasangan merge, label asli utk lainnya).
+  // Per-(dosen+kelas)-key: validasi pintar recovery memakai data LENGKAP key itu.
   if (fullRows && fullRows.length > 0) {
     const trendRecoveryMap = {}
     const keyToCanonical = {}
     Object.keys(map).forEach(k => keyToCanonical[k.toUpperCase()] = k)
+
+    const fullBucketRows = {}
+    fullRows.forEach(r => {
+      if (!r.namaDosen) return
+      const kelas = r.kodeKelas || r.mataKuliah || 'Kelas Tidak Diketahui'
+      const key = `${r.namaDosen}|||${kelas}`
+      if (!fullBucketRows[key]) fullBucketRows[key] = []
+      fullBucketRows[key].push(r)
+    })
+    const mcFull = {} // uppercase key -> filtered mergeConfig (data lengkap key itu)
+    Object.keys(fullBucketRows).forEach(k => { mcFull[k.toUpperCase()] = filterMergeConfigByData(mergeConfig, fullBucketRows[k]) })
 
     fullRows.forEach(r => {
       const kelas = r.kodeKelas || r.mataKuliah || 'Kelas Tidak Diketahui'
       const rawKey = `${r.namaDosen}|||${kelas}`
       const keyUpper = rawKey.toUpperCase()
       const canonicalKey = keyToCanonical[keyUpper]
-      if (!canonicalKey || r.pertemuan == null) return
+      if (!canonicalKey) return
 
-      const pNum = typeof r.pertemuan === 'number' ? r.pertemuan : parseInt(r.pertemuan.toString().replace(/[^0-9]/g, ''))
-      if (!isNaN(pNum) && pNum <= maxPertemuan) {
+      const bucketMcFull = mcFull[keyUpper] || null
+      const rLabel = (bucketMcFull && bucketMcFull.active)
+        ? (mergedLabelFor(r, bucketMcFull) || (r.pertemuanLabel || (r.pertemuan != null ? `P${r.pertemuan}` : null)))
+        : (r.pertemuanLabel || (r.pertemuan != null ? `P${r.pertemuan}` : null))
+      const pNum = rLabel ? labelStart(rLabel) : Infinity
+      if (rLabel && pNum <= maxPertemuan) {
         if (!trendRecoveryMap[canonicalKey]) trendRecoveryMap[canonicalKey] = {}
-        if (!trendRecoveryMap[canonicalKey][pNum]) trendRecoveryMap[canonicalKey][pNum] = []
-        trendRecoveryMap[canonicalKey][pNum].push(r.csatGabungan)
+        if (!trendRecoveryMap[canonicalKey][rLabel]) trendRecoveryMap[canonicalKey][rLabel] = []
+        trendRecoveryMap[canonicalKey][rLabel].push(r.csatGabungan)
       }
     })
 
@@ -225,15 +364,29 @@ export function aggregateByDosenKelas(rows, fullRows = null, maxPertemuan = Infi
  *  → Ini yang memecah "BuCn1 tgl 2 Maret" vs "BuCn1 tgl 9 Maret" secara terpisah
  *  → Dipakai untuk daftar sesi di halaman detail dosen dan PDF per sesi
  */
-export function aggregateByDosenSesi(rows) {
+export function aggregateByDosenSesi(rows, mergeConfig = null) {
   const map={}
-  rows.forEach(r=>{
+  // Validasi pintar PER BUCKET (dosen+kelas+tanggal) — sesi tanpa kedua sisi
+  // pasangan merge memakai label asli, hindari label hantu "P5-P6".
+  const bucketRows = {}
+  rows.forEach(r => {
+    if (!r.namaDosen) return
     const kelas=r.kodeKelas||r.mataKuliah||'Kelas Tidak Diketahui'
     const tgl=r.tanggal||(r.timestamp?r.timestamp.slice(0,10):'Tanpa Tanggal')
     const key=`${r.namaDosen}|||${kelas}|||${tgl}`
-    if (!r.namaDosen) return
-    if (!map[key]) { map[key]=newBucket(r.namaDosen); map[key].kodeKelas=kelas; map[key].mataKuliah=r.mataKuliah||''; map[key].major=r.major||''; map[key].tanggal=tgl }
-    pushRow(map[key],r)
+    if (!bucketRows[key]) bucketRows[key] = []
+    bucketRows[key].push(r)
+  })
+  const bucketMc = {}
+  Object.keys(bucketRows).forEach(k => { bucketMc[k] = filterMergeConfigByData(mergeConfig, bucketRows[k]) })
+
+  Object.entries(bucketRows).forEach(([key, bucket]) => {
+    const r = bucket[0]
+    const kelas=r.kodeKelas||r.mataKuliah||'Kelas Tidak Diketahui'
+    const tgl=r.tanggal||(r.timestamp?r.timestamp.slice(0,10):'Tanpa Tanggal')
+    map[key]=newBucket(r.namaDosen)
+    map[key].kodeKelas=kelas; map[key].mataKuliah=r.mataKuliah||''; map[key].major=r.major||''; map[key].tanggal=tgl
+    bucket.forEach(row => pushRow(map[key], row, bucketMc[key]))
   })
   return Object.values(map).map(finalize)
     .sort((a,b)=>{ const dt=(b.tanggal||'').localeCompare(a.tanggal||''); return dt!==0?dt:(a.kodeKelas||'').localeCompare(b.kodeKelas||'') })
@@ -399,21 +552,21 @@ export function getCorrelationMatrix(dosenList) {
 export function getGlobalMeetingStats(rows) {
   const map = {}
   rows.forEach(r => {
-    if (r.pertemuan == null) return
-    const p = r.pertemuan
-    if (!map[p]) map[p] = { 
-      pertemuan: `P${p.toString().padStart(2, '0')}`,
+    const label = r.pertemuanLabel || (r.pertemuan != null ? `P${r.pertemuan}` : null)
+    if (!label) return
+    if (!map[label]) map[label] = { 
+      pertemuan: label,
       performa: [], pemahaman: [], interaktif: [], csat: [], count: 0 
     }
-    if (r.skorPerforma) map[p].performa.push(r.skorPerforma)
-    if (r.skorPemahaman) map[p].pemahaman.push(r.skorPemahaman)
-    if (r.skorInteraktif) map[p].interaktif.push(r.skorInteraktif)
-    if (r.csatGabungan) map[p].csat.push(r.csatGabungan)
-    map[p].count++
+    if (r.skorPerforma) map[label].performa.push(r.skorPerforma)
+    if (r.skorPemahaman) map[label].pemahaman.push(r.skorPemahaman)
+    if (r.skorInteraktif) map[label].interaktif.push(r.skorInteraktif)
+    if (r.csatGabungan) map[label].csat.push(r.csatGabungan)
+    map[label].count++
   })
 
-  return Object.keys(map).sort((a,b)=>a-b).map(p => {
-    const d = map[p]
+  return Object.keys(map).sort((a,b)=>labelStart(a)-labelStart(b)).map(label => {
+    const d = map[label]
     return {
       pertemuan: d.pertemuan,
       avgPerforma: avg(d.performa),

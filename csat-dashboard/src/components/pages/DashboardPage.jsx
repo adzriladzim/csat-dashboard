@@ -53,6 +53,7 @@ export default function DashboardPage() {
     rawCount,
     removedCount,
     filters,
+    mergeMode,
   } = useStore();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
@@ -64,13 +65,12 @@ export default function DashboardPage() {
 
   const filtered = getFiltered();
   const filteredExceptPertemuan = getFilteredExceptPertemuan();
-  const maxP =
-    filters.pertemuan === "all"
-      ? Infinity
-      : parseInt(filters.pertemuan.toString().replace(/[^0-9]/g, "") || 100);
+  const pertStart = (label) =>
+    label === "all" ? Infinity : +(String(label).match(/\d+/) || [Infinity])[0];
+  const maxP = pertStart(filters.pertemuan);
   const rawDosenList = useMemo(
-    () => aggregateByDosen(filtered, filteredExceptPertemuan, maxP),
-    [filtered, filteredExceptPertemuan, maxP],
+    () => aggregateByDosen(filtered, filteredExceptPertemuan, maxP, mergeMode),
+    [filtered, filteredExceptPertemuan, maxP, mergeMode],
   );
 
   const dosenList = useMemo(() => {
@@ -114,26 +114,23 @@ export default function DashboardPage() {
 
   const globalTrend = useMemo(() => {
     const map = {};
-    const maxP =
-      filters.pertemuan === "all"
-        ? Infinity
-        : parseInt(filters.pertemuan.toString().replace(/[^0-9]/g, "") || 100);
 
     // Manual filtering for trend to recover historical data (P1 to Selected P)
     filteredExceptPertemuan.forEach((r) => {
-      if (!r.pertemuan || !r.csatGabungan) return;
+      if (!r.csatGabungan) return;
+      const label = r.pertemuanLabel || (r.pertemuan != null ? `P${r.pertemuan}` : null);
+      if (!label) return;
 
       // For trend, we show ALL meetings up to the selected one
-      const pNum = Number(r.pertemuan);
-      if (!isNaN(pNum) && pNum <= maxP) {
-        if (!map[pNum]) map[pNum] = [];
-        map[pNum].push(r.csatGabungan);
+      if (pertStart(label) <= maxP) {
+        if (!map[label]) map[label] = [];
+        map[label].push(r.csatGabungan);
       }
     });
 
     return Object.entries(map)
-      .sort(([a], [b]) => +a - +b)
-      .map(([p, vals]) => ({ pertemuan: `P${p}`, csat: avg(vals) }));
+      .sort(([a], [b]) => pertStart(a) - pertStart(b))
+      .map(([label, vals]) => ({ pertemuan: label, csat: avg(vals) }));
   }, [filteredExceptPertemuan, filters]);
 
   const totalPages = Math.ceil(dosenList.length / PAGE_SIZE);

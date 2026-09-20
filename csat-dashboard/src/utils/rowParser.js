@@ -31,6 +31,17 @@ function getExact(row, headers, exactName) {
   const col = headers?.find(h => h?.toLowerCase() === exactName.toLowerCase())
   return col ? (row[col] ?? '').toString().trim() : ''
 }
+// ── Mode Sesi: Single (1 pertemuan) vs Multi (2 pertemuan digabung) ───────
+// Multi P3 → rentang P3-P4 (2 pertemuan); P16 di-clamp (tidak ada P17).
+export function computeMeetingRange(pertemuan, modeSesi) {
+  const p = Number(pertemuan)
+  if (!p || isNaN(p)) return { start: null, end: null, label: null }
+  const multi = modeSesi === 'multi'
+  const start = p
+  const end = multi ? Math.min(p + 1, 16) : p
+  const label = end !== start ? `P${start}-P${end}` : `P${start}`
+  return { start, end, label }
+}
 function parseScore(val) {
   if (!val) return null
   const s = String(val).trim()
@@ -198,6 +209,11 @@ export function parseRow(row, headers) {
   const pertMatch = String(pertRaw ?? '').match(/\d+/)
   const pertemuan = pertMatch ? parseInt(pertMatch[0], 10) : null
 
+  // Mode Sesi: "Single" / "Multi" (hilang → default 'single' untuk backward-compat)
+  const modeRaw = getVal(row, headers, 'Mode Sesi').toLowerCase()
+  const modeSesi = modeRaw.startsWith('multi') ? 'multi' : 'single'
+  const { start, end, label } = computeMeetingRange(pertemuan, modeSesi)
+
   // Skor: keyword unik per pertanyaan; exclude kolom faktor/alasan (sheet lama)
   const scoreExcludes = ['faktor', 'mengapa', 'alasan', 'sebutkan']
   const hPemahaman  = getByKeywords(row, headers, ['pemahaman'], scoreExcludes) ||
@@ -229,7 +245,11 @@ export function parseRow(row, headers) {
     mataKuliah:        normalizeMK(getVal(row, headers, 'Subject') || getVal(row, headers, 'Mata Kuliah')),
     kodeKelas:         normalizeMK(getVal(row, headers, 'Class Code') || getVal(row, headers, 'Kode Kelas')),
     namaDosen:         normalizeName(getVal(row, headers, 'Nama Dosen')),
-    pertemuan,
+pertemuan,
+    modeSesi,
+    pertemuanStart:   start,
+    pertemuanEnd:     end,
+    pertemuanLabel:   label,
     skorPemahaman:     pemahaman,
     skorInteraktif:    interaktif,
     skorPerforma:      performa,

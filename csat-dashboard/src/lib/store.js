@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { parseRow, wibDate } from '@/utils/rowParser'
+import { rowInMerge, mergedLabelFor, completePairs } from '@/utils/analytics'
 import { SHEETS_CONFIG } from '@/config'
 
 // Native IndexedDB wrapper for high-performance, quota-free state persistence
@@ -80,14 +81,37 @@ const generateID = (r) => {
 
 // Shared filter matcher — skip = daftar key filter yang dikecualikan getter ini.
 // Key undefined/'all' dianggap nonaktif (aman utk state IndexedDB lama tanpa key baru).
-const matchFilters = (r, filters, skip = []) => {
+// mergeMode: saat aktif dengan ≥1 pasangan lengkap, mode "Gabungkan" menggantikan
+// filter pertemuan — baris harus masuk rentang salah satu pasangan yang dipilih.
+const matchFilters = (r, filters, skip = [], mergeMode = null) => {
   const REC = { matkul: 'mataKuliah', school: 'school', major: 'major', prodi: 'prodi', dosen: 'namaDosen', kelas: 'kodeKelas', pertemuan: 'pertemuan' }
+  // modeSesi TIDAK lagi memfilter baris (nilai form-side single/multi). FilterBar
+  // memakainya sebagai pemilih mode tampilan (Semua/Single/Multi-Gabung).
+  const merging = !!(mergeMode && mergeMode.active && completePairs(mergeMode).length)
   for (const k of Object.keys(REC)) {
     if (skip.includes(k)) continue
     const v = filters[k]
     if (!v || v === 'all') continue
-    if (k === 'pertemuan' ? String(r[REC[k]]) !== String(v) : r[REC[k]] !== v) return false
+    if (k === 'pertemuan') {
+      // Mode gabung menggantikan rentang pertemuan biasa
+      if (merging) continue
+      // Range overlap: filter "P3" cocok dg Single-P3 maupun Multi-P3; "P3-P4" hanya Multi.
+      const nums = String(v).match(/\d+/g) || []
+      if (!nums.length) return false
+      const fStart = +nums[0]
+      const fEnd = nums.length > 1 ? +nums[1] : +nums[0]
+      const rStart = r.pertemuanStart ?? r.pertemuan
+      const rEnd = r.pertemuanEnd ?? r.pertemuan
+      if (rStart == null || rEnd == null) return false
+      if (rStart > fEnd || rEnd < fStart) return false
+      continue
+    }
+    if (r[REC[k]] !== v) return false
   }
+  // Mode gabung: baris harus overlap salah satu pasangan; getter boleh minta skip
+  // lewat key 'merge' (dipakai getFilteredExceptPertemuan agar meeting lain tetap
+  // tampil individual di tren saat merge aktif).
+  if (merging && !skip.includes('merge') && !rowInMerge(r, mergeMode)) return false
   // Rentang tanggal dihitung pada kalender WIB (UTC+7), bukan UTC midnight.
   // Tanpa timestamp valid saat filter tanggal aktif → EXCLUDE (cegah null-timestamp
   // lolos filter). Tanpa filter tanggal aktif → semua baris lolos.
@@ -128,6 +152,15 @@ const readSheetsConfig = () => {
 // Timer hidup di module scope — tidak boleh ikut ter-persist
 let sheetsTimer = null
 let sheetsVisHandler = null
+
+// Backward-compat: IndexedDB lama menyimpan mergeMode bentuk { meeting1, meeting2 }.
+// Normalisasi ke bentuk multi-pasangan { active, pairs } saat rehidrasi.
+const normalizeMergeMode = (m) => {
+  if (!m || typeof m !== 'object') return { active: false, pairs: [] }
+  if (Array.isArray(m.pairs)) return m
+  const pair = m.meeting1 && m.meeting2 ? [{ a: m.meeting1, b: m.meeting2 }] : []
+  return { active: !!(m.active && pair.length), pairs: pair }
+}
 
 const useStore = create(
   persist(
@@ -215,6 +248,10 @@ const useStore = create(
         kodeKelas:        clean.kodeKelas,
         namaDosen:        clean.namaDosen,
         pertemuan:        clean.pertemuan,
+        modeSesi:         clean.modeSesi,
+        pertemuanStart:   clean.pertemuanStart,
+        pertemuanEnd:     clean.pertemuanEnd,
+        pertemuanLabel:   clean.pertemuanLabel,
         skorPemahaman:    clean.skorPemahaman,
         skorInteraktif:   clean.skorInteraktif,
         skorPerforma:     clean.skorPerforma,
@@ -387,20 +424,119 @@ const useStore = create(
 
   filters: {
     matkul: 'all', prodi: 'all', major: 'all', school: 'all', dosen: 'all', kelas: 'all',
-    pertemuan: 'all', dateFrom: '', dateTo: '',
+    pertemuan: 'all', modeSesi: 'all', dateFrom: '', dateTo: '',
   },
 
   setFilter:    (key, value) => set(s => ({ filters: { ...s.filters, [key]: value } })),
-  resetFilters: () => set({ filters: { matkul: 'all', prodi: 'all', major: 'all', school: 'all', dosen: 'all', kelas: 'all', pertemuan: 'all', dateFrom: '', dateTo: '' } }),
+  resetFilters: () => set({ filters: { matkul: 'all', prodi: 'all', major: 'all', school: 'all', dosen: 'all', kelas: 'all', pertemuan: 'all', modeSesi: 'all', dateFrom: '', dateTo: '' } }),
+
+  // ── Mode Gabung (dashboard-side meeting merge, multi-pasangan) ─────────────
+  // "Multi (Gabungkan)" = user pilih 1..N pasangan meeting untuk digabung jadi
+  // 1 tampilan per pasangan. Berbeda dari modeSesi form-side — ini murni tampilan.
+  mergeMode: { active: false, pairs: [] },
+  // Profil gabung per (dosen+kelas) — opsional, utk fasilitator kelas gabungan.
+  // key = `${namaDosen}|||${kodeKelas}`. Ikut persisted via partialize (IndexedDB).
+  classMergeProfiles: {},
+  setMergeActive: (active) => set(s => ({
+    mergeMode: active ? { ...s.mergeMode, active: true } : { active: false, pairs: [] },
+  })),
+  addMergePair: () => set(s => ({
+    mergeMode: { ...s.mergeMode, active: true, pairs: [...s.mergeMode.pairs, { a: null, b: null }] },
+  })),
+  updateMergePair: (index, patch) => set(s => ({
+    mergeMode: {
+      ...s.mergeMode,
+      active: true,
+      pairs: s.mergeMode.pairs.map((p, i) => (i === index ? { ...p, ...patch } : p)),
+    },
+  })),
+  removeMergePair: (index) => set(s => ({
+    mergeMode: { ...s.mergeMode, pairs: s.mergeMode.pairs.filter((_, i) => i !== index) },
+  })),
+  clearMergePairs: () => set({ mergeMode: { active: false, pairs: [] } }),
+  // Bangun pasangan berurutan dari label meeting numerik ("P1".."P16").
+  // Label rentang ("P3-P4") diabaikan; jumlah ganjil → meeting terakhir tak berpasangan.
+  autoPairMeetings: (meetingList) => {
+    const nums = [...new Set((meetingList || [])
+      .map(l => String(l).trim())
+      .filter(l => /^P?\d+$/i.test(l))
+      .map(l => parseInt(l.replace(/\D/g, ''), 10))
+      .filter(n => !isNaN(n)))]
+      .sort((a, b) => a - b)
+    const pairs = []
+    for (let i = 0; i + 1 < nums.length; i += 2) {
+      pairs.push({ a: `P${nums[i]}`, b: `P${nums[i + 1]}` })
+    }
+    set({ mergeMode: { active: pairs.length > 0, pairs } })
+  },
+
+  // ── Profil gabung kelas (opsional) ─────────────────────────────────────────
+  // Simpan/terapkan konfigurasi pasangan per (dosen, kelas) agar fasilitator
+  // kelas gabungan tidak menyusun ulang merge tiap sesi/export. Pasangan yang
+  // belum lengkap (a/b kosong) dibuang saat simpan.
+  saveClassMergeProfile: (dosen, kelas, pairs) => set(s => {
+    const clean = (pairs || [])
+      .map(p => ({ a: p && p.a ? p.a : null, b: p && p.b ? p.b : null }))
+      .filter(p => p.a && p.b)
+    return {
+      classMergeProfiles: {
+        ...s.classMergeProfiles,
+        [`${dosen}|||${kelas}`]: { pairs: clean, savedAt: new Date().toISOString() },
+      },
+    }
+  }),
+  removeClassMergeProfile: (dosen, kelas) => set(s => {
+    const { [`${dosen}|||${kelas}`]: _removed, ...rest } = s.classMergeProfiles || {}
+    return { classMergeProfiles: rest }
+  }),
+  getClassMergeProfile: (dosen, kelas) => {
+    const p = get().classMergeProfiles?.[`${dosen}|||${kelas}`]
+    return p && Array.isArray(p.pairs) ? p : null
+  },
+  listClassMergeProfiles: () =>
+    Object.entries(get().classMergeProfiles || {})
+      .map(([key, v]) => {
+        const [dosen, kelas] = key.split('|||')
+        return { dosen, kelas, pairs: (v && v.pairs) || [], savedAt: (v && v.savedAt) || null }
+      })
+      .sort((a, b) => String(b.savedAt || '').localeCompare(String(a.savedAt || ''))),
+  // Auto-terapkan profil utk combo (dosen+kelas): nyalakan mergeMode + set
+  // modeSesi='multi'. Tanpa profil → no-op (biarkan filter pengguna apa adanya).
+  applyClassMergeProfile: (dosen, kelas) => {
+    const profile = get().getClassMergeProfile(dosen, kelas)
+    if (!profile || !profile.pairs.length) return
+    set(s => ({
+      mergeMode: { active: true, pairs: profile.pairs },
+      filters: { ...s.filters, modeSesi: 'multi' },
+    }))
+  },
 
   getFiltered: () => {
-    const { parsedData, filters } = get()
+    const { parsedData, filters, mergeMode } = get()
+    if (mergeMode?.active && completePairs(mergeMode).length) return get().getMergedFiltered()
     return parsedData.filter(r => matchFilters(r, filters))
   },
 
   getFilteredExceptPertemuan: () => {
-    const { parsedData, filters } = get()
-    return parsedData.filter(r => matchFilters(r, filters, ['pertemuan']))
+    const { parsedData, filters, mergeMode } = get()
+    // skip 'merge': baris di luar pasangan tetap ikut (tren global menampilkannya
+    // individual, hanya baris pasangan yang di-stempel label gabungan).
+    const rows = parsedData.filter(r => matchFilters(r, filters, ['pertemuan', 'merge']))
+    return rows.map(r => {
+      const label = mergedLabelFor(r, mergeMode)
+      return label ? { ...r, pertemuanLabel: label, mergedLabel: label } : r
+    })
+  },
+
+  // Baris hasil mode gabung: hanya baris dalam rentang salah satu pasangan,
+  // dengan pertemuanLabel & mergedLabel sintetis per-pasangan ("P3-P4" / "P7-P8").
+  getMergedFiltered: () => {
+    const { parsedData, filters, mergeMode } = get()
+    const rows = parsedData.filter(r => matchFilters(r, filters, [], mergeMode))
+    return rows.map(r => {
+      const label = mergedLabelFor(r, mergeMode)
+      return label ? { ...r, pertemuanLabel: label, mergedLabel: label } : r
+    })
   },
 
   // Hanya filter TANGGAL global (abaikan filter kolom: matkul/school/major/dosen/
@@ -418,15 +554,29 @@ const useStore = create(
   // Backward-compat: FilterBar lama masih panggil getProdiList
   getProdiList: () => listValues(get, 'major', ['major', 'prodi']),
   getSchoolList: () => listValues(get, 'school', ['school']),
+  getModeSesiList: () => listValues(get, 'modeSesi', ['modeSesi']),
   getMatkulList: () => listValues(get, 'mataKuliah', ['matkul']),
   getPertemuanList: () => {
     const { parsedData, filters } = get()
-    return [...new Set(parsedData.filter(r => matchFilters(r, filters, ['pertemuan'])).map(r => r.pertemuan).filter(Boolean))].sort((a,b)=>a-b)
+    const startOf = (label) => +(String(label).match(/\d+/) || [0])[0]
+    return [...new Set(parsedData
+      .filter(r => matchFilters(r, filters, ['pertemuan']))
+      .map(r => r.pertemuanLabel || (r.pertemuan != null ? `P${r.pertemuan}` : null))
+      .filter(Boolean))]
+      .sort((a, b) => startOf(a) - startOf(b))
   },
   getKelasList: () => listValues(get, 'kodeKelas', ['kelas'])
 }), {
   name: 'csat-dashboard-store',
   storage: createJSONStorage(() => idbStorage),
+  // Rehydrasi: patching persisted state over initial — normalisasi mergeMode lama.
+  merge: (persisted, current) => ({
+    ...current,
+    ...persisted,
+    mergeMode: normalizeMergeMode(persisted?.mergeMode),
+    // Backward-compat: IndexedDB lama belum punya key ini → default {}.
+    classMergeProfiles: persisted?.classMergeProfiles || {},
+  }),
   onRehydrateStorage: () => (state) => {
     if (state) state.setHasHydrated(true);
   },

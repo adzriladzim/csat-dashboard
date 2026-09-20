@@ -22,6 +22,8 @@ import {
   aggregateByDosenKelas,
   buildWordCloud,
   analyzeSentiment,
+  rowInMerge,
+  completePairs,
   fmt,
   scoreColor,
   scoreBadgeClass,
@@ -47,10 +49,14 @@ export default function DosenDetailPage() {
   const initialKelas = searchParams.get("kelas");
   const [activeTab, setActiveTab] = useState(initialKelas || "semua");
   const [filterPertemuan, setFilterPertemuan] = useState("all");
-  const { getDateFiltered, parsedData, filters } = useStore();
+  const { getDateFiltered, parsedData, filters, mergeMode } = useStore();
   const [exporting, setExporting] = useState(null); // null | 'all' | kodeKelas
 
   const decodedName = decodeURIComponent(name);
+  const pertRange = (label) => {
+    const nums = (String(label).match(/\d+/g) || []).map(Number);
+    return { start: nums[0] || 0, end: nums.length > 1 ? nums[1] : nums[0] || 0 };
+  };
 
   // 0. Baris setelah filter TANGGAL global (filter kolom lain diabaikan — halaman
   // ini punya filter pertemuan lokal sendiri).
@@ -66,22 +72,34 @@ export default function DosenDetailPage() {
   );
 
   // 2. Data FILTERED BY MEETING (for Stats, Cards, Feedback)
+  // Mode gabung aktif → batasi ke baris dalam pasangan merge (menggantikan filter lokal).
   const dosenRowsFiltered = useMemo(() => {
-    if (filterPertemuan === "all") return dosenRowsFull;
-    return dosenRowsFull.filter((r) => r.pertemuan === Number(filterPertemuan));
-  }, [dosenRowsFull, filterPertemuan]);
+    let rows = dosenRowsFull;
+    if (filterPertemuan !== "all") {
+      const { start, end } = pertRange(filterPertemuan);
+      rows = rows.filter((r) => {
+        const rs = r.pertemuanStart ?? r.pertemuan;
+        const re = r.pertemuanEnd ?? r.pertemuan;
+        return rs != null && re != null && rs <= end && re >= start;
+      });
+    }
+    if (completePairs(mergeMode).length) {
+      rows = rows.filter((r) => rowInMerge(r, mergeMode));
+    }
+    return rows;
+  }, [dosenRowsFull, filterPertemuan, mergeMode]);
 
   // 3. Agregasi
-  const maxP = filterPertemuan === "all" ? Infinity : Number(filterPertemuan);
+  const maxP = filterPertemuan === "all" ? Infinity : pertRange(filterPertemuan).start;
   const aggregateResult = useMemo(
-    () => aggregateByDosen(dosenRowsFiltered, dosenRowsFull, maxP),
-    [dosenRowsFiltered, dosenRowsFull, maxP],
+    () => aggregateByDosen(dosenRowsFiltered, dosenRowsFull, maxP, mergeMode),
+    [dosenRowsFiltered, dosenRowsFull, maxP, mergeMode],
   );
   const dosenAll = aggregateResult?.[0] || null;
 
   const kelasList = useMemo(
-    () => aggregateByDosenKelas(dosenRowsFiltered, dosenRowsFull, maxP),
-    [dosenRowsFiltered, dosenRowsFull, maxP],
+    () => aggregateByDosenKelas(dosenRowsFiltered, dosenRowsFull, maxP, mergeMode),
+    [dosenRowsFiltered, dosenRowsFull, maxP, mergeMode],
   );
 
   const hasMultiKelas = kelasList.length > 1;
@@ -98,12 +116,14 @@ export default function DosenDetailPage() {
     return kelasList.find((k) => k.kodeKelas === activeTab) || dosenData;
   }, [activeTab, dosenData, kelasList]);
 
-  // List pertemuan yang tersedia untuk dropdown
+  // List pertemuan yang tersedia untuk dropdown (label sesi: "P3" / "P3-P4")
   const availablePertemuan = useMemo(() => {
     const s = new Set(
-      dosenRowsFull.map((r) => r.pertemuan).filter((p) => p != null),
+      dosenRowsFull.map((r) => r.pertemuanLabel || (r.pertemuan != null ? `P${r.pertemuan}` : null)).filter(Boolean),
     );
-    return Array.from(s).sort((a, b) => a - b);
+    return Array.from(s).sort(
+      (a, b) => pertRange(a).start - pertRange(b).start,
+    );
   }, [dosenRowsFull]);
 
   if (!dosenData || !activeData) {
@@ -375,7 +395,7 @@ export default function DosenDetailPage() {
               >
                 <option value="all">Semua Pertemuan</option>
                 {availablePertemuan.map((p) => (
-                  <option key={p} value={p}>{`Pertemuan ${p}`}</option>
+                  <option key={p} value={p}>{p}</option>
                 ))}
               </select>
             </div>

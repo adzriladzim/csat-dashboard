@@ -1,4 +1,4 @@
-import { fmt, scoreLabel, analyzeSentiment, avg, formatDate } from './analytics'
+import { fmt, scoreLabel, analyzeSentiment, avg, formatDate, labelStart } from './analytics'
 
 const C = {
   brand: [61,78,232], dark:[15,23,42], muted:[100,116,139],
@@ -111,8 +111,10 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
   
   let pInfo = 'Semua Pertemuan', dInfo = '-'
   if (data.rows?.length) {
-    const pSet = new Set(data.rows.map(r => r.pertemuan).filter(Boolean))
-    if (pSet.size === 1) pInfo = `Pertemuan ${[...pSet][0]}`
+    const merged = [...new Set(data.rows.map(r => r.mergedLabel).filter(Boolean))]
+    const pSet = new Set(data.rows.map(r => r.pertemuanLabel || (r.pertemuan ? `P${r.pertemuan}` : null)).filter(Boolean))
+    if (merged.length) pInfo = `Pertemuan ${merged.join(', ')} (Gabungan)`
+    else if (pSet.size === 1) pInfo = `Pertemuan ${[...pSet][0]}`
     
     // Majority Date detection (Mode)
     const dCounts = {}
@@ -207,9 +209,26 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
         pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(i.toString(), chartX - 8, yy + 1)
     }
 
-    // Timeline Context (P1 to P{max})
-    const maxP_in_data = data.pertemuanTrend.length
-    const timelineLen = Math.max(maxP_in_data, 6)
+    // Timeline Context (P1 to P{max}) — panjang sumbu X dari NOMOR pertemuan
+    // terakhir (labelStart), bukan jumlah entri: merge "P3-P4" = meeting 3..4,
+    // jadi slot P1..P6 tetap muncul sekalipun hanya ada 5 titik.
+    const slotLabelOf = {}
+    data.pertemuanTrend.forEach(t => {
+      const s = labelStart(t.pertemuan)
+      if (s >= 1) slotLabelOf[s] = t.pertemuan
+    })
+    const timelineLen = Math.max(1, ...data.pertemuanTrend.map(t => labelStart(t.pertemuan)))
+
+    // Slot interior rentang gabungan ("P1-P2" menutup slot 2, "P3-P4" menutup slot 4)
+    // — slot ini TIDAK boleh dapat label fallback P{i+1} (phantom label).
+    const coveredSlots = new Set()
+    data.pertemuanTrend.forEach(t => {
+      const nums = String(t.pertemuan).match(/\d+/g)
+      if (nums && nums.length >= 2) {
+        const start = +nums[0], end = +nums[1]
+        for (let s = start + 1; s <= end; s++) coveredSlots.add(s)
+      }
+    })
     
     // Grid Vertikal (tiap pertemuan dalam timeline)
     pdf.setDrawColor(241, 245, 249); pdf.setLineWidth(0.05)
@@ -217,14 +236,17 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
         const px = chartX + (i / (timelineLen - 1 || 1)) * chartW
         pdf.line(px, chartY, px, chartY + chartH)
         
-        // Label X (P1, P2...) - Single Digit
-        const label = `P${i+1}`
-        pdf.setFontSize(7); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(148, 163, 184)
-        pdf.text(label, px, chartY + chartH + 6, { align: 'center' })
+        // Label X — pakai label sesi asli ("P3" / "P3-P4") pada slot pertemuannya,
+        // fallback P{i+1} untuk slot tanpa data (kecuali slot interior rentang gabungan).
+        const label = slotLabelOf[i + 1] || (coveredSlots.has(i + 1) ? null : `P${i+1}`)
+        if (label != null) {
+          pdf.setFontSize(7); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(148, 163, 184)
+          pdf.text(label, px, chartY + chartH + 6, { align: 'center' })
+        }
     }
 
-    const points = data.pertemuanTrend.map((t, i) => {
-      const px = chartX + (i / (timelineLen - 1 || 1)) * chartW
+    const points = data.pertemuanTrend.map((t) => {
+      const px = chartX + ((labelStart(t.pertemuan) - 1) / (timelineLen - 1 || 1)) * chartW
       const py = t.csat != null ? (chartY + chartH - ((t.csat - 1) / 4) * chartH) : null
       return { x: px, y: py, val: t.csat }
     })

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { FileDown, ChevronDown, Download, FileText, X } from 'lucide-react'
 import { exportDosenReport, exportDosenReportPerKelas } from '@/utils/exportUtils'
 import { aggregateByDosenKelas } from '@/utils/analytics'
+import useStore from '@/lib/store'
 import clsx from 'clsx'
 
 export default function ExportMenu({ dosenData, buttonClass, fullRows, filters }) {
@@ -11,10 +12,12 @@ export default function ExportMenu({ dosenData, buttonClass, fullRows, filters }
   const [coords, setCoords] = useState({ top: 0, left: 0, placement: 'bottom' })
   const menuRef = useRef(null)
   const buttonRef = useRef(null)
+  const mergeMode = useStore((s) => s.mergeMode)
 
   // Get unique classes for this lecturer
-  const maxP = filters?.pertemuan === 'all' ? Infinity : parseInt(filters?.pertemuan?.toString().replace(/[^0-9]/g, '') || 100)
-  const kelasList = aggregateByDosenKelas(dosenData.rows, fullRows, maxP)
+  const fp = filters?.pertemuan === 'all' || !filters?.pertemuan ? 'all' : filters.pertemuan
+  const maxP = fp === 'all' ? Infinity : +(String(fp).match(/\d+/) || [Infinity])[0]
+  const kelasList = aggregateByDosenKelas(dosenData.rows, fullRows, maxP, mergeMode)
   const hasMultipleKelas = kelasList.length > 1
 
   const updateCoords = () => {
