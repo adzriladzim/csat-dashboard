@@ -67,7 +67,14 @@ export async function fetchSheetsCsv(config) {
 export async function csvToRows(text) {
   const { default: Papa } = await import('papaparse')
   const result = Papa.parse(text, { header: true, skipEmptyLines: true })
-  return { rows: result.data, headers: result.meta.fields || [] }
+  const headers = result.meta.fields || []
+  // Buang baris yang semua nilainya kosong (mis. ekspor header-only / baris kosong
+  // yang lolos skipEmptyLines) supaya tidak jadi "sync sukses tapi data hilang".
+  const rows = (result.data || []).filter(r =>
+    r && Object.values(r).some(v => String(v ?? '').trim() !== '')
+  )
+  if (!rows.length) throw new Error('Sheet kosong — belum ada response masuk.')
+  return { rows, headers }
 }
 
 /** Pipeline lengkap config → raw rows. Reject kalau kosong (jangan timpa dashboard dg data nol). */
