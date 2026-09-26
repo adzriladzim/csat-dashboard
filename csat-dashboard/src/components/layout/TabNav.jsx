@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const TABS = [
-  { to: '/',                   label: 'Ranking Dosen' },
+  { to: '/',                   label: 'Dashboard' },
   { to: '/analisis-mahasiswa',  label: 'Analisis Mahasiswa' },
   { to: '/analisis-faktor',     label: 'Analisis Faktor' },
   { to: '/analisis-strategis',  label: 'Analisis Strategis' },
@@ -29,24 +29,33 @@ export default function TabNav() {
     setShowRight(scrollLeft < scrollWidth - clientWidth - 10)
   }
 
+  // Deterministic center active tab — computed scroll, no scrollIntoView race.
+  const centerActiveTab = (smooth) => {
+    const el = scrollRef.current
+    if (!el) return
+    const active = el.querySelector('.nav-link-active')
+    if (!active) return
+    const left = active.offsetLeft - el.offsetLeft - el.clientWidth / 2 + active.offsetWidth / 2
+    el.scrollTo({ left: Math.max(0, left), behavior: smooth ? 'smooth' : 'auto' })
+  }
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      centerActiveTab(true)
+      checkScroll()
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [location.pathname])
+
   useEffect(() => {
     checkScroll()
-    window.addEventListener('resize', checkScroll)
-    return () => window.removeEventListener('resize', checkScroll)
-  }, [])
-
-  // Auto-scroll to active tab
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!scrollRef.current) return
-      const activeTab = scrollRef.current.querySelector('.nav-link-active')
-      if (activeTab) {
-        activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-      }
+    const onResize = () => {
       checkScroll()
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [location.pathname])
+      centerActiveTab(false)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const scroll = (dir) => {
     if (!scrollRef.current) return
@@ -67,7 +76,7 @@ export default function TabNav() {
         <div 
           ref={scrollRef}
           onScroll={checkScroll}
-          className="w-full overflow-x-auto no-scrollbar scroll-smooth flex items-center h-full snap-x snap-mandatory"
+          className="w-full overflow-x-auto no-scrollbar scroll-smooth flex items-center h-full"
         >
           <nav className="flex items-center gap-1.5 px-10 py-3.5 min-w-max">
             {TABS.map((tab) => (
@@ -76,7 +85,7 @@ export default function TabNav() {
                 to={tab.to}
                 end={tab.to === '/'}
                 className={({ isActive }) => clsx(
-                  "px-5 py-2 rounded-full text-[11px] font-extrabold uppercase tracking-wider transition-all duration-300 snap-center",
+                  "px-5 py-2 rounded-full text-[11px] font-extrabold uppercase tracking-wider transition-all duration-300",
                   isActive 
                     ? "bg-[var(--brand)] text-white shadow-lg shadow-brand/20 scale-[1.02] z-10 nav-link-active" 
                     : "text-[var(--muted)] hover:text-[var(--brand)] hover:bg-[var(--brand-dim)]"

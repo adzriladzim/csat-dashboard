@@ -1,13 +1,22 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" class="dark">
   <head>
+    <script>
+      // Apply saved theme before paint to avoid FOUC. Default: dark.
+      try {
+        if (localStorage.getItem('csat-theme') === 'light') {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        }
+      } catch (e) {}
+    </script>
     <meta name="google-site-verification" content="EAtwGOu_re-IaukDEnu4_NqZdQOz2mIf7Ybg8Fywlvk" />
     <meta charset="UTF-8" />
     <link rel="icon" type="image/webp" href="/CAKRAWALA LOGOMARK 2A.webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#c4a563" />
     <title>CSAT Dashboard · Cakrawala University</title>
-    <meta name="description" content="Dashboard Analisis Kinerja Dosen Berbasis Feedback Mahasiswa - System Version: 1.1.0" />
+    <meta name="description" content="Dashboard Analisis Kinerja Dosen Berbasis Feedback Mahasiswa - System Version: 1.3.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap&font-display=swap" rel="stylesheet" />

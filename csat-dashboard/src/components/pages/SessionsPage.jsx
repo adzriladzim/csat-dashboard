@@ -1,180 +1,124 @@
-import { useState } from 'react'
+import {
+  Database, FileSpreadsheet, CheckCircle2, AlertCircle, Clock, Zap, Trash2, RefreshCw,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import useStore from '@/lib/store'
-import { formatDate } from '@/utils/analytics'
-import clsx from 'clsx'
 
-export default function SessionsPage() {
-  const { sessions, activeSessionId, setActiveSession, removeSession, loadSessions, sessionsLoading } = useStore()
+const fmtNum = (n) => (Number(n) || 0).toLocaleString('id-ID')
+
+const fmtTime = (iso) => {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (isNaN(d)) return null
+  return new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta',
+  }).format(d)
+}
+
+// Halaman "Status Data" — hanya menampilkan fakta nyata dari store (tanpa
+// infra sesi tiruan). Tidak ada history upload; ini snapshot kondisi saat ini.
+export default function StatusDataPage() {
   const navigate = useNavigate()
-  const [deletingId, setDeletingId] = useState(null)
-  const [confirmId, setConfirmId]   = useState(null)
+  const s = useStore()
+  const {
+    parsedData, rawCount, removedCount, mappingAccuracy, mappingIssues,
+    fileName, version, lastUpdated, sheetsConfig,
+  } = s
+  const hasData = s.isLoaded && parsedData.length > 0
+  const sheetsOn = !!sheetsConfig.enabled
+  const sheetLabel = sheetsOn
+    ? `${sheetsConfig.sheetName || 'Live'} (${sheetsConfig.spreadsheetId || '-'})`
+    : null
 
-  async function handleDelete(id) {
-    setDeletingId(id)
-    try {
-      await removeSession(id)
-    } finally {
-      setDeletingId(null)
-      setConfirmId(null)
-    }
-  }
+  const stats = [
+    { icon: CheckCircle2, color: 'text-emerald-400', label: 'Total Respons Valid', value: fmtNum(hasData ? rawCount : 0) },
+    { icon: Trash2, color: 'text-amber-400', label: 'Baris Terhapus (Dedup)', value: fmtNum(hasData ? removedCount : 0) },
+    { icon: Zap, color: 'text-[var(--brand)]', label: 'Akurasi Mapping', value: hasData ? `${mappingAccuracy}%` : '—' },
+    { icon: AlertCircle, color: 'text-red-400', label: 'Baris Bermasalah', value: fmtNum(hasData ? mappingIssues.length : 0) },
+  ]
 
-  async function handleActivate(id) {
-    await setActiveSession(id)
-    navigate('/')
+  if (!hasData) {
+    return (
+      <div className="p-6 space-y-6 animate-enter">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-[var(--foreground)]">Status Data</h1>
+          <p className="text-[var(--muted)] text-sm mt-1">Ringkasan kondisi dataset saat ini</p>
+        </div>
+        <div className="card p-10 text-center">
+          <Database size={36} className="text-[var(--muted-2)] mx-auto mb-3" />
+          <p className="text-[var(--muted)]">Belum ada data yang dimuat</p>
+          <button onClick={() => navigate('/upload')} className="btn-primary mt-4">
+            Upload Data Pertama
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="p-6 space-y-6 animate-enter">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-white">Riwayat Upload</h1>
-          <p className="text-slate-400 text-sm mt-1">Kelola sesi data yang tersimpan di database</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={loadSessions} className="btn-ghost" disabled={sessionsLoading}>
-            <RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
-          <button onClick={() => navigate('/upload')} className="btn-primary">
-            <Upload size={14} />
-            Upload Baru
-          </button>
-        </div>
+      <div>
+        <h1 className="font-display text-2xl font-bold text-[var(--foreground)]">Status Data</h1>
+        <p className="text-[var(--muted)] text-sm mt-1">
+          Ringkasan kondisi dataset saat ini — dihitung oleh sistem, bukan estimasi
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="card p-4">
-          <Database size={16} className="text-brand-400 mb-2" />
-          <p className="font-display text-2xl font-bold text-white">{sessions.length}</p>
-          <p className="text-xs text-slate-400 mt-1">Total Sesi</p>
-        </div>
-        <div className="card p-4">
-          <FileSpreadsheet size={16} className="text-emerald-400 mb-2" />
-          <p className="font-display text-2xl font-bold text-white">
-            {sessions.reduce((a, s) => a + (s.mapped_rows || 0), 0).toLocaleString('id-ID')}
-          </p>
-          <p className="text-xs text-slate-400 mt-1">Total Baris Tersimpan</p>
-        </div>
-        <div className="card p-4">
-          <CheckCircle2 size={16} className="text-amber-400 mb-2" />
-          <p className="font-display text-2xl font-bold text-white">
-            {sessions.filter(s => s.source === 'google_sheets').length}
-          </p>
-          <p className="text-xs text-slate-400 mt-1">Sesi via Google Sheets</p>
-        </div>
-      </div>
-
-      {/* Session list */}
-      <div className="card p-5">
-        <h2 className="section-title mb-4">Daftar Sesi Data</h2>
-
-        {sessions.length === 0 && (
-          <div className="text-center py-12">
-            <Database size={32} className="text-slate-700 mx-auto mb-3" />
-            <p className="text-slate-400">Belum ada data yang diupload</p>
-            <button onClick={() => navigate('/upload')} className="btn-primary mt-4">
-              Upload Data Pertama
-            </button>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map(({ icon: Icon, color, label, value }) => (
+          <div key={label} className="card p-4">
+            <Icon size={16} className={`${color} mb-2`} />
+            <p className="font-display text-2xl font-bold text-[var(--foreground)]">{value}</p>
+            <p className="text-xs text-[var(--muted)] mt-1">{label}</p>
           </div>
-        )}
+        ))}
+      </div>
 
-        <div className="space-y-3">
-          {sessions.map(s => {
-            const isActive  = s.id === activeSessionId
-            const isDeleting = deletingId === s.id
-            const isConfirm  = confirmId  === s.id
-            const date = formatDate(s.created_at, true)
-
-            return (
-              <div
-                key={s.id}
-                className={clsx(
-                  'rounded-2xl border p-4 transition-all',
-                  isActive
-                    ? 'border-brand-500/40 bg-brand-500/5'
-                    : 'border-white/5 bg-white/2 hover:bg-white/4'
-                )}
-              >
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className={clsx(
-                    'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-                    s.source === 'google_sheets' ? 'bg-emerald-500/15' : 'bg-brand-500/15'
-                  )}>
-                    {s.source === 'google_sheets'
-                      ? <RefreshCw size={16} className="text-emerald-400" />
-                      : <FileSpreadsheet size={16} className="text-brand-400" />
-                    }
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium text-slate-200 truncate">{s.file_name}</p>
-                      {isActive && (
-                        <span className="badge bg-brand-500/20 text-brand-300 border border-brand-500/30">Aktif</span>
-                      )}
-                      <span className={clsx('badge', s.source === 'google_sheets' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-slate-400')}>
-                        {s.source === 'google_sheets' ? 'Google Sheets' : 'Manual Upload'}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-3 mt-1.5">
-                      {s.semester && <span className="text-xs text-slate-400">{s.semester}</span>}
-                      <span className="text-xs text-slate-500">{s.mapped_rows?.toLocaleString('id-ID')} baris valid</span>
-                      {s.failed_rows > 0 && (
-                        <span className="text-xs text-amber-400 flex items-center gap-1">
-                          <AlertCircle size={10} />{s.failed_rows} gagal di-map
-                        </span>
-                      )}
-                      <span className="text-xs text-slate-600">{date}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {!isActive && (
-                      <button
-                        onClick={() => handleActivate(s.id)}
-                        className="btn-secondary text-xs py-1.5 px-3"
-                      >
-                        Aktifkan
-                      </button>
-                    )}
-
-                    {!isConfirm ? (
-                      <button
-                        onClick={() => setConfirmId(s.id)}
-                        className="p-2 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                        disabled={isDeleting}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-red-400">Yakin hapus?</span>
-                        <button
-                          onClick={() => handleDelete(s.id)}
-                          className="text-xs px-2 py-1 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
-                          disabled={isDeleting}
-                        >
-                          {isDeleting ? '...' : 'Hapus'}
-                        </button>
-                        <button
-                          onClick={() => setConfirmId(null)}
-                          className="text-xs px-2 py-1 rounded-lg bg-white/5 text-slate-400 hover:bg-white/10 transition-all"
-                        >
-                          Batal
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+      {/* Detail info */}
+      <div className="card p-5">
+        <h2 className="section-title mb-4">Detail Sumber Data</h2>
+        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4">
+          <div className="flex items-start gap-3">
+            <FileSpreadsheet size={16} className="text-[var(--brand)] mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs text-[var(--muted-2)]">Sumber Data</p>
+              <p className="text-sm font-medium text-[var(--foreground)] break-all">{fileName || '—'}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <RefreshCw size={16} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs text-[var(--muted-2)]">Google Sheets</p>
+              <p className="text-sm font-medium text-[var(--foreground)]">
+                {sheetLabel || 'Nonaktif (file lokal)'}
+              </p>
+              {sheetsConfig.syncError && (
+                <p className="text-xs text-red-400 mt-1 break-all">Error sync: {sheetsConfig.syncError}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <Clock size={16} className="text-[var(--brand)] mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs text-[var(--muted-2)]">Data Terakhir Diperbarui</p>
+              <p className="text-sm font-medium text-[var(--foreground)]">{fmtTime(lastUpdated) || '—'}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <RefreshCw size={16} className="text-[var(--muted-2)] mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs text-[var(--muted-2)]">Sinkronisasi Sheets Terakhir</p>
+              <p className="text-sm font-medium text-[var(--foreground)]">{fmtTime(sheetsConfig.lastSyncedAt) || 'Belum pernah'}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <Database size={16} className="text-[var(--muted-2)] mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs text-[var(--muted-2)]">Versi Aplikasi</p>
+              <p className="text-sm font-medium text-[var(--foreground)]">v{version}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

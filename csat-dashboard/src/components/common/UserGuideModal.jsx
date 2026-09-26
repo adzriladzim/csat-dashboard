@@ -1,5 +1,6 @@
 import { X, HelpCircle, Book, Target, BarChart2, FileText, Settings } from 'lucide-react'
 import clsx from 'clsx'
+import useStore from '@/lib/store'
 
 export default function UserGuideModal({ isOpen, onClose }) {
   if (!isOpen) return null
@@ -20,7 +21,7 @@ export default function UserGuideModal({ isOpen, onClose }) {
               <h2 className="text-xl font-extrabold font-serif-accent" style={{ color: 'var(--foreground)' }}>
                 Panduan <span style={{ color: 'var(--brand)' }}>Pengguna</span>
               </h2>
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">CSAT Analytics System v2.0</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">CSAT Analytics System v{useStore.getState().version}</p>
             </div>
           </div>
           <button 
@@ -37,7 +38,7 @@ export default function UserGuideModal({ isOpen, onClose }) {
           <section className="space-y-4">
              <div className="flex items-center gap-3 text-[var(--brand)]">
                 <Target size={20} />
-                <h3 className="text-lg font-bold">Penduluan</h3>
+                <h3 className="text-lg font-bold">Pendahuluan</h3>
              </div>
              <p className="text-sm leading-relaxed opacity-80" style={{ color: 'var(--foreground)' }}>
                 Dashboard ini dirancang untuk memberikan wawasan mendalam (insights) mengenai kinerja dosen berdasarkan feedback mahasiswa (CSAT - Customer Satisfaction Score). Dengan sistem ini, Anda dapat memantau performa mengajar, tingkat pemahaman materi, hingga interaktivitas dosen secara real-time.
@@ -54,7 +55,7 @@ export default function UserGuideModal({ isOpen, onClose }) {
                 <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)]/50 space-y-3">
                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-dim)] text-[var(--brand)] flex items-center justify-center text-xs font-bold">1</div>
                    <h4 className="font-bold text-sm">Unggah Data (Upload)</h4>
-                   <p className="text-xs opacity-70 leading-relaxed">Dukung file .xlsx (Excel) atau .csv. Cukup seret & lepas file, sistem akan otomatis melakukan analisis sentimen dan perhitungan skor 7.244 data Anda.</p>
+                   <p className="text-xs opacity-70 leading-relaxed">Dukung file .xlsx (Excel) atau .csv. Cukup seret & lepas file, sistem akan otomatis melakukan analisis sentimen dan perhitungan skor {useStore.getState().parsedData.length.toLocaleString('id-ID')} data Anda.</p>
                 </div>
                 <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)]/50 space-y-3">
                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-dim)] text-[var(--brand)] flex items-center justify-center text-xs font-bold">2</div>

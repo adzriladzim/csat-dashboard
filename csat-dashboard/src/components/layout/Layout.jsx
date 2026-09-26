@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Upload, HelpCircle, Settings } from "lucide-react";
+import { Upload, HelpCircle, Settings, Database } from "lucide-react";
 import TabNav from "./TabNav";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import UserGuideModal from "@/components/common/UserGuideModal";
@@ -62,7 +62,7 @@ export default function Layout() {
               <div
                 className="cursor-pointer"
                 role="button"
-                aria-label="Lirzda CSAT Dashboard"
+                aria-label="CSAT Dashboard"
                 onClick={() => navigate("/")}
               >
                 <div className="flex flex-col">
@@ -85,6 +85,14 @@ export default function Layout() {
             {/* Icons only on mobile top-right, for clean look */}
             <div className="flex lg:hidden items-center gap-2.5">
               <button
+                onClick={() => navigate("/status")}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--bg-input)] text-[var(--muted)] border border-[var(--border)] transition-all hover:bg-[var(--brand-dim)] hover:text-[var(--brand)]"
+                title="Status Data"
+                aria-label="Status Data"
+              >
+                <Database size={16} />
+              </button>
+              <button
                 onClick={() => navigate("/sync-settings")}
                 className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 transition-all hover:bg-emerald-500 hover:text-white"
                 title="Sinkronisasi Google Sheets"
@@ -96,8 +104,8 @@ export default function Layout() {
               <button
                 onClick={() => setShowHelp(true)}
                 className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 transition-all hover:bg-blue-500 hover:text-white"
-                title="Panduan Penguna"
-                aria-label="Panduan Penguna"
+                title="Panduan Pengguna"
+                aria-label="Panduan Pengguna"
               >
                 <HelpCircle size={16} />
               </button>
@@ -125,23 +133,30 @@ export default function Layout() {
                 Dataset:
               </span>
               <span className="text-[10px] sm:text-[11px] font-bold text-[var(--brand)] max-w-[150px] sm:max-w-[250px] truncate pr-1">
-                {fileName || "No Data Loaded"}
+                {fileName || "Belum Ada Data"}
               </span>
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
               <button
+                onClick={() => navigate("/status")}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-[var(--bg-input)] text-[var(--muted)] hover:bg-[var(--brand-dim)] hover:text-[var(--brand)]"
+                aria-label="Status Data"
+              >
+                <Database size={14} /> <span>Status Data</span>
+              </button>
+              <button
                 onClick={() => navigate("/sync-settings")}
                 className="relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white"
                 aria-label="Sinkronisasi Google Sheets"
               >
-                <Settings size={14} /> <span>Sync Sheets</span>
+                <Settings size={14} /> <span>Sinkronisasi Sheets</span>
                 <SyncDot />
               </button>
               <button
                 onClick={() => setShowHelp(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white"
-                aria-label="Panduan Penguna"
+                aria-label="Panduan Pengguna"
               >
                 <HelpCircle size={14} /> <span>Bantuan</span>
               </button>

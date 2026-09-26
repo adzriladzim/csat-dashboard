@@ -8,7 +8,9 @@ export default function useDarkMode() {
   })
 
   useEffect(() => {
-    document.documentElement.classList.toggle('light', !dark)
+    const root = document.documentElement
+    root.classList.toggle('dark', dark)
+    root.classList.toggle('light', !dark)
     localStorage.setItem('csat-theme', dark ? 'dark' : 'light')
   }, [dark])
 

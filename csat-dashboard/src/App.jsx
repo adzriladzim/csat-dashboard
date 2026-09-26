@@ -41,6 +41,9 @@ const PlaceholderPage = lazy(
 const SyncSettingsPage = lazy(
   () => import("./components/pages/SyncSettingsPage"),
 );
+const StatusDataPage = lazy(
+  () => import("./components/pages/SessionsPage"),
+);
 
 // Loading Component
 const PageLoader = () => (
@@ -50,7 +53,7 @@ const PageLoader = () => (
       className="text-[10px] font-black uppercase tracking-[0.3em]"
       style={{ color: "var(--foreground)" }}
     >
-      Lirzda is Processing...
+      Memuat data CSAT...
     </p>
   </div>
 );
@@ -105,15 +108,16 @@ export default function App() {
           <Route path="/upload" element={<UploadPage />} />
           <Route element={<Layout />}>
             <Route path="/" element={needData(<DashboardPage />)} />
-            <Route path="/ranking" element={<RankingPage />} />
+            <Route path="/ranking" element={needData(<RankingPage />)} />
             <Route path="/dosen/:name" element={needData(<DosenDetailPage />)} />
             <Route
               path="/analisis-mahasiswa"
-              element={<StudentAnalysisPage />}
+              element={needData(<StudentAnalysisPage />)}
             />
-            <Route path="/diagnostik" element={<MappingIssuesPage />} />
+            <Route path="/diagnostik" element={needData(<MappingIssuesPage />)} />
+            <Route path="/status" element={needData(<StatusDataPage />)} />
             <Route path="/sync-settings" element={<SyncSettingsPage />} />
-            <Route path="/analisis-faktor" element={<FactorAnalysisPage />} />
+            <Route path="/analisis-faktor" element={needData(<FactorAnalysisPage />)} />
             <Route path="/sentimen" element={needData(<SentimenPage />)} />
             <Route path="/anomali" element={needData(<AnomalyPage />)} />
             <Route path="/matriks-korelasi" element={needData(<CorrelationPage />)} />
