@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { parseRow, wibDate } from '@/utils/rowParser'
-import { rowInMerge, mergedLabelFor, completePairs } from '@/utils/analytics'
+import { rowInMerge, mergedLabelFor, completePairs, analyzeSentiment } from '@/utils/analytics'
 import { SHEETS_CONFIG } from '@/config'
 
 // Native IndexedDB wrapper for high-performance, quota-free state persistence
@@ -72,10 +72,12 @@ const idbStorage = {
 }
 
 // Unified ID Logic for stable matching
+// timestamp null (tanggal tak terparse) → fallback nim/email agar baris tak berbagi ID '0'.
 const generateID = (r) => {
   const fb = (r.feedbackDosen || '').slice(0, 20).replace(/[^a-zA-Z0-9]/g, '')
   const sc = `${r.skorPemahaman || 0}${r.skorInteraktif || 0}${r.skorPerforma || 0}`
-  const base = `${r.nim || 'N'}-${r.namaDosen || 'D'}-${r.mataKuliah || 'M'}-${r.pertemuan || 0}-${r.timestamp || '0'}-${sc}-${fb}`
+  const ts = r.timestamp || r.nim || r.email || '0'
+  const base = `${r.nim || 'N'}-${r.namaDosen || 'D'}-${r.mataKuliah || 'M'}-${r.pertemuan || 0}-${ts}-${sc}-${fb}`
   return base.slice(0, 150)
 }
 
@@ -85,8 +87,10 @@ const generateID = (r) => {
 // filter pertemuan — baris harus masuk rentang salah satu pasangan yang dipilih.
 const matchFilters = (r, filters, skip = [], mergeMode = null) => {
   const REC = { matkul: 'mataKuliah', school: 'school', major: 'major', prodi: 'prodi', dosen: 'namaDosen', kelas: 'kodeKelas', pertemuan: 'pertemuan' }
-  // modeSesi TIDAK lagi memfilter baris (nilai form-side single/multi). FilterBar
-  // memakainya sebagai pemilih mode tampilan (Semua/Single/Multi-Gabung).
+  // modeSesi: filter baris nyata saat pengguna memilih Single/Multi tertentu
+  // (nilai 'all' = semua sesi). Mode gabung tetap memakai pasangan merge.
+  const ms = filters.modeSesi
+  if (!skip.includes('modeSesi') && ms && ms !== 'all' && r.modeSesi !== ms) return false
   const merging = !!(mergeMode && mergeMode.active && completePairs(mergeMode).length)
   for (const k of Object.keys(REC)) {
     if (skip.includes(k)) continue
@@ -127,6 +131,23 @@ const listValues = (get, field, skip) => {
   const { parsedData, filters } = get()
   return [...new Set(parsedData.filter(r => matchFilters(r, filters, skip)).map(r => r[field]).filter(Boolean))].sort()
 }
+
+// Memo hasil filter — parsedData 4000+ baris; tanpa ini getter kembalikan array
+// BARU tiap render → useMemo([]) di halaman selalu miss → re-agregasi per render.
+// Key = identity parsedData + snapshot JSON filters/mergeMode. Array return TIDAK
+// di-mutasi pemanggil (halaman pakai .filter/.map/[…x].sort) → aman dibagi.
+const filterCache = (() => {
+  const mk = () => ({ src: null, key: null, out: null })
+  const filtered = mk(), date = mk(), merged = mk(), exceptPertemuan = mk()
+  const run = (cache, src, key, compute) => {
+    if (src === cache.src && key === cache.key) return cache.out
+    cache.src = src; cache.key = key
+    cache.out = compute()
+    return cache.out
+  }
+  const filtersKey = (filters, mergeMode) => JSON.stringify([filters, mergeMode])
+  return { filtered, date, merged, exceptPertemuan, run, filtersKey }
+})()
 
 // ── Google Sheets sync config ─────────────────────────────────────────────
 // Sumber kebenaran default = src/config.js (SHEETS_CONFIG) — dipaket ke build,
@@ -183,8 +204,6 @@ const useStore = create(
   isSheetsSyncing: false,
 
   parseAndDisplay: async (rawRows, headers, fileName) => {
-    const { analyzeSentiment } = await import('@/utils/analytics')
-
     const issues = []
     
     const processed = rawRows
@@ -215,10 +234,24 @@ const useStore = create(
           ...parsed, 
           _rowNum: rowNum,
           _isJunk: (parsed.namaDosen?.toLowerCase().includes('nama dosen')) || 
-                   (parsed.csatGabungan === null && !parsed.feedbackDosen && !parsed.topikBelumPaham)
+                   (parsed.csatGabungan === null && !parsed.feedbackDosen && !parsed.topikBelumPaham && !parsed.faktorDosen)
         }
       })
       .filter(p => !p._isJunk)
+
+    // Dedup: key stabil = (email||nim) + timestamp + pertemuan + dosen.
+    // Tanpa email/nim → key lebih lemah (timestamp+dosen+pertemuan) agar respons
+    // anonim ganda tetap bisa dihitung sekali (double-submission tak terduplikasi).
+    const seen = new Set()
+    const deduped = []
+    let removed = 0
+    for (const p of processed) {
+      const person = String(p.email || p.nim || '').toLowerCase()
+      const key = [person, p.timestampResponse || '', p.pertemuanLabel || '', p.namaDosen || ''].join('|')
+      if (seen.has(key)) { removed++; continue }
+      seen.add(key)
+      deduped.push(p)
+    }
 
     // Snapshot hasil enrich AI sebelumnya (keyed stable ID) agar auto-sync tidak
     // re-enrich baris yang sama dari nol setiap cycle.
@@ -227,7 +260,7 @@ const useStore = create(
       if (old.sentimentEnriched) prevEnriched.set(generateID(old), old.sentiment)
     }
 
-    const newParsed = processed.map(r => {
+    const newParsed = deduped.map(r => {
       const { _rowNum, _isJunk, ...clean } = r
       
       // Hitung sentimen lokal secara instan (untuk placeholder cepat)
@@ -258,6 +291,7 @@ const useStore = create(
         csatGabungan:     clean.csatGabungan,
         topikBelumPaham:  clean.topikBelumPaham,
         feedbackDosen:    clean.feedbackDosen,
+        faktorDosen:      clean.faktorDosen ?? null,
         // ponytail: alias utk halaman lama (FilterBar/Strategic/Student) yg masih baca
         // key fakultas/prodi. Hapus saat semua page pindah ke school/major.
         fakultas:         clean.school,
@@ -271,14 +305,23 @@ const useStore = create(
       return obj
     })
 
+    // Guard: parse menghasilkan 0 baris valid padahal data lama ada → JANGAN timpa
+    // (mis. sheet header-only yang lolos fetchSheetsRows, atau semua baris junk).
+    if (newParsed.length === 0 && get().parsedData.length > 0) {
+      console.warn('[parseAndDisplay] Parse menghasilkan 0 baris valid — data lama dipertahankan.', { raw: rawRows.length })
+      return 0
+    }
+
+    const accuracy = rawRows.length ? Math.round(newParsed.length / rawRows.length * 100) : 100
     set({ 
       parsedData: newParsed, 
       mappingIssues: issues,
       isLoaded: true, 
       fileName: fileName,
       rawCount: newParsed.length,
-      mappingAccuracy: 100,
-      removedCount: 0
+      mappingAccuracy: accuracy,
+      removedCount: removed,
+      lastUpdated: new Date().toISOString()
     })
     return newParsed.length
   },
@@ -358,6 +401,7 @@ const useStore = create(
       rawCount: newParsed.length,
       mappingAccuracy: 100,
       removedCount: 0,
+      lastUpdated: new Date().toISOString(),
     })
     return newParsed.length
   },
@@ -513,18 +557,22 @@ const useStore = create(
 
   getFiltered: () => {
     const { parsedData, filters, mergeMode } = get()
-    if (mergeMode?.active && completePairs(mergeMode).length) return get().getMergedFiltered()
-    return parsedData.filter(r => matchFilters(r, filters))
+    return filterCache.run(filterCache.filtered, parsedData, filterCache.filtersKey(filters, mergeMode), () => {
+      if (mergeMode?.active && completePairs(mergeMode).length) return get().getMergedFiltered()
+      return parsedData.filter(r => matchFilters(r, filters))
+    })
   },
 
   getFilteredExceptPertemuan: () => {
     const { parsedData, filters, mergeMode } = get()
-    // skip 'merge': baris di luar pasangan tetap ikut (tren global menampilkannya
-    // individual, hanya baris pasangan yang di-stempel label gabungan).
-    const rows = parsedData.filter(r => matchFilters(r, filters, ['pertemuan', 'merge']))
-    return rows.map(r => {
-      const label = mergedLabelFor(r, mergeMode)
-      return label ? { ...r, pertemuanLabel: label, mergedLabel: label } : r
+    return filterCache.run(filterCache.exceptPertemuan, parsedData, filterCache.filtersKey(filters, mergeMode), () => {
+      // skip 'merge': baris di luar pasangan tetap ikut (tren global menampilkannya
+      // individual, hanya baris pasangan yang di-stempel label gabungan).
+      const rows = parsedData.filter(r => matchFilters(r, filters, ['pertemuan', 'merge']))
+      return rows.map(r => {
+        const label = mergedLabelFor(r, mergeMode)
+        return label ? { ...r, pertemuanLabel: label, mergedLabel: label } : r
+      })
     })
   },
 
@@ -532,20 +580,25 @@ const useStore = create(
   // dengan pertemuanLabel & mergedLabel sintetis per-pasangan ("P3-P4" / "P7-P8").
   getMergedFiltered: () => {
     const { parsedData, filters, mergeMode } = get()
-    const rows = parsedData.filter(r => matchFilters(r, filters, [], mergeMode))
-    return rows.map(r => {
-      const label = mergedLabelFor(r, mergeMode)
-      return label ? { ...r, pertemuanLabel: label, mergedLabel: label } : r
+    return filterCache.run(filterCache.merged, parsedData, filterCache.filtersKey(filters, mergeMode), () => {
+      const rows = parsedData.filter(r => matchFilters(r, filters, [], mergeMode))
+      return rows.map(r => {
+        const label = mergedLabelFor(r, mergeMode)
+        return label ? { ...r, pertemuanLabel: label, mergedLabel: label } : r
+      })
     })
   },
 
   // Hanya filter TANGGAL global (abaikan filter kolom: matkul/school/major/dosen/
-  // kelas/pertemuan). Dipakai halaman yg punya filter lokal sendiri (DosenDetail,
-  // StudentAnalysis, FactorAnalysis) agar rentang tanggal tidak bocor.
+  // kelas/pertemuan/modeSesi). Dipakai halaman yg punya filter lokal sendiri
+  // (DosenDetail, StudentAnalysis) agar rentang tanggal tidak bocor.
+  // FactorAnalysis sudah memakai getFiltered + FilterBar (Batch C).
   getDateFiltered: () => {
     const { parsedData, filters } = get()
-    return parsedData.filter(r =>
-      matchFilters(r, filters, ['matkul', 'prodi', 'major', 'school', 'dosen', 'kelas', 'pertemuan'])
+    return filterCache.run(filterCache.date, parsedData, filterCache.filtersKey(filters, null), () =>
+      parsedData.filter(r =>
+        matchFilters(r, filters, ['matkul', 'prodi', 'major', 'school', 'dosen', 'kelas', 'pertemuan', 'modeSesi'])
+      )
     )
   },
 
