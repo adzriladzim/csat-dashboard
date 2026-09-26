@@ -13,15 +13,14 @@ export function variance(arr) {
   const sqDiff = v.map(x => Math.pow(x - m, 2))
   return sqDiff.reduce((a,b)=>a+b,0)/v.length
 }
-export function scoreColor(s) {
-  if (!s) return 'var(--muted)'
-  return 'var(--foreground)'
-}
 export function scoreColorHex(s) {
   if (!s) return '#64748b'
   if (s >= 4.5) return '#34d399'; if (s >= 4.0) return '#7d97fb'
   if (s >= 3.0) return '#fbbf24'; return '#f87171'
 }
+// Skor dikodekan warna (hex) — konsisten dg scoreColorHex. Bar/ScoreBar memakai
+// alpha suffix (`${hex}44`) utk glow — var CSS tidak valid utk itu.
+export function scoreColor(s) { return scoreColorHex(s) }
 export function scoreLabel(s) {
   if (!s) return '–'
   if (s >= 4.5) return 'Sangat Baik'; if (s >= 4.0) return 'Baik'
@@ -39,20 +38,28 @@ export function fmt(s) {
   return parseFloat(s.toFixed(2)).toString()
 }
 export function fmtPct(v, t) { return t ? `${Math.round(v/t*100)}%` : '0%' }
+// Ribuan separator id-ID utk count (formatDate/fmt tetap utk skor).
+export function fmtCount(n) { return (n ?? 0).toLocaleString('id-ID') }
 
+// Selalu format dalam WIB (UTC+7) — Intl dengan timeZone menghindari drift
+// browser-local. Input: Date/ISO; output: DD-MM-YYYY [HH:MM].
 export function formatDate(dateInput, includeTime = false) {
   if (!dateInput || dateInput === '-') return '–'
   try {
     const d = new Date(dateInput)
     if (isNaN(d)) return dateInput
-    const day = String(d.getDate()).padStart(2, '0')
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const year = d.getFullYear()
-    const datePart = `${day}-${month}-${year}`
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Jakarta',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+    }).formatToParts(d)
+    const get = (t) => (parts.find(p => p.type === t) || {}).value || ''
+    const datePart = `${get('day')}-${get('month')}-${get('year')}`
     if (!includeTime) return datePart
-    const hours = String(d.getHours()).padStart(2, '0')
-    const minutes = String(d.getMinutes()).padStart(2, '0')
-    return `${datePart} ${hours}:${minutes}`
+    const time = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(d)
+    const tget = (t) => (time.find(p => p.type === t) || {}).value || ''
+    return `${datePart} ${tget('hour')}:${tget('minute')}`
   } catch (e) { return dateInput }
 }
 
@@ -393,42 +400,49 @@ export function aggregateByDosenSesi(rows, mergeConfig = null) {
 }
 
 // ── Sentiment ──────────────────────────────────────────────────────────────
-const NEGASI=['tidak ','tdk ','belum ','kurang ','bukan ','tanpa ','susah ','sulit ','gak ','ga ','engga ']
+const NEGASI=['tidak ','tdk ','belum ','kurang ','bukan ','tanpa ','susah ','sulit ','gak ','ga ','nggak ','engga ','gabisa ']
 const CLEAR_POS=[/^(terima kasih|terimakasih|makasih|thanks|thank you)/i,/^(mantap|keren|bagus|luar biasa|sangat baik|sangat bagus|sangat jelas|sangat membantu)/i,/^(seruu?|asik|asyik|enjoy)/i,/dosen.{0,20}(baik|bagus|jelas|menarik|membantu|seru|keren|hebat)/i,/(materi|kelas|kuliah).{0,20}(jelas|bagus|baik|menarik|mudah dipahami)/i,/^alhamdulillah.{0,30}(lancar|menyenangkan|baik|jelas)/i,/^(penjelasan|cara mengajar|cara penyampaian).{0,40}(baik|jelas|bagus|mudah|menarik)/i]
 const CLEAR_NEG=[/penjelasan.{0,30}(kurang jelas|tidak jelas|membingungkan|terlalu cepat|sulit dipahami)/i,/(terlalu cepat|terlalu lambat).{0,20}(menjelaskan|menyampaikan|materi)/i,/suara.{0,20}(tidak (jelas|terdengar)|mendem|kecil|pecah)/i,/^(membosankan|bosan|kurang menarik|tidak menarik|monoton)/i]
 const CLEAR_NEUTRAL=[/^(mungkin|sebaiknya|tolong|mohon|bisa lebih|perlu lebih|semoga)/i,/^(saran|masukan|catatan)/i,/^(maaf (telat|terlambat))/i,/^(lanjutkan\s*[.!]?$)/i,/^(aman (pak|bu|mas|mbak)?|sejauh ini aman)\s*[.!]?$/i]
 const POS_W=[{w:3,words:['sangat bagus','sangat baik','sangat jelas','sangat menarik','sangat seru','sangat membantu','luar biasa','terbaik','sempurna','amazing','excellent','outstanding','perfect','awesome']},{w:2,words:['bagus','baik','jelas','mudah dipahami','mudah dimengerti','menyenangkan','menarik','seru','asik','asyik','enjoy','antusias','interaktif','membantu','terima kasih','terimakasih','thanks','puas','memuaskan','informatif','bermanfaat','efektif','keren','mantap','hebat','detail','lengkap','lancar','enak dipahami']},{w:1,words:['cukup baik','sudah baik','cukup jelas','lumayan','bisa dipahami']}]
-const NEG_W=[{w:3,words:['membosankan','mengecewakan','kecewa','buruk','jelek','parah','tidak berguna','sangat membosankan']},{w:2,words:['kurang jelas','kurang baik','kurang menarik','tidak jelas','tidak paham','tidak mengerti','bingung','sulit dipahami','terlalu cepat','terlalu lambat','monoton','tidak interaktif','tidak menarik','suara mendem','tidak terdengar']},{w:1,words:['kurang','agak kurang','sedikit kurang','perlu diperbaiki','bisa lebih baik']}]
+const NEG_W=[{w:3,words:['membosankan','mengecewakan','kecewa','buruk','jelek','parah','tidak berguna','sangat membosankan']},{w:2,words:['kurang jelas','kurang baik','kurang menarik','tidak jelas','tidak paham','tidak mengerti','nggak paham','nggak ngerti','nggak mengerti','gak paham','gak ngerti','ga paham','ga ngerti','bingung','sulit dipahami','terlalu cepat','terlalu lambat','monoton','tidak interaktif','tidak menarik','suara mendem','tidak terdengar']},{w:1,words:['kurang','agak kurang','sedikit kurang','perlu diperbaiki','bisa lebih baik']}]
 export function analyzeSentiment(text) {
   if (!text||text.trim().length<4) return 'neutral'
   const clean=text.trim(),lower=clean.toLowerCase()
-  if (CLEAR_POS.some(p=>p.test(clean))) return 'positive'
-  if (CLEAR_NEG.some(p=>p.test(clean))) return 'negative'
-  if (CLEAR_NEUTRAL.some(p=>p.test(clean))) return 'neutral'
+  // URUTAN PENTING: hitung sinyal kata POSITIF/NEGATIF DULU. Pola CLEAR_POS hanya
+  // jadi tiebreak — jangan dicek di depan ("dosen baik tapi terlalu cepat" harus
+  // terhitung kata negatifnya, bukan langsung dianggap positif).
   let pos=0,neg=0
+  // Kemunculan kata di tengah kata lain TIDAK dihitung — "jelas" dalam
+  // "menjelaskannya" bukan sinyal positif. Boundary kiri huruf = bukan tandai.
+  const atWordStart = (s, idx) => idx === 0 || !/[a-z]/.test(s[idx - 1])
   for (const {w,words} of POS_W) {
     for (const word of words) {
       if (lower.includes(word)) {
         const idx=lower.indexOf(word)
+        if (!atWordStart(lower, idx)) continue
         const before=lower.substring(Math.max(0,idx-30),idx)
         
         const isNegated = NEGASI.some(n => {
           if (!before.includes(n)) return false
           
           // Jika negasi adalah bagian dari "tidak ada" / "gak ada" / "tidak masalah", jangan digolongkan sebagai negasi yang merusak
-          if (['tidak ', 'gak ', 'tdk ', 'ga '].includes(n)) {
+          if (['tidak ', 'gak ', 'tdk ', 'ga ', 'nggak '].includes(n)) {
             if (before.includes('tidak ada') || 
                 before.includes('gak ada') || 
                 before.includes('tdk ada') || 
                 before.includes('ga ada') || 
+                before.includes('nggak ada') || 
                 before.includes('tidak ad') || 
                 before.includes('gak ad') || 
                 before.includes('tdk ad') || 
                 before.includes('ga ad') || 
+                before.includes('nggak ad') || 
                 before.includes('tidak masalah') || 
                 before.includes('gak masalah') || 
                 before.includes('tdk masalah') ||
-                before.includes('ga masalah')) {
+                before.includes('ga masalah') ||
+                before.includes('nggak masalah')) {
               return false
             }
           }
@@ -443,6 +457,7 @@ export function analyzeSentiment(text) {
     for (const word of words) {
       if (lower.includes(word)) {
         const idx = lower.indexOf(word)
+        if (!atWordStart(lower, idx)) continue
         const before = lower.substring(Math.max(0, idx - 30), idx)
         
         // Cek apakah kata negatif ini dinegasikan (misal: "tidak membosankan" -> malah bermakna positif)
@@ -456,12 +471,109 @@ export function analyzeSentiment(text) {
       }
     }
   }
-  if (pos>neg) return 'positive'; if (neg>pos) return 'negative'; if (pos>0) return 'positive'
-  return 'neutral'
+  // Tiebreak pola eksplisit hanya saat sisi lawan tidak punya sinyal sama sekali.
+  if (neg === 0 && pos > 0 && CLEAR_POS.some(p=>p.test(clean))) return 'positive'
+  if (pos === 0 && neg > 0 && CLEAR_NEG.some(p=>p.test(clean))) return 'negative'
+  if (neg > pos) return 'negative'
+  if (pos > neg) return 'positive'
+  // Tanpa sinyal kata sama sekali → pola eksplisit menentukan.
+  if (pos === 0 && neg === 0) {
+    if (CLEAR_POS.some(p=>p.test(clean))) return 'positive'
+    if (CLEAR_NEG.some(p=>p.test(clean))) return 'negative'
+    if (CLEAR_NEUTRAL.some(p=>p.test(clean))) return 'neutral'
+    return 'neutral'
+  }
+  // Seri (pos === neg > 0): tidak boleh dilabeli positif — keluhan eksplisit
+  // (mis. "dosen baik tapi terlalu cepat") dibiarkan negatif, bukan positif.
+  return 'negative'
 }
-const STOPWORDS=new Set([
+// ── Intent (Puji / Kritik / Saran) ────────────────────────────────────────
+// Klasifikasi jujur 3-arah, aturan berlapis deterministik — transparan & defensible:
+//   1. Kritik — ada ≥1 sinyal evaluatif negatif (daftar spesifikasi + word-list
+//               NEG_W dari blok sentiment, REUSED bukan diduplikasi).
+//   2. Saran  — ada penanda permintaan/usulan. Kritik sudah menang duluan,
+//               jadi "mohon penjelasannya lebih lambat" = Kritik (ada evaluasi negatif).
+//   3. Puji   — ada sinyal positif (spesifikasi + POS_W sentiment, REUSED),
+//               dan TIDAK ada sinyal kritik (sudah tersaring di langkah 1).
+//   4. lain   → null → ditampilkan sebagai "Lainnya"; TIDAK dipaksa ke Saran.
+// Kata tunggal dicek dengan batas kiri huruf (atWordStart, sama spt sentiment)
+// agar "dipercepat"/"menjelaskan" tidak memicu sinyal "cepat"/"jelas".
+const INTENT_KRITIK_WORDS = [
+  // sinyal evaluatif negatif dari spesifikasi (kata tunggal tidak ada di NEG_W)
+  'terlalu','cepat','lambat','susah','sulit','bosan','ribet','lama','kecepatan',
+  // sisanya direuse dari NEG_W sentiment (kurang, kurang jelas, tidak jelas,
+  // bingung, membosankan, jelek, terlalu cepat, monoton, buruk, parah, dst.)
+]
+const INTENT_SARAN_WORDS = [
+  // penanda permintaan/usulan/harapan. 'bisa' & 'mungkin' telanjang sengaja
+  // TIDAK dipakai — "bisa dipahami"/"mungkin benar" bukan permintaan → salah jujur.
+  'mohon','sebaiknya','semoga','tolong','usul','saran','hendaknya','harap',
+  'mungkin lebih','mungkin jika','kalo bisa','perlu','tambah','kurangi',
+  'jangan terlalu','minta','kedepan','agar'
+]
+const INTENT_PUJI_WORDS = [
+  // sinyal positif dari spesifikasi + direuse dari POS_W sentiment
+  'bagus','baik','jelas','menarik','seru','mantap','mudah','interaktif',
+  'profesional','ramah','sabar','terima kasih','terimakasih','makasih','top',
+  'keren','puas','suka','membantu','enak','lancar','good','great'
+]
+// Penanda negasi tepat sebelum sebuah kata — token utuh (bukan substring),
+// jadi 'ga' di dalam "juga"/"sangat" tidak terhitung. Mirip blok NEGASI
+// sentiment, tapi per-kata supaya tidak kena kata dalam kata.
+const NEG_BEFORE_RE = /(?:^|\s)(tidak|tdk|gak|ga|nggak|engga|belum|belom|jangan|bukan|tanpa|kurang|susah|sulit|gabisa)\s+$/
+export function classifyIntent(text) {
+  if (!text || text.trim().length < 4) return null
+  const lower = text.toLowerCase()
+  const atWordStart = (s, idx) => idx === 0 || !/[a-z]/.test(s[idx - 1])
+  const negWords = new Set(NEG_W.flatMap(g => g.words))
+  const posWords = new Set(POS_W.flatMap(g => g.words))
+  // 'paham' telanjang sengaja TIDAK masuk puji: "sudah paham" = pernyataan
+  // pemahaman, bukan pujian ke dosen → Lainnya. Frase 'mudah dipahami'/
+  // 'bisa dipahami' (dari POS_W) tetap puji.
+  const kritikWords = [...INTENT_KRITIK_WORDS, ...negWords]
+  const pujiWords = [...INTENT_PUJI_WORDS, ...posWords]
+
+  const isNegatedBefore = (idx) =>
+    NEG_BEFORE_RE.test(lower.substring(0, idx).replace(/\s+/g, ' '))
+  // Idiom "kurang lebih" (≈ approximately) — 'kurang' di sini BUKAN sinyal kritik.
+  const isKurangLebih = (idx) => lower.slice(idx + 6).trimStart().startsWith('lebih')
+
+  // Sinyal pertama per kategori (urutan list = prioritas), dengan status negasi.
+  const findFirst = (list) => {
+    for (const sig of list) {
+      const idx = lower.indexOf(sig)
+      if (idx < 0 || !atWordStart(lower, idx)) continue
+      if (sig === 'kurang' && isKurangLebih(idx)) continue
+      return { sig, idx, negated: isNegatedBefore(idx) }
+    }
+    return null
+  }
+
+  const k = findFirst(kritikWords)
+  const p = findFirst(pujiWords)
+
+  // "tidak membosankan" → sinyal kritik dinegasikan → bukan kritik (malah puji).
+  // "tidak bagus" → sinyal puji dinegasikan → kritik.
+  const kritik = (k && !k.negated) || (p && p.negated)
+  const puji = (p && !p.negated) || (k && k.negated)
+
+  if (kritik) return 'kritik'
+  if (findFirst(INTENT_SARAN_WORDS)) return 'saran'
+  if (puji) return 'puji'
+  return null
+}
+export function intentFrequencies(texts) {
+  const counts = { puji: 0, kritik: 0, saran: 0, lainnya: 0 }
+  ;(texts || []).forEach(t => {
+    const k = classifyIntent(t) || 'lainnya'
+    counts[k]++
+  })
+  return counts
+}
+
+export const STOPWORDS=new Set([
   // Kata hubung & Preposisi
-  'yang','dan','di','ke','dari','ini','itu','ada','untuk','dengan','pada','atau','juga','sudah','saya','kamu','kami','kita','mereka','adalah','dalam','tidak','bisa','akan','bagi','oleh','seperti','lebih','sudah','belum','sangat','hari','agar','karena','tetapi','tapi','namun','jadi','jika','bila','maka','nya','kan','lah','pun','ya','iya','sih','nih','deh','dong','jg','sm','lg','yg','jd','bs','sy','km','hrs','sdh','blm','ada','hal','cara','setiap','semua','selalu','sering','jarang','satu','dua','tiga','empat','lima','the','and','for','are','but','not','you','all','can','was','have','dr','dgn','utk','krn','tp','pak','bu','mas','mbak','bpk','ibu','bang','kak','prof',
+  'yang','dan','di','ke','dari','ini','itu','ada','untuk','dengan','pada','atau','juga','sudah','saya','kamu','kami','kita','mereka','adalah','dalam','tidak','bisa','akan','bagi','oleh','seperti','lebih','sudah','belum','sangat','hari','agar','karena','tetapi','tapi','namun','jadi','jika','bila','maka','nya','kan','lah','pun','ya','iya','sih','nih','deh','dong','jg','sm','lg','yg','jd','bs','sy','km','hrs','sdh','blm','ada','hal','cara','setiap','semua','selalu','sering','jarang','satu','dua','tiga','empat','lima','the','and','for','are','but','not','you','all','can','was','have','dr','dgn','utk','krn','tp','pak','bu','mas','mbak','bpk','ibu','bang','kak','prof','aku','hanya','karna','udah','kalo','kali','nanti','gitu','gini','nga','nggak','ga','tdk','paling','sedikit',
   // Kata generik ruang lingkup kuliah/belajar
   'kelas','dosen','materi','kuliah','pembelajaran','pertemuan','mahasiswa','mengajar','penyampaian','penjelasannya','belajar','dimengerti','detail','diskusi','sesi','tugas','perkuliahan','penerapan','diberikan','disampaikan','memberikan','tadi','saat','malam','semester','makul','matkul',
   // Kata keterangan, penegas & evaluasi generik
@@ -511,40 +623,45 @@ export function buildWordCloud(texts, maxWords = 80) {
 export function detectAnomalies(dosenList){const all=dosenList.map(d=>d.csatGabungan).filter(Boolean);if(all.length<3)return[];const mean=avg(all),std=Math.sqrt(all.reduce((a,s)=>a+Math.pow(s-mean,2),0)/all.length);return dosenList.filter(d=>d.csatGabungan&&Math.abs(d.csatGabungan-mean)>std).map(d=>({...d,zScore:+((d.csatGabungan-mean)/std).toFixed(2),type:d.csatGabungan>mean?'outstanding':'concern'}))}
 
 // ── Correlation ───────────────────────────────────────────────────────────
+// Pairwise deletion: pasangan (x,y) dengan salah satu null dilewati, bukan
+// dipaksa 0. n<3 → null (2 titik selalu menghasilkan ±1 — tidak informatif).
 export function pearson(x, y) {
-  const n = x.length
-  if (n !== y.length || n === 0) return 0
-  const sumX = x.reduce((a, b) => a + b, 0)
-  const sumY = y.reduce((a, b) => a + b, 0)
-  const sumX2 = x.reduce((a, b) => a + b * b, 0)
-  const sumY2 = y.reduce((a, b) => a + b * b, 0)
-  const sumXY = x.map((v, i) => v * y[i]).reduce((a, b) => a + b, 0)
+  const pairs = x.map((v, i) => [v, y[i]]).filter(([a, b]) => a != null && b != null && !isNaN(a) && !isNaN(b))
+  const n = pairs.length
+  if (n < 3) return null
+  const sumX = pairs.reduce((a, p) => a + p[0], 0)
+  const sumY = pairs.reduce((a, p) => a + p[1], 0)
+  const sumX2 = pairs.reduce((a, p) => a + p[0] * p[0], 0)
+  const sumY2 = pairs.reduce((a, p) => a + p[1] * p[1], 0)
+  const sumXY = pairs.reduce((a, p) => a + p[0] * p[1], 0)
   const num = n * sumXY - sumX * sumY
   const den = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY))
-  if (den === 0) return 0
+  if (den === 0) return null
   return +(num / den).toFixed(2)
 }
 
-export function getCorrelationMatrix(dosenList) {
+export function getCorrelationMatrix(dosenList, opts = {}) {
+  // Basis respon: tiap baris = 1 respons → TotalRespon konstan 1, korelasinya
+  // tidak bermakna. opts.includeRespon=false menghapus variabel itu (matriks 3x3).
+  const includeRespon = opts.includeRespon !== false
   const data = dosenList.map(d => ({
-    performa: d.skorPerforma || 0,
-    pemahaman: d.skorPemahaman || 0,
-    interaksi: d.skorInteraktif || 0,
-    respon: d.totalRespon || 0
+    performa: d.skorPerforma ?? null,
+    pemahaman: d.skorPemahaman ?? null,
+    interaksi: d.skorInteraktif ?? null,
+    respon: d.totalRespon ?? null
   }))
 
-  const keys = ['performa', 'pemahaman', 'interaksi', 'respon']
-  const labels = [
-    'Performa Dosen', 
-    'Pemahaman Materi', 
-    'Interaktivitas', 
-    'Jumlah Respon'
-  ]
+  const keys = includeRespon
+    ? ['performa', 'pemahaman', 'interaksi', 'respon']
+    : ['performa', 'pemahaman', 'interaksi']
+  const labels = includeRespon
+    ? ['Performa Dosen', 'Pemahaman Materi', 'Interaktivitas', 'Jumlah Respon']
+    : ['Performa Dosen', 'Pemahaman Materi', 'Interaktivitas']
 
-  const matrix = keys.map(rKey => keys.map(cKey => 
+  const matrix = keys.map(rKey => keys.map(cKey =>
     pearson(data.map(d => d[rKey]), data.map(d => d[cKey]))
   ))
-  
+
   return { matrix, labels }
 }
 
