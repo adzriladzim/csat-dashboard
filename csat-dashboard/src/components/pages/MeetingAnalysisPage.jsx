@@ -11,10 +11,40 @@ import clsx from 'clsx'
 export default function MeetingAnalysisPage() {
   const { getFiltered, mergeMode } = useStore()
   const filtered = getFiltered()
-  const [selectedRange, setSelectedRange] = useState('1-16')
+  const [selectedRange, setSelectedRange] = useState('all')
+  const [appliedRange, setAppliedRange] = useState('all')
 
-  const dosenList = useMemo(() => aggregateByDosen(filtered, null, Infinity, mergeMode), [filtered, mergeMode])
-  const globalStats = useMemo(() => getGlobalMeetingStats(filtered), [filtered])
+  // Rentang kuartal pertemuan yang AKTIF di data (1-4/5-8/9-12/13-16), bukan
+  // rentang hardcode — opsinya jujur terhadap data yang benar-benar ada.
+  const rangeOptions = useMemo(() => {
+    const nums = new Set()
+    filtered.forEach(r => {
+      const n = r.pertemuanStart ?? r.pertemuan
+      if (n != null && !isNaN(n)) nums.add(n)
+    })
+    if (!nums.size) return ['all']
+    const min = Math.min(...nums), max = Math.max(...nums)
+    const quarters = []
+    for (let s = 1; s <= 16; s += 4) {
+      const e = s + 3
+      if (s <= max && e >= min) quarters.push(`${s}-${e}`)
+    }
+    return quarters
+  }, [filtered])
+
+  // Baris dalam rentang yang DITERAPKAN — dipakai semua chart & tabel halaman.
+  const rowsInRange = useMemo(() => {
+    if (appliedRange === 'all') return filtered
+    const [s, e] = appliedRange.split('-').map(Number)
+    return filtered.filter(r => {
+      const rs = r.pertemuanStart ?? r.pertemuan
+      const re = r.pertemuanEnd ?? r.pertemuan
+      return rs != null && re != null && rs <= e && re >= s
+    })
+  }, [filtered, appliedRange])
+
+  const dosenList = useMemo(() => aggregateByDosen(rowsInRange, null, Infinity, mergeMode), [rowsInRange, mergeMode])
+  const globalStats = useMemo(() => getGlobalMeetingStats(rowsInRange), [rowsInRange])
   
   // Detect drops 
   const drops = useMemo(() => detectPerformanceDrops(dosenList, 0.4), [dosenList])
@@ -25,6 +55,8 @@ export default function MeetingAnalysisPage() {
   }, [dosenList])
 
   // Comparison Data: P1-P4 vs P9-P12
+  // Sepanjang tidak ada respon di rentang itu → null (bukan 0) supaya chart
+  // menampilkan "belum ada data", bukan runtuh ke 0.00 yang menyesatkan.
   const comparisonData = useMemo(() => {
     const awal = globalStats.filter(s => {
       const p = parseInt(s.pertemuan.replace('P', ''))
@@ -35,12 +67,12 @@ export default function MeetingAnalysisPage() {
       return p >= 9 && p <= 12
     })
 
-    const avgAwal = awal.length > 0 ? awal.reduce((acc, s) => acc + s.composite, 0) / awal.length : 0
-    const avgAkhir = akhir.length > 0 ? akhir.reduce((acc, s) => acc + s.composite, 0) / akhir.length : 0
+    const avgAwal = awal.length > 0 ? awal.reduce((acc, s) => acc + s.composite, 0) / awal.length : null
+    const avgAkhir = akhir.length > 0 ? akhir.reduce((acc, s) => acc + s.composite, 0) / akhir.length : null
 
     return [
-      { name: 'Awal Semester (P1-P4)', score: +avgAwal.toFixed(2), fill: 'var(--muted-2)' },
-      { name: 'Akhir Semester (P9-P12)', score: +avgAkhir.toFixed(2), fill: 'var(--brand)' }
+      { name: 'Awal Semester (P1-P4)', score: avgAwal == null ? null : +avgAwal.toFixed(2), fill: 'var(--muted-2)' },
+      { name: 'Akhir Semester (P9-P12)', score: avgAkhir == null ? null : +avgAkhir.toFixed(2), fill: 'var(--brand)' }
     ]
   }, [globalStats])
 
@@ -104,9 +136,15 @@ export default function MeetingAnalysisPage() {
             onChange={(e) => setSelectedRange(e.target.value)}
             className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 py-2 text-xs font-bold text-[var(--foreground)] outline-none transition-all cursor-pointer focus:border-[var(--brand)] hover:border-[var(--brand-border)] shadow-sm"
           >
-            <option value="1-16">Semua Pertemuan (1-16)</option>
+            <option value="all">Semua Pertemuan</option>
+            {rangeOptions.filter(o => o !== 'all').map(o => (
+              <option key={o} value={o}>Pertemuan {o}</option>
+            ))}
           </select>
-          <button className="btn-primary px-8 py-2 text-xs font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+          <button
+            onClick={() => setAppliedRange(selectedRange)}
+            className="btn-primary px-8 py-2 text-xs font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+          >
             Terapkan
           </button>
         </div>
@@ -261,6 +299,12 @@ export default function MeetingAnalysisPage() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        {(comparisonData[0].score == null || comparisonData[1].score == null) && (
+          <p className="text-[11px] font-bold text-[var(--muted)] mt-4 leading-relaxed">
+            {comparisonData[0].score == null && 'Awal (P1-P4): belum ada data pada rentang ini. '}
+            {comparisonData[1].score == null && 'Akhir (P9-P12): belum ada data — bar tidak ditampilkan (bukan 0).'}
+          </p>
+        )}
       </div>
 
       {/* Trend Area Chart Card */}

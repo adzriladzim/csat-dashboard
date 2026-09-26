@@ -71,7 +71,7 @@ export default function FilterBar({ showFull = false }) {
       <div className="flex flex-wrap gap-x-4 gap-y-5 items-end">
         {/* School */}
         <div className="flex-1 min-w-[160px] max-w-[240px] space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">School</label>
+          <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">School</label>
           <select value={filters.school} onChange={e=>setFilter('school',e.target.value)} className="input w-full text-xs font-bold">
             <option value="all">Semua School</option>
             {schoolList.map(s=><option key={s} value={s}>{s}</option>)}
@@ -80,7 +80,7 @@ export default function FilterBar({ showFull = false }) {
 
         {/* Major */}
         <div className="flex-1 min-w-[160px] max-w-[240px] space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Major</label>
+          <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Major</label>
           <select value={filters.major} onChange={e=>setFilter('major',e.target.value)} className="input w-full text-xs font-bold">
             <option value="all">Semua Major</option>
             {majorList.map(m=><option key={m} value={m}>{m}</option>)}
@@ -91,7 +91,7 @@ export default function FilterBar({ showFull = false }) {
         {showFull && (
           <>
             <div className="flex-1 min-w-[160px] max-w-[240px] space-y-1.5">
-              <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Mata Kuliah</label>
+              <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Mata Kuliah</label>
               <select value={filters.matkul} onChange={e=>setFilter('matkul',e.target.value)} className="input w-full text-xs font-bold">
                 <option value="all">Semua Matkul</option>
                 {matkulList.map(m=><option key={m} value={m}>{m}</option>)}
@@ -100,7 +100,7 @@ export default function FilterBar({ showFull = false }) {
             
             {/* NEW: Kelas Filter */}
             <div className="flex-1 min-w-[140px] max-w-[200px] space-y-1.5">
-              <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Kelas</label>
+              <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Kelas</label>
               <select value={filters.kelas} onChange={e=>setFilter('kelas',e.target.value)} className="input w-full text-xs font-bold">
                 <option value="all">Semua Kelas</option>
                 {kelasList.map(k=><option key={k} value={k}>{k}</option>)}
@@ -111,7 +111,7 @@ export default function FilterBar({ showFull = false }) {
 
         {/* Dosen */}
         <div className="flex-1 min-w-[160px] max-w-[240px] space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Nama Dosen</label>
+          <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Nama Dosen</label>
           <select value={filters.dosen} onChange={e=>setFilter('dosen',e.target.value)} className="input w-full text-xs font-bold">
             <option value="all">Semua Dosen</option>
             {dosenList.map(d=><option key={d} value={d}>{d}</option>)}
@@ -121,7 +121,7 @@ export default function FilterBar({ showFull = false }) {
         {/* Pertemuan — sembunyikan saat Multi (Gabungkan): pickers gabungan yang pegang kendali */}
         {!isMergeView && (
           <div className="flex-1 min-w-[100px] max-w-[160px] space-y-1.5">
-            <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Pertemuan</label>
+            <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Pertemuan</label>
             <select value={filters.pertemuan} onChange={e=>setFilter('pertemuan',e.target.value)} className="input w-full text-xs font-bold">
               <option value="all">Semua</option>
               {pertemuanList.map(p=><option key={p} value={p}>{p}</option>)}
@@ -131,7 +131,7 @@ export default function FilterBar({ showFull = false }) {
 
         {/* Mode Sesi — kontrol gabung pertemuan di dashboard */}
         <div className="flex-1 min-w-[120px] max-w-[180px] space-y-1.5">
-          <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Mode Sesi</label>
+          <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Mode Sesi</label>
           <select value={filters.modeSesi} onChange={e=>handleModeChange(e.target.value)} className="input w-full text-xs font-bold">
             <option value="all">Semua Mode</option>
             <option value="single">Single</option>
@@ -146,7 +146,7 @@ export default function FilterBar({ showFull = false }) {
         {showFull && (
           <>
             <div className="flex-1 min-w-[140px] max-w-[180px] space-y-1.5">
-              <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Tanggal Mulai</label>
+              <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Tanggal Mulai</label>
               <input 
                 type="date" 
                 value={filters.dateFrom || ''} 
@@ -155,7 +155,7 @@ export default function FilterBar({ showFull = false }) {
               />
             </div>
             <div className="flex-1 min-w-[140px] max-w-[180px] space-y-1.5">
-              <label className="block text-[10px] text-muted uppercase tracking-wider font-bold text-slate-500">Tanggal Selesai</label>
+              <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Tanggal Selesai</label>
               <input 
                 type="date" 
                 value={filters.dateTo || ''} 

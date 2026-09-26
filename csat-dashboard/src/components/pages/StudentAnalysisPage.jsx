@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Search, Filter, Download, X, Calendar, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import useStore from '@/lib/store'
 import { fmt as globalFmt } from '@/utils/analytics'
+import { csvEscape } from '@/utils/exportUtils'
+import DateFilterNotice from '@/components/common/DateFilterNotice'
 import clsx from 'clsx'
 
 const PAGE_SIZE = 50
@@ -83,17 +85,18 @@ export default function StudentAnalysisPage() {
 
   const handleExportCSV = () => {
     const headers = ["Pertemuan", "NIM", "Dosen", "Mata Kuliah", "Major", "Performa", "Pemahaman", "Interaktif", "Feedback", "Topik Sulit"]
+    // Semua sel via csvEscape → kutip + formula (= + - @) dinetralkan.
     const rows = criticalFeedbacks.map(r => [
-      r.pertemuan,
-      r.nim || r.email || 'Anonim',
-      r.namaDosen,
-      `"${r.mataKuliah}"`,
-      r.major,
-      r.skorPerforma,
-      r.skorPemahaman,
-      r.skorInteraktif,
-      `"${(r.feedbackDosen || '-').replace(/"/g, '""')}"`,
-      `"${(r.topikBelumPaham || '-').replace(/"/g, '""')}"`
+      csvEscape(r.pertemuan),
+      csvEscape(r.nim || r.email || 'Anonim'),
+      csvEscape(r.namaDosen),
+      csvEscape(r.mataKuliah),
+      csvEscape(r.major),
+      csvEscape(r.skorPerforma),
+      csvEscape(r.skorPemahaman),
+      csvEscape(r.skorInteraktif),
+      csvEscape(r.feedbackDosen || '-'),
+      csvEscape(r.topikBelumPaham || '-')
     ])
 
     const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n")
@@ -121,6 +124,8 @@ export default function StudentAnalysisPage() {
           <Download size={16} /> Export CSV
         </button>
       </div>
+
+      <DateFilterNotice />
 
       {/* Filter Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end bg-[var(--bg-surface)] p-5 rounded-2xl border border-[var(--border)] shadow-sm">

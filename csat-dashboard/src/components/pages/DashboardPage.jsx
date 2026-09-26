@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -67,7 +67,13 @@ export default function DashboardPage() {
   const filteredExceptPertemuan = getFilteredExceptPertemuan();
   const pertStart = (label) =>
     label === "all" ? Infinity : +(String(label).match(/\d+/) || [Infinity])[0];
-  const maxP = pertStart(filters.pertemuan);
+  // Range penuh filter: "P3-P4" → 4 (bukan 3) agar tren tidak terpotong.
+  const pertEnd = (label) => {
+    if (label === "all") return Infinity;
+    const nums = String(label).match(/\d+/g) || [Infinity];
+    return +(nums[nums.length - 1]);
+  };
+  const maxP = pertEnd(filters.pertemuan);
   const rawDosenList = useMemo(
     () => aggregateByDosen(filtered, filteredExceptPertemuan, maxP, mergeMode),
     [filtered, filteredExceptPertemuan, maxP, mergeMode],
@@ -100,17 +106,31 @@ export default function DashboardPage() {
   }, [rawDosenList, sortBy, sortDir]);
 
   const anomalies = useMemo(() => detectAnomalies(dosenList), [dosenList]);
-  const conflicts = useMemo(
-    () => filtered.filter((r) => r.semesterConflict).length,
-    [filtered],
-  );
 
-  useMemo(() => setPage(1), [filtered.length]);
+  // Reset ke halaman 1 saat jumlah data berubah (effect, bukan setState-in-memo).
+  useEffect(() => { setPage(1); }, [filtered.length]);
 
-  const globalCsat = avg(dosenList.map((d) => d.csatGabungan));
-  const globalPerforma = avg(dosenList.map((d) => d.skorPerforma));
-  const globalPemahaman = avg(dosenList.map((d) => d.skorPemahaman));
-  const globalInteraktif = avg(dosenList.map((d) => d.skorInteraktif));
+  // Rata-rata global TERTIMBANG oleh jumlah responden dosen (bukan mean
+  // per-dosen yang memberi bobot sama pada dosen 1 respon dan 20 respon).
+  const weightedGlobal = (getScore) => {
+    const rows = dosenList.filter((d) => d.totalRespon > 0 && getScore(d) != null);
+    const total = rows.reduce((a, d) => a + d.totalRespon, 0);
+    if (!total) return null;
+    return rows.reduce((a, d) => a + getScore(d) * d.totalRespon, 0) / total;
+  };
+  const globalCsat = weightedGlobal((d) => d.csatGabungan);
+  const globalPerforma = weightedGlobal((d) => d.skorPerforma);
+  const globalPemahaman = weightedGlobal((d) => d.skorPemahaman);
+  const globalInteraktif = weightedGlobal((d) => d.skorInteraktif);
+
+  // Rank = peringkat CSAT tetap (bebas dari urutan sort aktif).
+  const csatRankMap = useMemo(() => {
+    const m = {};
+    [...rawDosenList]
+      .sort((a, b) => (b.csatGabungan || 0) - (a.csatGabungan || 0))
+      .forEach((d, i) => { m[d.namaDosen] = i + 1; });
+    return m;
+  }, [rawDosenList]);
 
   const globalTrend = useMemo(() => {
     const map = {};
@@ -194,12 +214,6 @@ export default function DashboardPage() {
             {removedCount > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold uppercase whitespace-nowrap">
                 {fmt(removedCount)} Junk/Duplikat
-              </span>
-            )}
-            {conflicts > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 font-bold uppercase flex items-center gap-1 whitespace-nowrap">
-                <AlertCircle size={10} /> {fmt(conflicts)} Data Ganjil (Periode
-                Genap)
               </span>
             )}
             <span
@@ -419,7 +433,7 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {paginated.map((d, i) => {
-                const rank = (page - 1) * PAGE_SIZE + i + 1;
+                const rank = csatRankMap[d.namaDosen] ?? (page - 1) * PAGE_SIZE + i + 1;
                 return (
                   <tr key={d.namaDosen} className="group">
                     <td className="font-serif-accent font-bold text-[var(--brand)] text-center">

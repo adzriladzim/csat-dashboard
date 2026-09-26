@@ -44,7 +44,7 @@ export default function AnomalyPage() {
     <div className="p-4 md:p-8 animate-enter space-y-8 pb-32">
       <SEO
         title="Deteksi Anomali & Variansi"
-        description="Identifikasi otomatis skor ganjil, penurunan performa, dan polarisasi feedback mahasiswa menggunakan algoritma Z-Score."
+        description="Identifikasi otomatis skor ganjil, penurunan performa, dan polarisasi feedback mahasiswa menggunakan deteksi deviasi variansi skor."
       />
       <div className="flex flex-col gap-1">
         <h1 className="font-serif-accent text-3xl font-extrabold tracking-tight text-[var(--foreground)]">
@@ -153,26 +153,9 @@ export default function AnomalyPage() {
           </table>
         </div>
 
-        {/* Pagination bar */}
-        <div className="p-6 bg-[var(--bg-input)] border-t border-[var(--border)] flex flex-wrap items-center justify-end gap-8 text-[11px] font-black uppercase tracking-widest text-[var(--muted)]">
-          <div className="flex items-center gap-3">
-            <span>Page Size:</span>
-            <select className="bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-1.5 outline-none text-[10px] font-black text-[var(--foreground)] cursor-pointer focus:border-[var(--brand)]">
-              <option>20</option>
-            </select>
-          </div>
-          <div className="opacity-60 text-[10px]">
-            1 to {anomalies.length} of {anomalies.length} entries
-          </div>
-          <div className="flex gap-4 items-center">
-            <span className="opacity-20 cursor-not-allowed">|&lt;</span>
-            <span className="opacity-20 cursor-not-allowed">&lt;</span>
-            <div className="bg-[var(--brand)] text-[var(--brand-text)] px-4 py-1.5 rounded-lg shadow-lg shadow-brand/10">
-              Page 1 of 1
-            </div>
-            <span className="opacity-20 cursor-not-allowed">&gt;</span>
-            <span className="opacity-20 cursor-not-allowed">&gt;|</span>
-          </div>
+        {/* Ringkasan — tanpa kontrol pagination palsu (tabel sudah slice 10) */}
+        <div className="p-6 bg-[var(--bg-input)] border-t border-[var(--border)] text-right text-[11px] font-black uppercase tracking-widest text-[var(--muted)]">
+          1 to {anomalies.length} of {anomalies.length} entries
         </div>
       </div>
 
@@ -205,8 +188,7 @@ export default function AnomalyPage() {
                 name="Variansi Skor"
                 tick={{ fontSize: 10, fill: "var(--muted)", fontWeight: 700 }}
                 stroke="var(--border)"
-                domain={[0, 1.2]}
-                ticks={[0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]}
+                padding={{ top: 10, bottom: 10 }}
               />
               <ZAxis type="number" range={[150, 150]} />
               <Tooltip

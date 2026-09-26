@@ -50,6 +50,16 @@ export default function RankingPage() {
     });
   }, [dosenList, sortKey, sortDir]);
 
+  // Rank = peringkat CSAT TETAP (bebas dari urutan sort aktif) — konsisten dengan
+  // DashboardPage Batch B: mengurutkan kolom performa tidak boleh menggeser "Rank".
+  const csatRankMap = useMemo(() => {
+    const m = {};
+    [...dosenList]
+      .sort((a, b) => (b.csatGabungan || 0) - (a.csatGabungan || 0))
+      .forEach((d, i) => { m[d.namaDosen] = i + 1; });
+    return m;
+  }, [dosenList]);
+
   const top5 = dosenList
     .slice(0, 5)
     .map((d) => ({ name: d.namaDosen.split(",")[0], csat: d.csatGabungan }));
@@ -185,7 +195,7 @@ export default function RankingPage() {
                 return (
                   <tr key={d.namaDosen}>
                     <td className="font-serif-accent font-bold text-[var(--brand)] text-center text-sm">
-                      {i + 1}
+                      {csatRankMap[d.namaDosen] ?? i + 1}
                     </td>
                   <td
                     className="cursor-pointer group py-3"

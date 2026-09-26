@@ -1,22 +1,81 @@
 import { useMemo } from 'react'
 import useStore from '@/lib/store'
-import { aggregateByDosen, fmt, scoreColor } from '@/utils/analytics'
+import { aggregateByDosen, avg, fmt } from '@/utils/analytics'
 import FilterBar from '@/components/filters/FilterBar'
-import { Trophy, AlertCircle, Calendar } from 'lucide-react'
+import {
+  Trophy, AlertCircle, Calendar, BarChart3
+} from 'lucide-react'
+import {
+  ResponsiveContainer, ComposedChart, Line, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend
+} from 'recharts'
+
+// ISO 8601 week dari tanggal kalender WIB ("YYYY-MM-DD" — Batch A sudah WIB,
+// jadi hitung dari string langsung tanpa tz). Return "YYYY-Www".
+function isoWeekKey(y, m, d) {
+  const date = new Date(Date.UTC(y, m - 1, d))
+  const dayNum = date.getUTCDay() || 7
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7)
+  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+}
+
+const fmtTanggal = (ymd) => {
+  if (!ymd) return null
+  const d = new Date(`${ymd}T00:00:00`)
+  if (isNaN(d)) return null
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const TOOLTIP_STYLE = {
+  backgroundColor: 'var(--bg-card)',
+  border: '1px solid var(--brand-border)',
+  borderRadius: 12,
+  fontSize: 13,
+  color: 'var(--foreground)',
+  boxShadow: 'var(--shadow)',
+  padding: '10px 14px',
+}
 
 export default function WeeklyAnalysisPage() {
   const { getFiltered, filters } = useStore()
   const filtered = getFiltered()
   const dosenList = useMemo(() => aggregateByDosen(filtered), [filtered])
 
-  // Sorting for Top 5 (Descending) and Bottom 5 (Ascending)
+  // Sort Top 5 (Desc) dan Bottom 5 (Asc) — ABSOLUTE worst tampil pertama.
   const top5 = useMemo(() => dosenList.slice(0, 5), [dosenList])
-  const bot5 = useMemo(() => {
-    // Get the 5 worst, but we want the ABSOLUTE worst (the one with the highest rank number) to be first in the table
-    // If total 50, we want rank 50, then 49, then 48...
-    const last5 = [...dosenList].slice(-5) // These are the worst 5, still in DESC score order (e.g., 4.3, 4.2, 3.9)
-    return last5.reverse() // Now it's 3.9, 4.2, 4.3
-  }, [dosenList])
+  const bot5 = useMemo(() => [...dosenList].slice(-5).reverse(), [dosenList])
+
+  // Agregasi per minggu ISO (WIB) — CSAT rata-rata + jumlah respon per minggu.
+  const weeks = useMemo(() => {
+    const map = new Map()
+    filtered.forEach(r => {
+      const t = r.tanggal
+      if (!t) return
+      const m = String(t).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+      if (!m) return
+      const key = isoWeekKey(+m[1], +m[2], +m[3])
+      if (!map.has(key)) map.set(key, [])
+      map.get(key).push(r)
+    })
+    return [...map.entries()]
+      .map(([key, rows]) => ({
+        label: key,
+        csat: avg(rows.map(r => r.csatGabungan)),
+        count: rows.length,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [filtered])
+
+  const dateRange = useMemo(() => {
+    const dates = filtered.map(r => r.tanggal).filter(Boolean).sort()
+    if (!dates.length) return null
+    return {
+      from: fmtTanggal(dates[0]),
+      to: fmtTanggal(dates[dates.length - 1]),
+    }
+  }, [filtered])
 
   const pertemuanText = filters.pertemuan === 'all' ? 'Seluruh Pertemuan' : filters.pertemuan
 
@@ -28,11 +87,53 @@ export default function WeeklyAnalysisPage() {
         </h1>
         <div className="flex items-center gap-2 text-sm font-medium text-[var(--muted)]">
           <Calendar size={14} />
-          <span>Periode: {pertemuanText}</span>
+          <span>Periode: {dateRange ? `${dateRange.from} – ${dateRange.to}` : pertemuanText}</span>
         </div>
       </div>
 
       <FilterBar />
+
+      {/* Tren CSAT per minggu */}
+      <div className="card p-6 overflow-hidden">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-[var(--brand-dim)] border border-[var(--brand-border)] flex items-center justify-center">
+            <BarChart3 size={20} className="text-[var(--brand)]" />
+          </div>
+          <div>
+            <h2 className="section-title">Tren CSAT per Minggu</h2>
+            <p className="text-[11px] text-[var(--muted)] font-medium uppercase tracking-wider">
+              Rata-rata CSAT &amp; jumlah responden per minggu ISO (WIB)
+            </p>
+          </div>
+        </div>
+        {weeks.length >= 2 ? (
+          <div className="h-[320px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={weeks} margin={{ top: 25, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="csat" domain={[1, 5]} tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="count" orientation="right" tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  itemStyle={{ color: 'var(--foreground)' }}
+                  labelStyle={{ color: 'var(--foreground)' }}
+                  formatter={(v, name) => [name === 'CSAT' ? fmt(v) : v, name]}
+                />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+                <Bar yAxisId="count" dataKey="count" name="Responden" fill="var(--brand)" fillOpacity={0.25} radius={[4, 4, 0, 0]} barSize={14} />
+                <Line yAxisId="csat" type="monotone" dataKey="csat" name="CSAT" stroke="var(--brand)" strokeWidth={3} dot={{ fill: 'var(--brand)', r: 4, strokeWidth: 0 }} connectNulls />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-[180px] text-sm font-medium text-[var(--muted)]">
+            {weeks.length === 0
+              ? 'Belum ada data tersedia'
+              : 'Data kurang dari 2 minggu — tren belum bisa ditampilkan'}
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Top 5 Table */}

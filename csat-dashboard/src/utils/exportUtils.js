@@ -1,4 +1,4 @@
-import { fmt, scoreLabel, analyzeSentiment, avg, formatDate, labelStart } from './analytics'
+import { fmt, scoreLabel, analyzeSentiment, formatDate, labelStart } from './analytics'
 
 const C = {
   brand: [61,78,232], dark:[15,23,42], muted:[100,116,139],
@@ -19,6 +19,15 @@ function safeText(str) {
   // Only strip control characters (0x00-0x1F, 0x7F).
   // Emojis and international characters are now ALLOWED and handled by the hybrid renderer.
   return str.replace(/[\x00-\x1F\x7F]/g, '').trim()
+}
+
+// Escape satu sel CSV: quote bila mengandung koma/kutip/baris baru, double-kan
+// kutip dalam, dan netralkan formula spreadsheet (= + - @) dengan awalan apostrof.
+export function csvEscape(val) {
+  let s = val == null ? '' : String(val)
+  if (/^[=+\-@]/.test(s)) s = "'" + s
+  if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"'
+  return s
 }
 
 // Download timestamp in WIB (Asia/Jakarta), format YYYYMMDD.
@@ -375,26 +384,28 @@ export async function exportDashboardPDF(dosenList) {
   pdf.setFontSize(9); pdf.setFont('helvetica','normal'); pdf.setTextColor(200,210,255)
   pdf.text(`${formatDate(new Date(), true)} ${getTimezone()}   ·   Total Dosen: ${dosenList.length}`,14,22)
   pdf.setTextColor(180,200,255); pdf.text('Dibuat oleh Adzril Adzim Hendrynov - Ilkom24',14,28)
-  // Ringkasan Metrik (Global)
-    const allCsat = dosenList.map(d => d.csatGabungan).filter(Boolean)
-    const allPerforma = dosenList.map(d => d.skorPerforma).filter(Boolean)
-    const allPemahaman = dosenList.map(d => d.skorPemahaman).filter(Boolean)
-    const allInteraktif = dosenList.map(d => d.skorInteraktif).filter(Boolean)
-    const totalResp = dosenList.reduce((acc, d) => acc + (d.totalRespon || 0), 0)
+  // Ringkasan Metrik (Global) — rata-rata TERTIMBANG jumlah responden (sama
+  // dengan DashboardPage Batch B). avg() bisa null saat 0 dosen valid → jangan
+  // dipanggil .toFixed() (TypeError).
+  const wAvg = (items, get) => {
+    const rows = items.filter(d => (d.totalRespon || 0) > 0 && get(d) != null)
+    const total = rows.reduce((a, d) => a + d.totalRespon, 0)
+    return total ? rows.reduce((a, d) => a + get(d) * d.totalRespon, 0) / total : null
+  }
 
-    pdf.setFontSize(11); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 41, 59)
-    pdf.text('Ringkasan Metrik:', 14, 42)
-    
-    pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85)
-    
-    // Kolom 1
-    pdf.text(`CSAT Gabungan: ${avg(allCsat).toFixed(2)}`, 14, 50)
-    pdf.text(`Performa Dosen: ${avg(allPerforma).toFixed(2)}`, 14, 56)
-    pdf.text(`Pemahaman Materi: ${avg(allPemahaman).toFixed(2)}`, 14, 62)
-    pdf.text(`Interaktivitas: ${avg(allInteraktif).toFixed(2)}`, 14, 68)
+  pdf.setFontSize(11); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 41, 59)
+  pdf.text('Ringkasan Metrik:', 14, 42)
+  
+  pdf.setFontSize(9); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85)
+  
+  // Kolom 1
+  pdf.text(`CSAT Gabungan: ${fmt(wAvg(dosenList, d => d.csatGabungan))}`, 14, 50)
+  pdf.text(`Performa Dosen: ${fmt(wAvg(dosenList, d => d.skorPerforma))}`, 14, 56)
+  pdf.text(`Pemahaman Materi: ${fmt(wAvg(dosenList, d => d.skorPemahaman))}`, 14, 62)
+  pdf.text(`Interaktivitas: ${fmt(wAvg(dosenList, d => d.skorInteraktif))}`, 14, 68)
     
     // Kolom 2
-    pdf.text(`Total Respon: ${Math.round(totalResp).toLocaleString('id-ID')}`, W - 60, 50)
+    pdf.text(`Total Respon: ${Math.round(dosenList.reduce((acc, d) => acc + (d.totalRespon || 0), 0)).toLocaleString('id-ID')}`, W - 60, 50)
     pdf.text(`Jumlah Dosen: ${dosenList.length.toLocaleString('id-ID')}`, W - 60, 56)
 
     y = 80
@@ -404,7 +415,9 @@ export async function exportDashboardPDF(dosenList) {
     pdf.text('Top 10 Performa Dosen Teratas', 14, y); y += 6
     pdf.setDrawColor(...C.brand); pdf.setLineWidth(0.5); pdf.line(14, y, 65, y); y += 6
 
-    const top10 = dosenList.slice(0, 10).sort((a,b)=>(b.csatGabungan||0)-(a.csatGabungan||0))
+    // Top 10 = SALINAN disortir CSAT desc DULU, baru slice — bukan slice dulu
+    // (ikut urutan sort pemanggil) lalu sort 10 baris pertama saja.
+    const top10 = [...dosenList].sort((a,b)=>(b.csatGabungan||0)-(a.csatGabungan||0)).slice(0, 10)
     const cols = [['Rank', 10], ['Nama Dosen', 75], ['Major', 75], ['CSAT', 18], ['Performa', 20], ['Pemahaman', 22], ['Interaktif', 20], ['Jumlah Responden', 15]]
     
     const drawHdr = (yy) => {
@@ -481,7 +494,7 @@ export async function exportDosenExcel(dosenList) {
   const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.map((d,i)=>({'Rank':i+1,'Nama Dosen':d.namaDosen,'Major':d.major,'Mata Kuliah':d.mataKuliah,'Kode Kelas':d.kodeKelas,'CSAT Gabungan':d.csatGabungan,'Performa Dosen':d.skorPerforma,'Pemahaman Materi':d.skorPemahaman,'Interaktivitas':d.skorInteraktif,'Total Responden':d.totalRespon,'Status':scoreLabel(d.csatGabungan)}))), 'Ranking Dosen')
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.flatMap(d=>d.rows.map(r=>({'Timestamp':formatDate(r.timestamp, true),' Nama Dosen':r.namaDosen,'Major':r.major,'Mata Kuliah':r.mataKuliah,'Kode Kelas':r.kodeKelas,'Pertemuan':r.pertemuan,'CSAT':r.csatGabungan,'Performa':r.skorPerforma,'Pemahaman':r.skorPemahaman,'Interaktivitas':r.skorInteraktif,'Feedback':r.feedbackDosen,'Topik Belum Paham':r.topikBelumPaham})))), 'Data Detail')
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.flatMap(d=>d.rows.map(r=>({'Timestamp':formatDate(r.timestamp, true),'Nama Dosen':r.namaDosen,'Major':r.major,'Mata Kuliah':r.mataKuliah,'Kode Kelas':r.kodeKelas,'Pertemuan':r.pertemuan,'CSAT':r.csatGabungan,'Performa':r.skorPerforma,'Pemahaman':r.skorPemahaman,'Interaktivitas':r.skorInteraktif,'Feedback':r.feedbackDosen,'Topik Belum Paham':r.topikBelumPaham})))), 'Data Detail')
   const localDate = formatDate(new Date())
   XLSX.writeFile(wb, `CSAT_Export_${localDate}.xlsx`)
 }

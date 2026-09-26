@@ -1,11 +1,29 @@
 import { useMemo, useState } from 'react'
 import { MessageSquareText, TrendingUp, TrendingDown, Minus, Search } from 'lucide-react'
 import useStore from '@/lib/store'
-import { buildWordCloud, analyzeSentiment, aggregateByDosen, fmt } from '@/utils/analytics'
+import { buildWordCloud, analyzeSentiment, aggregateByDosen, fmt, fmtCount } from '@/utils/analytics'
 import FilterBar from '@/components/filters/FilterBar'
 import clsx from 'clsx'
 
 const SENTIMEN_FILTER = ['all', 'positive', 'neutral', 'negative']
+
+// Penanda unjuk kesulitan utk memilih baris topik "Evaluasi Materi" — subset
+// STRUGGLE_WORDS dari rowParser (tidak di-export). Cloud yg beda = topik yg
+// benar-benar struggle/teknis, bukan kalimat pujian yg lolos parsing longgar.
+const STRUGGLE_HINTS = [
+  'bingung', 'belum paham', 'kurang paham', 'tidak paham', 'tdk paham',
+  'belum mengerti', 'kurang mengerti', 'tidak mengerti', 'tdk mengerti',
+  'susah', 'sulit', 'perlu diperdalam', 'perlu dipelajari', 'perlu latihan',
+  'ingin tahu lebih', 'ingin mempelajari', 'mau tau lebih', 'masih bingung',
+  'masih kurang', 'belum terlalu', 'kurang familiar', 'kurang jelas',
+  'tidak jelas', 'tdk jelas', 'mau diperdalam', 'butuh latihan',
+  'belum familiar', 'agak bingung', 'sedikit bingung', 'masih sulit',
+  'masih susah', 'kurang ngerti', 'gak paham', 'ga paham', 'nggak paham',
+  'nggak ngerti', 'belum ngerti', 'perlu pendalaman', 'perlu pemahaman lebih',
+  'ingin mendalami', 'saya belum', 'aku belum', 'saya kurang', 'aku kurang',
+  'masih rancu', 'masih belum', 'belum sepenuhnya', 'masih blur', 'kebingungan',
+]
+const TOPIC_TECH_PATTERN = /\b(array|linked.?list|tree|graph|sql|python|java|oop|class|object|function|algorithm|data.?struct|erd|uml|api|database|query|join|loop|rekursi|pointer|stack|queue|hash|regresi|matrix|vektor|probabilitas|statistik|clustering|classification|neural.?network|machine.?learning|deep.?learning|nlp|computer.?vision|diskrit|logika|himpunan|relasi|fungsi|induksi|kombinatorika|graf|pohon|automata|kompleksitas|big.?o|kriptografi|firewall|vpn|tcp|ip|http|https|dns|dhcp|subnet|routing|switching|vlan|blockchain|cryptocurrency|smart.?contract|web3|defi|nft)\b/i
 
 export default function SentimenPage() {
   const { getFiltered, isSyncingSentiment, syncProgress } = useStore()
@@ -32,6 +50,10 @@ export default function SentimenPage() {
       .filter(r => r.topikBelumPaham && r.topikBelumPaham.trim().length > 3
         && r.topikBelumPaham !== '-' && r.topikBelumPaham !== 'tidak ada')
       .map(r => r.topikBelumPaham.trim())
+      // De-overlap dg Kata Kunci Unggulan: hanya topik yg mengandung sinyal
+      // kesulitan ATAU istilah teknis diikutkan — kalimat pujian umum dibuang.
+      .filter(t => STRUGGLE_HINTS.some(h => t.toLowerCase().includes(h))
+        || TOPIC_TECH_PATTERN.test(t.toLowerCase()))
   , [filtered])
 
   // Counts
@@ -85,7 +107,7 @@ export default function SentimenPage() {
               Analisis <span style={{ color: 'var(--brand)' }}>Sentimen & Komentar</span>
             </h1>
             <p className="text-sm mt-1.5 font-medium opacity-60" style={{ color: 'var(--muted)' }}>
-              Mengekstrak wawasan dari {fmt(allFeedbacks.length)} masukan mahasiswa · Universitas Cakrawala
+              Mengekstrak wawasan dari {fmtCount(allFeedbacks.length)} masukan mahasiswa · Universitas Cakrawala
             </p>
           </div>
 
@@ -117,7 +139,7 @@ export default function SentimenPage() {
                 {counts.total ? Math.round((counts[key] / counts.total) * 100) : 0}% Distribusi
               </span>
             </div>
-            <p className="font-serif-accent text-4xl font-extrabold mt-4" style={{ color }}>{fmt(counts[key])}</p>
+            <p className="font-serif-accent text-4xl font-extrabold mt-4" style={{ color }}>{fmtCount(counts[key])}</p>
             <p className="text-[11px] font-bold uppercase tracking-wider mt-1 opacity-70" style={{ color: 'var(--muted)' }}>Sentimen {label}</p>
           </div>
         ))}
@@ -136,14 +158,14 @@ export default function SentimenPage() {
           {dosenSentiment.map(({ dosen, positive, neutral, negative, total, positiveRate }) => (
             <div key={dosen} className="flex items-center gap-5">
               <p className="text-sm font-bold w-56 truncate flex-shrink-0" style={{ color: 'var(--foreground)' }}>{dosen}</p>
-              <div className="flex-1 h-3 rounded-full overflow-hidden bg-white/5 flex shadow-inner border border-[var(--border)]">
+              <div className="flex-1 h-3 rounded-full overflow-hidden bg-black/5 dark:bg-white/5 flex shadow-inner border border-[var(--border)]">
                 <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" style={{ width: `${total ? (positive/total)*100 : 0}%` }} />
                 <div className="h-full bg-slate-400"   style={{ width: `${total ? (neutral/total)*100 : 0}%` }} />
                 <div className="h-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]"     style={{ width: `${total ? (negative/total)*100 : 0}%` }} />
               </div>
               <div className="flex items-baseline gap-2 w-28 justify-end flex-shrink-0">
                 <span className="text-xs font-mono font-bold text-emerald-400">{positiveRate}%</span>
-                <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">{fmt(total)} Respon</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">{fmtCount(total)} Respon</span>
               </div>
             </div>
           ))}
@@ -155,7 +177,7 @@ export default function SentimenPage() {
         <div className="flex flex-wrap items-center gap-5 mb-6">
           <div className="flex-1 min-w-[200px]">
             <h2 className="section-title">Log Masukan Mahasiswa</h2>
-            <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest mt-1">Total {fmt(shownFeedbacks.length)} Masukan</p>
+            <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest mt-1">Total {fmtCount(shownFeedbacks.length)} Masukan</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

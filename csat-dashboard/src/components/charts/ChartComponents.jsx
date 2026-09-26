@@ -4,7 +4,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ScatterChart, Scatter, ReferenceLine, LabelList
 } from 'recharts'
-import { scoreColor, fmt } from '@/utils/analytics'
+import { scoreColor, fmt, fmtCount } from '@/utils/analytics'
 
 const TOOLTIP_STYLE = {
   backgroundColor: 'var(--bg-card)',
@@ -15,6 +15,9 @@ const TOOLTIP_STYLE = {
   boxShadow: 'var(--shadow)',
   padding: '10px 14px',
 }
+
+// Truncate label sumbu dengan ellipsis; tooltip tetap tampilkan nama penuh.
+const trunc = (s, n) => (s && s.length > n ? `${s.slice(0, n)}…` : s)
 
 // ── CSAT Trend Line Chart ─────────────────────────────────────────────────
 export function TrendChart({ data, height = 220 }) {
@@ -87,7 +90,7 @@ export function RankingBarChart({ data, height = 280 }) {
       <BarChart data={colored} layout="vertical" margin={{ top: 0, right: 40, left: 10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
         <XAxis type="number" domain={[0, 5]} tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
-        <YAxis type="category" dataKey="name" tick={{ fill: 'var(--foreground-2)', fontSize: 11 }} axisLine={false} tickLine={false} width={130} />
+        <YAxis type="category" dataKey="name" tick={{ fill: 'var(--foreground-2)', fontSize: 11 }} axisLine={false} tickLine={false} width={130} tickFormatter={(v) => trunc(v, 18)} />
         <Tooltip 
           contentStyle={TOOLTIP_STYLE} 
           itemStyle={{ color: 'var(--foreground)' }}
@@ -129,7 +132,7 @@ export function DistributionBar({ data, height = 180 }) {
           itemStyle={{ color: 'var(--foreground)' }}
           labelStyle={{ color: 'var(--foreground)' }}
           shared={false} 
-          formatter={(v) => [fmt(v), 'Skor']} 
+          formatter={(v) => [fmtCount(v), 'Jumlah']} 
           cursor={{ fill: 'var(--brand-dim)', opacity: 0.05 }} 
         />
         <Bar dataKey="count" fill="var(--brand)" radius={[8, 8, 0, 0]} barSize={120} />
@@ -145,7 +148,7 @@ export function GroupedBarChart({ data, height = 300 }) {
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 30, right: 10, left: -20, bottom: 5 }} barGap={12} barCategoryGap="15%">
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-        <XAxis dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+        <XAxis dataKey="name" interval={0} tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => trunc(v, 12)} angle={-12} textAnchor="end" height={60} />
         <YAxis domain={[0, 5]} tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
         <Tooltip 
           contentStyle={TOOLTIP_STYLE} 
@@ -187,7 +190,7 @@ export function ScatterPlotChart({ data, height = 300, xLabel='X', yLabel='Y' })
 }
 
 // ── IPA Quadrant Matrix ───────────────────────────────────────────────────
-export function QuadrantChart({ data, height = 450, xLabel='Performance', yLabel='Importance' }) {
+export function QuadrantChart({ data, height = 450, xLabel='Performance', yLabel='Importance', xDomain=[1, 5], yDomain=[-1, 1] }) {
   if (!data?.length) return <EmptyChart />
   
   // Calculate Means for Reference Lines
@@ -200,12 +203,12 @@ export function QuadrantChart({ data, height = 450, xLabel='Performance', yLabel
         <ScatterChart margin={{ top: 40, right: 40, bottom: 40, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis 
-            type="number" dataKey="x" name={xLabel} domain={[1, 5]} 
+            type="number" dataKey="x" name={xLabel} domain={xDomain} 
             tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false}
             label={{ value: xLabel, position: 'bottom', offset: 0, fill: 'var(--muted)', fontSize: 12, fontWeight: 'bold' }}
           />
           <YAxis 
-            type="number" dataKey="y" name={yLabel} domain={[0, 1]} 
+            type="number" dataKey="y" name={yLabel} domain={yDomain} 
             tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false}
             label={{ value: yLabel, angle: -90, position: 'insideLeft', offset: 15, fill: 'var(--muted)', fontSize: 12, fontWeight: 'bold' }}
           />
@@ -221,15 +224,15 @@ export function QuadrantChart({ data, height = 450, xLabel='Performance', yLabel
           <ReferenceLine x={xMean} stroke="var(--brand)" strokeDasharray="5 5" strokeWidth={2} opacity={0.5} />
           <ReferenceLine y={yMean} stroke="var(--brand)" strokeDasharray="5 5" strokeWidth={2} opacity={0.5} />
 
+          {/* Recharts menggambar shape sendiri — <circle> anak <Scatter> tidak
+              dirender. Warna per-titik via shape function membaca entry.fill. */}
           <Scatter 
             data={data} 
-            fill="var(--brand)" 
-            shape="circle"
-          >
-            {data.map((entry, index) => (
-              <circle key={`cell-${index}`} cx={entry.x} cy={entry.y} r={8} fill={entry.fill || 'var(--brand)'} />
-            ))}
-          </Scatter>
+            shape={(props) => {
+              const { cx, cy, payload } = props
+              return <circle cx={cx} cy={cy} r={8} fill={payload.fill || 'var(--brand)'} stroke="var(--bg-card)" strokeWidth={1.5} />
+            }}
+          />
         </ScatterChart>
       </ResponsiveContainer>
 
@@ -250,9 +253,9 @@ export function QuadrantChart({ data, height = 450, xLabel='Performance', yLabel
   )
 }
 
-function EmptyChart() {
+function EmptyChart({ height = 180 }) {
   return (
-    <div className="flex items-center justify-center h-[180px] text-[var(--muted)] text-sm font-medium">
+    <div className="flex items-center justify-center text-[var(--muted)] text-sm font-medium" style={{ height: `${height}px` }}>
       Belum ada data cukup untuk ditampilkan
     </div>
   )

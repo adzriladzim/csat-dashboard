@@ -21,11 +21,14 @@ export default function CorrelationPage() {
       const dosenList = aggregateByDosen(filtered)
       return getCorrelationMatrix(dosenList)
     } else {
-      return getCorrelationMatrix(filtered)
+      // Basis respon: tiap baris = 1 respons → TotalRespon konstan 1. Keluarkan
+      // variabel itu dari matriks (includeRespon:false) agar tak tampil 0.00.
+      return getCorrelationMatrix(filtered, { includeRespon: false })
     }
   }, [filtered, basis])
 
   const getCellStyles = (val) => {
+    if (val == null) return 'bg-[var(--bg-input)] text-[var(--muted)]'
     if (val >= 0.8 || val === 1) return 'bg-emerald-500 text-white' 
     if (val >= 0.4) return 'bg-emerald-500/30 text-[var(--foreground)]'
     if (val <= -0.4) return 'bg-rose-500/30 text-[var(--foreground)]'
@@ -33,6 +36,7 @@ export default function CorrelationPage() {
   }
 
   const getInterpretation = (val) => {
+    if (val == null) return 'Data kurang (n<3)'
     if (val === 1) return 'Korelasi Sempurna'
     if (Math.abs(val) >= 0.7) return 'Korelasi Sangat Kuat'
     if (Math.abs(val) >= 0.4) return 'Korelasi Moderat'
@@ -128,7 +132,7 @@ export default function CorrelationPage() {
                           )}
                           title={getInterpretation(val)}
                         >
-                          {val === 1 ? '1.00' : val.toFixed(2)}
+                          {val == null ? '–' : (val === 1 ? '1.00' : val.toFixed(2))}
                         </div>
                       </td>
                     ))}

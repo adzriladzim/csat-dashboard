@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { AlertCircle, UserX, BookX, Download, Info, CheckCircle2 } from 'lucide-react'
 import useStore from '@/lib/store'
 import { fmt, formatDate } from '@/utils/analytics'
+import { csvEscape } from '@/utils/exportUtils'
 import clsx from 'clsx'
 
 export default function MappingIssuesPage() {
@@ -17,13 +18,13 @@ export default function MappingIssuesPage() {
     if (issues.length === 0) return
     const headers = ["Baris", "Alasan Gagal", "Timestamp", "Nama Dosen (Raw)", "Mata Kuliah (Raw)", "School", "Major"]
     const rows = issues.map(i => [
-      i.row,
-      i.alasan,
-      i.timestamp,
-      `"${i.dosenRaw}"`,
-      `"${i.mkRaw}"`,
-      i.school,
-      i.major
+      csvEscape(i.row),
+      csvEscape(i.alasan),
+      csvEscape(i.timestamp),
+      csvEscape(i.dosenRaw),
+      csvEscape(i.mkRaw),
+      csvEscape(i.school),
+      csvEscape(i.major)
     ])
 
     const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n")

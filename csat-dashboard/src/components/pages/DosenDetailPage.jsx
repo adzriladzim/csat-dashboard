@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import useStore from "@/lib/store";
 import SEO from "@/components/common/SEO";
+import DateFilterNotice from "@/components/common/DateFilterNotice";
 import {
   aggregateByDosen,
   aggregateByDosenKelas,
@@ -314,6 +315,8 @@ export default function DosenDetailPage() {
         </div>
       </div>
 
+      <DateFilterNotice />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card p-6 flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-3">
@@ -418,7 +421,7 @@ export default function DosenDetailPage() {
                     "px-1.5 py-0.5 rounded-md text-[10px] font-mono",
                     activeTab === "semua"
                       ? "bg-white/20 text-white"
-                      : "bg-black/10 text-muted",
+                      : "bg-black/10 text-[var(--muted)]",
                   )}
                 >
                   {fmt(dosenData?.totalRespon || 0)}
@@ -447,7 +450,7 @@ export default function DosenDetailPage() {
                       "px-1.5 py-0.5 rounded-md text-[10px] font-mono",
                       activeTab === k.kodeKelas
                         ? "bg-white/20 text-white"
-                        : "bg-black/10 text-muted",
+                        : "bg-black/10 text-[var(--muted)]",
                     )}
                   >
                     {fmt(k.totalRespon)}

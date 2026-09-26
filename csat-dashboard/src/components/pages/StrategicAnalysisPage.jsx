@@ -69,11 +69,12 @@ export default function StrategicAnalysisPage() {
   }, [filtered]);
 
   // 4. CSAT Online vs. On-site/Offline
+  // Normalisasi huruf ("online" / "Online" / "ONLINE" → satu bar, bukan duplikat).
   const programData = useMemo(() => {
     const map = {};
     filtered.forEach((r) => {
       if (!r.lecturesProgram) return;
-      const m = r.lecturesProgram.trim();
+      const m = r.lecturesProgram.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
       if (!map[m]) map[m] = [];
       map[m].push(r.csatGabungan);
     });
@@ -100,6 +101,9 @@ export default function StrategicAnalysisPage() {
   }, [filtered]);
 
   // 7. Importance-Performance Analysis (IPA) Quadrants
+  // x = performansi rata-rata (1-5); y = korelasi (pearson, -1..1) dihitung dari
+  // PASANGAN (x,y) yang sama. pearson null bila pasangan <3 → titik dibuang,
+  // bukan 0 palsu (0 di kartesius = korelasi sempurna negatif).
   const ipaData = useMemo(() => {
     if (!filtered.length) return [];
 
@@ -109,30 +113,25 @@ export default function StrategicAnalysisPage() {
       { key: "skorPerforma", label: "Performa Dosen", color: "#4f46e5" },
     ];
 
-    const csatValues = filtered
-      .map((r) => r.csatGabungan)
-      .filter((v) => v !== null);
-
-    return attributes.map((attr) => {
-      const attrValues = filtered
-        .map((r) => r[attr.key])
-        .filter((v) => v !== null);
-
-      // Ensure we have paired data for correlation
+    return attributes.flatMap((attr) => {
       const pairs = filtered.filter(
         (r) => r[attr.key] != null && r.csatGabungan != null,
       );
       const x = pairs.map((p) => p[attr.key]);
       const y = pairs.map((p) => p.csatGabungan);
+      const corr = pearson(x, y);
+      // n<3 → pearson null → jangan render titik (menghindari nilai 0 palsu).
+      if (corr == null) return [];
 
-      return {
+      return [{
         name: attr.label,
-        x: avg(attrValues), // Performance
-        y: pearson(x, y), // Importance (Correlation)
+        x: avg(x), // Performance
+        y: corr, // Importance (Correlation)
         fill: attr.color,
-      };
+      }];
     });
   }, [filtered]);
+  const ipaDropped = ipaData.length < 3;
 
   // 8. Korelasi Interaktivitas vs Pemahaman (Agregasi per Dosen)
   const scatterData = useMemo(() => {
@@ -204,6 +203,32 @@ export default function StrategicAnalysisPage() {
             Tren Selama Semester (per Pertemuan)
           </h2>
           <TrendChart data={trendData} height={450} />
+        </div>
+
+        <div className="card p-8">
+          <h2 className="section-title mb-8">
+            Importance-Performance Analysis (IPA)
+          </h2>
+          <p className="text-[11px] font-medium text-[var(--muted)] -mt-5 mb-6 leading-relaxed">
+            Sumbu X = skor rata-rata atribut (Performa), sumbu Y = korelasi
+            Pearson atribut vs CSAT keseluruhan (seberapa "penting" atribut
+            itu memengaruhi CSAT).
+            {ipaDropped && (
+              <span className="text-amber-500 font-bold">
+                {" "}
+                · Beberapa atribut dilewati: pasangan data &lt; 3 (korelasi
+                tidak informatif).
+              </span>
+            )}
+          </p>
+          <QuadrantChart
+            data={ipaData}
+            height={450}
+            xLabel="Skor Atribut (1-5)"
+            yLabel="Korelasi vs CSAT"
+            xDomain={[1, 5]}
+            yDomain={[-1, 1]}
+          />
         </div>
 
         <div className="card p-8">
