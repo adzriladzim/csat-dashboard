@@ -87,6 +87,8 @@ export default function SyncSettingsPage() {
     resetSheetsConfig,
     syncFromSheets,
     isSheetsSyncing,
+    sheetsSyncProgress,
+    lastSyncDelta,
     rawCount,
     fileName,
   } = useStore();
@@ -113,6 +115,11 @@ export default function SyncSettingsPage() {
       : sheetsConfig.lastSyncedAt
         ? { dot: "bg-emerald-400", label: "Tersinkron" }
         : { dot: "bg-slate-500", label: "Belum pernah sync" };
+
+  // Teks progress sync: "Mengunduh…" saat fase fetch (indeterminate), persen saat parse.
+  const syncPct = sheetsSyncProgress?.phase === "parse" && sheetsSyncProgress.total
+    ? Math.min(100, Math.round((sheetsSyncProgress.done / sheetsSyncProgress.total) * 100))
+    : null;
 
   const runSync = async (preRows) => {
     setError("");
@@ -204,6 +211,37 @@ export default function SyncSettingsPage() {
             {fmtWib(sheetsConfig.lastSyncedAt)}
           </span>
         </div>
+        {isSheetsSyncing && (
+          <div className="flex items-center gap-2">
+            {syncPct != null ? (
+              <>
+                <div className="w-28 h-1.5 rounded-full bg-[var(--bg-input)] overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-400 transition-all"
+                    style={{ width: `${syncPct}%` }}
+                  />
+                </div>
+                <span className="text-xs font-bold text-emerald-400">{syncPct}%</span>
+              </>
+            ) : (
+              <span className="text-xs font-bold text-emerald-400 animate-pulse">
+                Mengunduh data…
+              </span>
+            )}
+          </div>
+        )}
+        {!isSheetsSyncing && lastSyncDelta != null && rawCount > 0 && (
+          <span
+            className={clsx(
+              "text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border whitespace-nowrap",
+              lastSyncDelta > 0
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
+                : "bg-slate-500/10 text-[var(--muted)] border-[var(--border)]",
+            )}
+          >
+            {lastSyncDelta > 0 ? `+${lastSyncDelta.toLocaleString("id-ID")} baris baru` : "Data terkini"}
+          </span>
+        )}
         {fileName.startsWith("Google Sheets") && (
           <div className="text-xs" style={{ color: "var(--muted)" }}>
             Data aktif:{" "}
@@ -348,9 +386,13 @@ export default function SyncSettingsPage() {
           <SrcTag field="refreshInterval" value={sheetsConfig.refreshInterval} />
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={handleSyncNow} disabled={isSheetsSyncing} className="btn-primary inline-flex">
+          <button onClick={handleSyncNow} disabled={isSheetsSyncing} className="btn-primary inline-flex min-w-[150px]">
             {isSheetsSyncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-            Sync Sekarang
+            {isSheetsSyncing
+              ? syncPct != null
+                ? `Memproses ${syncPct}%`
+                : "Mengunduh…"
+              : "Sync Sekarang"}
           </button>
           <button
             onClick={handleReset}

@@ -529,6 +529,8 @@ export async function exportDosenExcel(dosenList) {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.map((d,i)=>({'Rank':i+1,'Nama Dosen':d.namaDosen,'Major':d.major,'Mata Kuliah':d.mataKuliah,'Kode Kelas':d.kodeKelas,'CSAT Gabungan':d.csatGabungan,'Performa Dosen':d.skorPerforma,'Pemahaman Materi':d.skorPemahaman,'Interaktivitas':d.skorInteraktif,'Total Responden':d.totalRespon,'Status':scoreLabel(d.csatGabungan)}))), 'Ranking Dosen')
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dosenList.flatMap(d=>d.rows.map(r=>({'Timestamp':formatDate(r.timestamp, true),'Nama Dosen':r.namaDosen,'Major':r.major,'Mata Kuliah':r.mataKuliah,'Kode Kelas':r.kodeKelas,'Pertemuan':r.pertemuan,'CSAT':r.csatGabungan,'Performa':r.skorPerforma,'Pemahaman':r.skorPemahaman,'Interaktivitas':r.skorInteraktif,'Feedback':r.feedbackDosen,'Topik Belum Paham':r.topikBelumPaham})))), 'Data Detail')
   const localDate = formatDate(new Date())
+  // 17k baris → json_to_sheet + writeFile sinkron; yield dulu biar progress/UI ter-paint.
+  await yieldToUI()
   XLSX.writeFile(wb, `CSAT_Export_${localDate}.xlsx`)
 }
 

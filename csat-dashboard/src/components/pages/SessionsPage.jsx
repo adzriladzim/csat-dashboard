@@ -110,6 +110,13 @@ export default function StatusDataPage() {
             <div>
               <p className="text-xs text-[var(--muted-2)]">Sinkronisasi Sheets Terakhir</p>
               <p className="text-sm font-medium text-[var(--foreground)]">{fmtTime(sheetsConfig.lastSyncedAt) || 'Belum pernah'}</p>
+              {s.lastSyncDelta != null && s.rawCount > 0 && (
+                <p className="text-[11px] font-bold text-emerald-400 mt-0.5">
+                  {s.lastSyncDelta > 0
+                    ? `+${fmtNum(s.lastSyncDelta)} baris baru pada sync terakhir`
+                    : 'Data terkini (tidak ada baris baru)'}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-start gap-3">

@@ -166,6 +166,7 @@ const SHEETS_DEFAULTS = {
   ...SHEETS_CONFIG,
   lastSyncedAt: null,
   syncError: null,
+  lastRowFingerprint: null, // sidik jari baris utk deteksi delta tanpa re-parse
 }
 // Field yang boleh di-override user: spreadsheetId, gid, sheetName, enabled,
 // autoRefresh, refreshInterval — UI membandingkan nilai vs SHEETS_CONFIG per field.
@@ -209,12 +210,24 @@ const useStore = create(
 
   sheetsConfig: readSheetsConfig(),
   isSheetsSyncing: false,
+  // Progress sync: { phase, done, total } — phase 'fetch' (indeterminate) → 'parse'.
+  sheetsSyncProgress: null,
+  // Baris baru pada sync terakhir (0 = data terkini). Dipakai badge "+N data baru".
+  lastSyncDelta: null,
 
-  parseAndDisplay: async (rawRows, headers, fileName) => {
+  parseAndDisplay: async (rawRows, headers, fileName, onProgress) => {
     const issues = []
-    
-    const processed = rawRows
-      .map((r, idx) => {
+    const processed = []
+    const total = rawRows.length
+    const yieldToUI = () => new Promise(r => setTimeout(r, 0))
+    const CHUNK = 2000
+
+    // Fase 1: parseRow tiap baris — chunk + yield agar 17k rows tidak membekukan
+    // filter tanggal/UI. onProgress callback dibawa dari syncFromSheets.
+    for (let base = 0; base < total; base += CHUNK) {
+      const end = Math.min(base + CHUNK, total)
+      for (let idx = base; idx < end; idx++) {
+        const r = rawRows[idx]
         const parsed = parseRow(r, headers)
         const rowNum = idx + 2
         const reasons = []
@@ -237,14 +250,18 @@ const useStore = create(
           })
         }
 
-        return { 
-          ...parsed, 
+        processed.push({
+          ...parsed,
           _rowNum: rowNum,
-          _isJunk: (parsed.namaDosen?.toLowerCase().includes('nama dosen')) || 
+          _isJunk: (parsed.namaDosen?.toLowerCase().includes('nama dosen')) ||
                    (parsed.csatGabungan === null && !parsed.feedbackDosen && !parsed.topikBelumPaham && !parsed.faktorDosen)
-        }
-      })
-      .filter(p => !p._isJunk)
+        })
+      }
+      onProgress?.({ done: end, total })
+      await yieldToUI()
+    }
+
+    const clean = processed.filter(p => !p._isJunk)
 
     // Dedup: key stabil = (email||nim) + timestamp + pertemuan + dosen.
     // Tanpa email/nim → key lebih lemah (timestamp+dosen+pertemuan) agar respons
@@ -252,69 +269,77 @@ const useStore = create(
     const seen = new Set()
     const deduped = []
     let removed = 0
-    for (const p of processed) {
+    for (let i = 0; i < clean.length; i++) {
+      const p = clean[i]
       const person = String(p.email || p.nim || '').toLowerCase()
       const key = [person, p.timestampResponse || '', p.pertemuanLabel || '', p.namaDosen || ''].join('|')
       if (seen.has(key)) { removed++; continue }
       seen.add(key)
       deduped.push(p)
+      if (i % CHUNK === CHUNK - 1) await yieldToUI()
     }
 
     // Snapshot hasil enrich AI sebelumnya (keyed stable ID) agar auto-sync tidak
     // re-enrich baris yang sama dari nol setiap cycle.
     const prevEnriched = new Map()
-    for (const old of get().parsedData) {
+    const prevParsed = get().parsedData
+    for (let i = 0; i < prevParsed.length; i++) {
+      const old = prevParsed[i]
       if (old.sentimentEnriched) prevEnriched.set(generateID(old), old.sentiment)
+      if (i % CHUNK === CHUNK - 1) await yieldToUI()
     }
 
-    const newParsed = deduped.map(r => {
-      const { _rowNum, _isJunk, ...clean } = r
+    const newParsed = []
+    for (let idx = 0; idx < deduped.length; idx++) {
+      const r = deduped[idx]
+      const { _rowNum, _isJunk, ...clean2 } = r
       
       // Hitung sentimen lokal secara instan (untuk placeholder cepat)
-      const isFbValid = clean.feedbackDosen && clean.feedbackDosen.trim().length >= 4;
-      const initialSentiment = isFbValid ? analyzeSentiment(clean.feedbackDosen) : 'neutral';
+      const isFbValid = clean2.feedbackDosen && clean2.feedbackDosen.trim().length >= 4;
+      const initialSentiment = isFbValid ? analyzeSentiment(clean2.feedbackDosen) : 'neutral';
 
       const obj = {
-        timestamp:        clean.timestampResponse,
-        tanggal:          clean.tanggal,
-        email:            clean.email,
-        nim:              clean.nim,
-        angkatan:         clean.angkatan,
-        semester:         clean.semester,
-        school:           clean.school,
-        major:            clean.major,
-        lecturesProgram:  clean.lecturesProgram,
-        mataKuliah:       clean.mataKuliah,
-        kodeKelas:        clean.kodeKelas,
-        namaDosen:        clean.namaDosen,
-        pertemuan:        clean.pertemuan,
-        modeSesi:         clean.modeSesi,
-        pertemuanStart:   clean.pertemuanStart,
-        pertemuanEnd:     clean.pertemuanEnd,
-        pertemuanLabel:   clean.pertemuanLabel,
-        skorPemahaman:    clean.skorPemahaman,
-        skorInteraktif:   clean.skorInteraktif,
-        skorPerforma:     clean.skorPerforma,
-        csatGabungan:     clean.csatGabungan,
-        topikBelumPaham:  clean.topikBelumPaham,
-        feedbackDosen:    clean.feedbackDosen,
-        faktorDosen:      clean.faktorDosen ?? null,
+        timestamp:        clean2.timestampResponse,
+        tanggal:          clean2.tanggal,
+        email:            clean2.email,
+        nim:              clean2.nim,
+        angkatan:         clean2.angkatan,
+        semester:         clean2.semester,
+        school:           clean2.school,
+        major:            clean2.major,
+        lecturesProgram:  clean2.lecturesProgram,
+        mataKuliah:       clean2.mataKuliah,
+        kodeKelas:        clean2.kodeKelas,
+        namaDosen:        clean2.namaDosen,
+        pertemuan:        clean2.pertemuan,
+        modeSesi:         clean2.modeSesi,
+        pertemuanStart:   clean2.pertemuanStart,
+        pertemuanEnd:     clean2.pertemuanEnd,
+        pertemuanLabel:   clean2.pertemuanLabel,
+        skorPemahaman:    clean2.skorPemahaman,
+        skorInteraktif:   clean2.skorInteraktif,
+        skorPerforma:     clean2.skorPerforma,
+        csatGabungan:     clean2.csatGabungan,
+        topikBelumPaham:  clean2.topikBelumPaham,
+        feedbackDosen:    clean2.feedbackDosen,
+        faktorDosen:      clean2.faktorDosen ?? null,
         // ponytail: alias utk halaman lama (FilterBar/Strategic/Student) yg masih baca
         // key fakultas/prodi. Hapus saat semua page pindah ke school/major.
-        fakultas:         clean.school,
-        prodi:            clean.major,
+        fakultas:         clean2.school,
+        prodi:            clean2.major,
         sentiment:        initialSentiment,
         sentimentEnriched: false // Flag untuk mendeteksi apakah sudah di-enrich dengan AI
        }
       // Pakai hasil AI lama bila baris ini identik dengan sebelumnya (sync berkala)
       const cached = prevEnriched.get(generateID(obj))
       if (cached !== undefined) { obj.sentiment = cached; obj.sentimentEnriched = true }
-      return obj
-    })
+      newParsed.push(obj)
+      if (idx % CHUNK === CHUNK - 1) { onProgress?.({ done: total + idx + 1, total: total + deduped.length }); await yieldToUI() }
+    }
 
     // Guard: parse menghasilkan 0 baris valid padahal data lama ada → JANGAN timpa
     // (mis. sheet header-only yang lolos fetchSheetsRows, atau semua baris junk).
-    if (newParsed.length === 0 && get().parsedData.length > 0) {
+    if (newParsed.length === 0 && prevParsed.length > 0) {
       console.warn('[parseAndDisplay] Parse menghasilkan 0 baris valid — data lama dipertahankan.', { raw: rawRows.length })
       return 0
     }
@@ -330,6 +355,7 @@ const useStore = create(
       removedCount: removed,
       lastUpdated: new Date().toISOString()
     })
+    onProgress?.({ done: total + deduped.length, total: total + deduped.length })
     return newParsed.length
   },
 
@@ -424,21 +450,56 @@ const useStore = create(
 
   // Tarik CSV dari Sheets → parse → display. Return jumlah baris, atau lempar error.
   // preRows opsional ( utk halaman settings kirim hasil preview tanpa fetch ulang ).
-  syncFromSheets: async (preRows) => {
+  // onProgress opsional → progress parse ({{done,total}}) untuk UI tombol sync.
+  syncFromSheets: async (preRows, onProgress) => {
     const cfg = get().sheetsConfig
     if (!cfg.enabled) throw new Error('Auto-sync belum diaktifkan.')
+    // Cegah race manual + auto-refresh (17k baris: fetch + parse butuh waktu).
+    if (get().isSheetsSyncing) return get().parsedData.length
     const { fetchSheetsRows } = await import('@/utils/sheetsSync')
-    set({ isSheetsSyncing: true })
+    set({ isSheetsSyncing: true, sheetsSyncProgress: { phase: 'fetch', done: 0, total: 0 } })
+
+    // Abort setelah 2 menit — 11MB bisa lambat; jangan gantung UI tanpa ujung.
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 120000)
     try {
-      const { rows, headers } = preRows || await fetchSheetsRows(cfg)
-      const count = await get().parseAndDisplay(rows, headers, `Google Sheets — ${cfg.sheetName || 'Live'}`)
-      get().setSheetsConfig({ lastSyncedAt: new Date().toISOString(), syncError: null })
+      const prog = (p) => set({ sheetsSyncProgress: { phase: 'parse', ...p } })
+      const { rows, headers, fingerprint } = preRows
+        ? { rows: preRows.rows, headers: preRows.headers, fingerprint: null }
+        : await fetchSheetsRows(cfg, { signal: controller.signal, onProgress: prog })
+
+      const prev = get().parsedData
+      // Deteksi delta: fingerprint sama (jumlah baris + timestamp terakhir) →
+      // TIDAK ada data baru → skip re-parse + re-enrich penuh, hanya sentuh timestamp.
+      if (!preRows && fingerprint && fingerprint === cfg.lastRowFingerprint && prev.length > 0) {
+        get().setSheetsConfig({ lastSyncedAt: new Date().toISOString(), syncError: null, lastRowFingerprint: fingerprint })
+        set({ sheetsSyncProgress: null, lastSyncDelta: 0 })
+        return prev.length
+      }
+
+      const prevCount = prev.length
+      const count = await get().parseAndDisplay(rows, headers, `Google Sheets — ${cfg.sheetName || 'Live'}`, prog)
+      get().setSheetsConfig({
+        lastSyncedAt: new Date().toISOString(),
+        syncError: null,
+        lastRowFingerprint: fingerprint,
+      })
+      set({ sheetsSyncProgress: null, lastSyncDelta: count - prevCount })
       return count
     } catch (e) {
-      get().setSheetsConfig({ syncError: e.message })
-      throw e
+      const msg =
+        e?.name === 'AbortError' || /aborted|dibatalkan/i.test(e?.message || '')
+          ? 'Waktu habis / jaringan lambat — coba lagi atau periksa koneksi.'
+          : /failed to fetch|networkerror|load failed|fetch/i.test(e?.message || '')
+            ? 'Gagal terhubung ke Google Sheets — periksa jaringan.'
+            : e.message
+      get().setSheetsConfig({ syncError: msg })
+      const err = new Error(msg)
+      err.code = e?.code
+      throw err
     } finally {
-      set({ isSheetsSyncing: false })
+      clearTimeout(timeout)
+      set({ isSheetsSyncing: false, sheetsSyncProgress: null })
     }
   },
 
@@ -637,7 +698,7 @@ const useStore = create(
   // Mencegah status sementara dan versi aplikasi ditimpa oleh cache IndexedDB lama.
   // sheetsConfig punya persistensi sendiri (localStorage), jangan ikut ke IndexedDB.
   partialize: (state) => {
-    const { version, hasHydrated, isSyncingSentiment, isSheetsSyncing, syncProgress, sheetsConfig, ...rest } = state;
+    const { version, hasHydrated, isSyncingSentiment, isSheetsSyncing, syncProgress, sheetsSyncProgress, lastSyncDelta, sheetsConfig, ...rest } = state;
     return rest;
   }
 }))
