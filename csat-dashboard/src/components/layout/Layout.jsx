@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Upload, HelpCircle, Settings, Database } from "lucide-react";
+import { Upload, HelpCircle, Settings, Database, AlertCircle, X } from "lucide-react";
 import TabNav from "./TabNav";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import UserGuideModal from "@/components/common/UserGuideModal";
@@ -20,7 +20,7 @@ function SyncDot() {
 }
 
 export default function Layout() {
-  const { fileName, clearData, sheetsConfig } = useStore();
+  const { fileName, clearData, sheetsConfig, storageError, clearStorageError } = useStore();
   const navigate = useNavigate();
   const [showHelp, setShowHelp] = useState(false);
 
@@ -36,6 +36,21 @@ export default function Layout() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-base)]">
       <UserGuideModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+
+      {/* ── ERROR SIMPAN LOKAL (IndexedDB) — banner global, bukan console.warn diam ── */}
+      {storageError && (
+        <div className="flex items-start gap-3 px-4 sm:px-10 py-2.5 bg-red-500/10 border-b border-red-500/25">
+          <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-red-400 font-medium leading-relaxed flex-1">{storageError}</p>
+          <button
+            onClick={clearStorageError}
+            className="text-red-300 hover:text-white transition-colors"
+            aria-label="Tutup peringatan simpan lokal"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       {/* ── STICKY TOP NAVIGATION GROUP ──────────────────────── */}
       <div className="sticky top-0 z-30 glass shadow-sm border-b border-[var(--border)] overflow-hidden">

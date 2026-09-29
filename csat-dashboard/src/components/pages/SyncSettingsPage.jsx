@@ -116,10 +116,13 @@ export default function SyncSettingsPage() {
         ? { dot: "bg-emerald-400", label: "Tersinkron" }
         : { dot: "bg-slate-500", label: "Belum pernah sync" };
 
-  // Teks progress sync: "Mengunduh…" saat fase fetch (indeterminate), persen saat parse.
-  const syncPct = sheetsSyncProgress?.phase === "parse" && sheetsSyncProgress.total
+  // Progress sync per fase: 'fetch'/'filter' = indeterminate (teks), 'parse' = persen.
+  // Fase terpisah mencegah bar loncat 100%→0% saat pindah tahap (17k rows).
+  const phase = sheetsSyncProgress?.phase;
+  const syncPct = phase === "parse" && sheetsSyncProgress.total
     ? Math.min(100, Math.round((sheetsSyncProgress.done / sheetsSyncProgress.total) * 100))
     : null;
+  const phaseText = phase === "filter" ? "Menyaring baris…" : "Mengunduh data…";
 
   const runSync = async (preRows) => {
     setError("");
@@ -225,7 +228,7 @@ export default function SyncSettingsPage() {
               </>
             ) : (
               <span className="text-xs font-bold text-emerald-400 animate-pulse">
-                Mengunduh data…
+                {phaseText}
               </span>
             )}
           </div>
@@ -391,7 +394,7 @@ export default function SyncSettingsPage() {
             {isSheetsSyncing
               ? syncPct != null
                 ? `Memproses ${syncPct}%`
-                : "Mengunduh…"
+                : phaseText
               : "Sync Sekarang"}
           </button>
           <button

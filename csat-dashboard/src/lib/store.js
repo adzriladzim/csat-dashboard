@@ -38,9 +38,15 @@ const idb = {
         const req = tx.objectStore('store').put(val, key)
         req.onsuccess = () => resolve()
         req.onerror = () => reject(req.error)
+        // req.onerror saja tidak cukup — tx-level error (mis. quota) juga harus
+        // menolak promise, kalau tidak persist gagal diam-diam → data hilang.
+        tx.onerror = () => reject(tx.error || req.error)
       })
     } catch (e) {
-      console.warn('IndexedDB write failed', e)
+      console.error('IndexedDB write failed', e)
+      // Lempar error — jangan telan diam-diam. idbStorage.setItem yang menangkap
+      // dan menaikkan ke UI (banner global) supaya user tahu data tidak tersimpan.
+      throw e
     }
   },
   async del(key) {
@@ -58,13 +64,26 @@ const idb = {
   }
 }
 
+// Sink error persist → UI. Di-assign SETELAH useStore dibuat (hindari TDZ saat
+// setItem pertama dari persist rehydrate berjalan); hanya dipanggil saat runtime.
+let storageErrorSink = null
+
 const idbStorage = {
   getItem: async (name) => {
     const val = await idb.get(name)
     return val || null
   },
   setItem: async (name, value) => {
-    await idb.set(name, value)
+    try {
+      await idb.set(name, value)
+    } catch (e) {
+      // Sebelumnya: console.warn diam → state hilang saat refresh tanpa tanda.
+      // Sekarang: error naik ke state storageError → banner merah global (Layout).
+      console.error('IndexedDB persist gagal → perubahan tidak tersimpan lokal.', e)
+      if (storageErrorSink) {
+        storageErrorSink(`Gagal simpan lokal (${e?.name || 'IndexedDB'}) — perubahan terbaru mungkin hilang saat refresh.`)
+      }
+    }
   },
   removeItem: async (name) => {
     await idb.del(name)
@@ -210,6 +229,9 @@ const useStore = create(
 
   sheetsConfig: readSheetsConfig(),
   isSheetsSyncing: false,
+  // Error simpan lokal (IndexedDB) — transient, TIDAK ikut persist (partialize).
+  storageError: null,
+  clearStorageError: () => set({ storageError: null }),
   // Progress sync: { phase, done, total } — phase 'fetch' (indeterminate) → 'parse'.
   sheetsSyncProgress: null,
   // Baris baru pada sync terakhir (0 = data terkini). Dipakai badge "+N data baru".
@@ -403,6 +425,12 @@ const useStore = create(
         console.error("Gagal melakukan background sync batch:", err)
       }
 
+      // Update progress PER BATCH — TANPA set parsedData. syncProgress sudah
+      // di-exclude partialize → set ini TIDAK memicu persist IndexedDB, jadi
+      // UI tidak freeze. Sebelumnya progress baru di-set sekali di akhir →
+      // bar stuck 0% selama ~80 dtk utk 17k rows.
+      set({ syncProgress: { processed: Math.min(i + batch.length, total), total } })
+
       // Berikan jeda antar batch agar tidak memberatkan server/API
       await new Promise(res => setTimeout(res, 80))
     }
@@ -463,7 +491,10 @@ const useStore = create(
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 120000)
     try {
-      const prog = (p) => set({ sheetsSyncProgress: { phase: 'parse', ...p } })
+      // Progress per fase: 'fetch' → 'filter' (bersih-bersih baris) → 'parse'.
+      // Phase ikut payload dari sumber (csvToRowsStream kirim 'filter') supaya
+      // bar ke-halaman tidak loncat 100%→0% antar tahap.
+      const prog = (p) => set({ sheetsSyncProgress: { phase: p?.phase || 'parse', ...p } })
       const { rows, headers, fingerprint } = preRows
         ? { rows: preRows.rows, headers: preRows.headers, fingerprint: null }
         : await fetchSheetsRows(cfg, { signal: controller.signal, onProgress: prog })
@@ -698,9 +729,12 @@ const useStore = create(
   // Mencegah status sementara dan versi aplikasi ditimpa oleh cache IndexedDB lama.
   // sheetsConfig punya persistensi sendiri (localStorage), jangan ikut ke IndexedDB.
   partialize: (state) => {
-    const { version, hasHydrated, isSyncingSentiment, isSheetsSyncing, syncProgress, sheetsSyncProgress, lastSyncDelta, sheetsConfig, ...rest } = state;
+    const { version, hasHydrated, isSyncingSentiment, isSheetsSyncing, syncProgress, sheetsSyncProgress, lastSyncDelta, storageError, sheetsConfig, ...rest } = state;
     return rest;
   }
 }))
+
+// Wire sink error IndexedDB → state store (setState) agar re-render UI.
+storageErrorSink = (msg) => useStore.setState({ storageError: msg })
 
 export default useStore
