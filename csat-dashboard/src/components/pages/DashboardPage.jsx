@@ -60,6 +60,7 @@ export default function DashboardPage() {
   const [jumpIdx, setJumpIdx] = useState(null);
   const [jumpVal, setJumpVal] = useState("");
   const [exportingAll, setExportingAll] = useState(false);
+  const [exportProgress, setExportProgress] = useState(null);
   const [sortBy, setSortBy] = useState("csatGabungan"); // Default to CSAT
   const [sortDir, setSortDir] = useState("desc");
 
@@ -176,15 +177,18 @@ export default function DashboardPage() {
   };
 
   async function handleExportAllPDF() {
+    if (exportingAll) return; // cegah double-click
     setExportingAll(true);
+    setExportProgress(null);
     try {
       if (dosenList.length === 1) {
-        await exportDosenReport(dosenList[0]);
+        await exportDosenReport(dosenList[0], (p) => setExportProgress(p));
       } else {
-        await exportDashboardPDF(dosenList);
+        await exportDashboardPDF(dosenList, (p) => setExportProgress(p));
       }
     } finally {
       setExportingAll(false);
+      setExportProgress(null);
     }
   }
 
@@ -246,9 +250,14 @@ export default function DashboardPage() {
             onClick={handleExportAllPDF}
             className="btn-primary flex-1 sm:flex-none justify-center shadow-lg shadow-brand/10"
             disabled={exportingAll}
+            title={exportingAll ? "Ekspor sedang berjalan…" : "Export PDF"}
           >
-            <FileDown size={14} />
-            {exportingAll ? "..." : "Export PDF"}
+            <FileDown size={14} className={exportingAll && "animate-pulse"} />
+            {exportingAll
+              ? exportProgress
+                ? `Menyiapkan ${Math.min(100, Math.round((exportProgress.done / exportProgress.total) * 100))}%`
+                : "Menyiapkan…"
+              : "Export PDF"}
           </button>
         </div>
       </div>

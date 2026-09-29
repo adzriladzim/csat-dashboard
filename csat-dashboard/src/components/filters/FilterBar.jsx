@@ -66,6 +66,36 @@ export default function FilterBar({ showFull = false }) {
   const hasActive = filters.matkul !== 'all' || filters.school !== 'all' || filters.major !== 'all' ||
                     filters.dosen !== 'all' || filters.pertemuan !== 'all' || filters.modeSesi !== 'all' || !!filters.dateFrom || !!filters.dateTo || mergeMode.active
 
+  // ── Debounce input tanggal (300ms) ───────────────────────────────────────
+  // type="date" mem-firing onChange per keystroke parsial ("2026-09-1") → tiap
+  // keystroke memicu setFilter → recompute filter 4000+ baris. Tahan dulu di
+  // state lokal, commit ke store setelah jeda 300ms.
+  const [dateFromVal, setDateFromVal] = useState(filters.dateFrom || '')
+  const [dateToVal, setDateToVal] = useState(filters.dateTo || '')
+  const dateTimer = useRef({ from: null, to: null })
+  // Sinkron bila store berubah dari luar (Reset Filter / DateFilterNotice)
+  useEffect(() => {
+    // Batal timer debounce yang masih pending dulu agar nilai lama tidak
+    // menimpa reset dari luar (setFilter tunda 300ms bisa overwrite).
+    clearTimeout(dateTimer.current.from)
+    clearTimeout(dateTimer.current.to)
+    setDateFromVal(filters.dateFrom || '')
+    setDateToVal(filters.dateTo || '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.dateFrom, filters.dateTo])
+  useEffect(() => () => {
+    clearTimeout(dateTimer.current.from)
+    clearTimeout(dateTimer.current.to)
+  }, [])
+  const commitDate = (key, value) => {
+    clearTimeout(dateTimer.current[key])
+    dateTimer.current[key] = setTimeout(() => setFilter(key, value), 300)
+  }
+  const flushDate = (key) => {
+    clearTimeout(dateTimer.current[key])
+    setFilter(key, key === 'dateFrom' ? dateFromVal : dateToVal)
+  }
+
   return (
     <div className="card p-4 sm:p-5">
       <div className="flex flex-wrap gap-x-4 gap-y-5 items-end">
@@ -149,8 +179,9 @@ export default function FilterBar({ showFull = false }) {
               <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Tanggal Mulai</label>
               <input 
                 type="date" 
-                value={filters.dateFrom || ''} 
-                onChange={e=>setFilter('dateFrom', e.target.value)} 
+                value={dateFromVal} 
+                onChange={e => { setDateFromVal(e.target.value); commitDate('dateFrom', e.target.value) }}
+                onBlur={() => flushDate('dateFrom')}
                 className="input w-full text-xs font-bold"
               />
             </div>
@@ -158,8 +189,9 @@ export default function FilterBar({ showFull = false }) {
               <label className="block text-[10px] text-[var(--muted)] uppercase tracking-wider font-bold text-slate-500">Tanggal Selesai</label>
               <input 
                 type="date" 
-                value={filters.dateTo || ''} 
-                onChange={e=>setFilter('dateTo', e.target.value)} 
+                value={dateToVal} 
+                onChange={e => { setDateToVal(e.target.value); commitDate('dateTo', e.target.value) }}
+                onBlur={() => flushDate('dateTo')}
                 className="input w-full text-xs font-bold"
               />
             </div>

@@ -145,7 +145,14 @@ const filterCache = (() => {
     cache.out = compute()
     return cache.out
   }
-  const filtersKey = (filters, mergeMode) => JSON.stringify([filters, mergeMode])
+  // Key filter stabil & murah — string concat field primitif, hindari
+  // JSON.stringify([filters, mergeMode]) yg alokasi objek+string tiap render.
+  const filtersKey = (filters, mergeMode) => {
+    const f = filters || {}
+    const m = mergeMode || {}
+    const pairs = (m.pairs || []).map(p => `${p.a || ''}>${p.b || ''}`).join(',')
+    return [f.matkul, f.school, f.major, f.prodi, f.dosen, f.kelas, f.pertemuan, f.modeSesi, f.dateFrom, f.dateTo, m.active ? 1 : 0, pairs].join('|')
+  }
   return { filtered, date, merged, exceptPertemuan, run, filtersKey }
 })()
 
@@ -340,6 +347,12 @@ const useStore = create(
     const { analyzeSentimentOnlineBatch } = await import('@/utils/sentimentApi')
     const updatedData = [...parsedData]
     const BATCH_SIZE = 10
+    // Peta indeks O(1) per item — hindari findIndex O(n²) tiap batch (pernah
+    // jadi hot path: n² pencarian + n/batch × persist IndexedDB 4000+ baris).
+    const idxOf = new Map()
+    parsedData.forEach((r, i) => {
+      if (r.feedbackDosen && r.feedbackDosen.trim().length >= 4 && !r.sentimentEnriched) idxOf.set(r, i)
+    })
 
     for (let i = 0; i < total; i += BATCH_SIZE) {
       const batch = itemsToSync.slice(i, i + BATCH_SIZE)
@@ -350,29 +363,14 @@ const useStore = create(
 
         batch.forEach((item, index) => {
           const onlineVal = onlineSentiments[index]
-          // Temukan indeks item di array utama
-          const idx = updatedData.findIndex(r => 
-            r.feedbackDosen === item.feedbackDosen && 
-            r.namaDosen === item.namaDosen && 
-            r.timestamp === item.timestamp
-          )
-          
-          if (idx !== -1) {
+          const idx = idxOf.get(item)
+          if (idx != null) {
             updatedData[idx] = {
               ...updatedData[idx],
               // Gunakan hasil AI, jika error/null tetap gunakan sentimen lokal sebelumnya
               sentiment: onlineVal || updatedData[idx].sentiment,
               sentimentEnriched: true
             }
-          }
-        })
-
-        // Simpan progress secara bertahap agar UI ter-update secara real-time
-        set({
-          parsedData: [...updatedData],
-          syncProgress: {
-            processed: Math.min(i + BATCH_SIZE, total),
-            total
           }
         })
       } catch (err) {
@@ -383,7 +381,10 @@ const useStore = create(
       await new Promise(res => setTimeout(res, 80))
     }
 
-    set({ isSyncingSentiment: false })
+    // Set SEKALI di akhir — set({parsedData}) per batch memicu persist IndexedDB
+    // (JSON.stringify + structured clone seluruh state) per batch → freeze UI.
+    // Progress UI loncat 0→total, harga yang dibayar demi UI tetap hidup.
+    set({ parsedData: updatedData, isSyncingSentiment: false, syncProgress: { processed: total, total } })
   },
 
   // Dummy/pre-parsed data (public/dummy_feedback.json, dari scripts/generate_dummy.js).

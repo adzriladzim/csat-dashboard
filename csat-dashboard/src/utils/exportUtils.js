@@ -49,6 +49,12 @@ function secTitle(pdf, title, y, W=210) {
 }
 
 // ── Hybrid Text Renderer (PDF Standard vs Canvas Emoji) ────────────────────
+// Lelehkan main thread: serahkan ke task queue agar UI tetap responsif.
+const yieldToUI = () => new Promise(r => setTimeout(r, 0))
+// Cache hasil render emoji (canvas) per (teks×lebar×ukuran×bold) — teks feedback
+// sangat repetitif ("keren", "tidak ada", …) → html2canvas hanya sekali per unik.
+const TEXT_CACHE = new Map()
+const TEXT_CACHE_MAX = 60
 async function renderComplexText(pdf, text, x, y, width, fontSize=8, isBold=false) {
   const hasEmoji = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u.test(text)
   
@@ -61,25 +67,35 @@ async function renderComplexText(pdf, text, x, y, width, fontSize=8, isBold=fals
   }
 
   // EMOJI PATH: Render to Canvas then add as image
+  const cacheKey = `${text}|${Math.round(width)}|${fontSize}|${isBold ? 1 : 0}`
   try {
-    const { default: html2canvas } = await import('html2canvas')
-    const div = document.createElement('div')
-    div.style.width = (width * 3.78) + 'px' 
-    div.style.fontSize = (fontSize * 1.33) + 'px'
-    div.style.fontFamily = "'Plus Jakarta Sans', sans-serif"
-    div.style.fontWeight = isBold ? '800' : '400'
-    div.style.color = 'rgb(71, 85, 105)'
-    div.style.lineHeight = '1.4'
-    div.style.display = 'inline-block' // Ensure it wraps content properly
-    div.style.padding = '4px 0' // ADD PADDING TO PREVENT CLIPPING
-    div.style.position = 'absolute'
-    div.style.left = '-9999px'
-    div.style.whiteSpace = 'pre-wrap'
-    div.innerText = text
-    document.body.appendChild(div)
-
-    const canvas = await html2canvas(div, { scale: 3, backgroundColor: null, logging: false })
-    document.body.removeChild(div)
+    let canvas = TEXT_CACHE.get(cacheKey)
+    if (!canvas) {
+      const { default: html2canvas } = await import('html2canvas')
+      const div = document.createElement('div')
+      div.style.width = (width * 3.78) + 'px'
+      div.style.fontSize = (fontSize * 1.33) + 'px'
+      div.style.fontFamily = "'Plus Jakarta Sans', sans-serif"
+      div.style.fontWeight = isBold ? '800' : '400'
+      div.style.color = 'rgb(71, 85, 105)'
+      div.style.lineHeight = '1.4'
+      div.style.display = 'inline-block' // Ensure it wraps content properly
+      div.style.padding = '4px 0' // ADD PADDING TO PREVENT CLIPPING
+      div.style.position = 'absolute'
+      div.style.left = '-9999px'
+      div.style.whiteSpace = 'pre-wrap'
+      div.innerText = text
+      document.body.appendChild(div)
+      try {
+        // scale 3 → 2: separuh piksel canvas, teks unik tetap tajam di PDF
+        canvas = await html2canvas(div, { scale: 2, backgroundColor: null, logging: false })
+      } finally {
+        // cleanup div walau html2canvas gagal — cegah node nyangkut di body
+        if (div.parentNode) div.parentNode.removeChild(div)
+      }
+      if (TEXT_CACHE.size >= TEXT_CACHE_MAX) TEXT_CACHE.delete(TEXT_CACHE.keys().next().value)
+      TEXT_CACHE.set(cacheKey, canvas)
+    }
 
     const imgW = width
     // Compensate for the vertical padding in height calculation
@@ -98,7 +114,7 @@ async function renderComplexText(pdf, text, x, y, width, fontSize=8, isBold=fals
 }
 
 // ── Core PDF generator ────────────────────────────────────────────────────
-async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
+async function buildDosenPDF(pdf, dosenData, kelasData, W=210, onProgress=null) {
   const data  = kelasData || dosenData
   const isAll = !kelasData
   let y = 0
@@ -310,7 +326,8 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
     }
 
     drawTableHdr(y); y += 10
-    for (const [idx, r] of feedbackRows.entries()) {
+    for (let idx = 0; idx < feedbackRows.length; idx++) {
+      const r = feedbackRows[idx]
       const mkShort = `${r.kodeKelas || ''} - ${r.mataKuliah || ''}`
       const mkLines = pdf.splitTextToSize(mkShort, 50)
       const mkHH = mkLines.length * 4.5 + 4
@@ -339,7 +356,15 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
       const actualTpH = await renderComplexText(pdf, tpText, cx, y + 1, 58, 8, false)
       
       y += estimatedRowH // Use estimated for consistency in table layout
+
+      // Lelehkan event loop tiap 2 baris agar filter tanggal/UI tetap responsif
+      // saat mengekspor laporan panjang (ratusan feedback).
+      if (idx % 2 === 1) {
+        if (onProgress) onProgress({ done: idx + 1, total: feedbackRows.length })
+        await yieldToUI()
+      }
     }
+    if (onProgress) onProgress({ done: feedbackRows.length, total: feedbackRows.length })
   }
 
   // Footer
@@ -356,26 +381,26 @@ async function buildDosenPDF(pdf, dosenData, kelasData, W=210) {
 }
 
 // ── Export semua kelas ────────────────────────────────────────────────────
-export async function exportDosenReport(dosenData) {
+export async function exportDosenReport(dosenData, onProgress = null) {
   const { default: jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
-  await buildDosenPDF(pdf, dosenData, null)
+  await buildDosenPDF(pdf, dosenData, null, 210, onProgress)
   const isSingleKelas = dosenData.kodeKelas && !dosenData.kodeKelas.includes(',')
   const kelas = isSingleKelas ? `-${slug(dosenData.kodeKelas)}` : ''
   pdf.save(`Laporan-CSAT-${slug(dosenData.namaDosen)}${kelas}-${yyyymmdd(new Date())}.pdf`)
 }
 
 // ── Export per kelas tertentu ─────────────────────────────────────────────
-export async function exportDosenReportPerKelas(dosenData, kelasData) {
+export async function exportDosenReportPerKelas(dosenData, kelasData, onProgress = null) {
   const { default: jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
-  await buildDosenPDF(pdf, dosenData, kelasData)
+  await buildDosenPDF(pdf, dosenData, kelasData, 210, onProgress)
   const kelas = slug(kelasData.kodeKelas || kelasData.mataKuliah || 'kelas')
   pdf.save(`Laporan-CSAT-${slug(dosenData.namaDosen)}-${kelas}-${yyyymmdd(new Date())}.pdf`)
 }
 
 // ── Dashboard PDF semua dosen ─────────────────────────────────────────────
-export async function exportDashboardPDF(dosenList) {
+export async function exportDashboardPDF(dosenList, onProgress = null) {
   const { default: jsPDF } = await import('jspdf')
   const pdf = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' })
   const W=297, H=210; let y=0
@@ -427,7 +452,8 @@ export async function exportDashboardPDF(dosenList) {
     }
 
     drawHdr(y); y += 10
-    top10.forEach((d, i) => {
+    for (let i = 0; i < top10.length; i++) {
+      const d = top10[i]
       const namaLines = pdf.splitTextToSize(d.namaDosen || '–', 72)
       const majorLines = pdf.splitTextToSize(d.major || '–', 72)
       const rowH = Math.max(namaLines.length, majorLines.length) * 4 + 4
@@ -451,7 +477,9 @@ export async function exportDashboardPDF(dosenList) {
       pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85); 
       pdf.text(fmt(d.totalRespon), cx, y + 5)
       y += rowH
-    })
+      if (onProgress) onProgress({ done: i + 1, total: dosenList.length + top10.length })
+      await yieldToUI()
+    }
 
     y += 10
     if (y > H - 40) { pdf.addPage(); y = 20 }
@@ -461,7 +489,8 @@ export async function exportDashboardPDF(dosenList) {
     pdf.text('Daftar Seluruh Kinerja Dosen', 14, y); y += 8
     
     drawHdr(y); y += 10
-    dosenList.forEach((d, i) => {
+    for (let i = 0; i < dosenList.length; i++) {
+      const d = dosenList[i]
       const namaLines = pdf.splitTextToSize(d.namaDosen || '–', 72)
       const majorLines = pdf.splitTextToSize(d.major || '–', 72)
       const rowH = Math.max(namaLines.length, majorLines.length) * 4 + 4
@@ -483,7 +512,11 @@ export async function exportDashboardPDF(dosenList) {
       pdf.setFont('helvetica', 'normal'); pdf.setTextColor(51, 65, 85); 
       pdf.text(fmt(d.totalRespon), cx, y + 5)
       y += rowH
-    })
+      // yield tiap baris → loop ratusan dosen tak membekukan filter tanggal
+      if (onProgress) onProgress({ done: top10.length + i + 1, total: dosenList.length + top10.length })
+      if (i % 5 === 4) await yieldToUI()
+    }
+  if (onProgress) onProgress({ done: dosenList.length + top10.length, total: dosenList.length + top10.length })
   const pages=pdf.internal.getNumberOfPages()
   for (let i=1;i<=pages;i++) { pdf.setPage(i); pdf.setFontSize(7); pdf.setTextColor(...C.muted); pdf.text(`Laporan CSAT · Cakrawala University · Adzril Adzim Hendrynov · ${formatDate(new Date())} · Hal. ${i}/${pages}`,W/2,H-4,{align:'center'}) }
   pdf.save(`Laporan-CSAT-Semua-Dosen-${yyyymmdd(new Date())}.pdf`)

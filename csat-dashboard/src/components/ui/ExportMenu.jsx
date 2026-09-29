@@ -9,6 +9,7 @@ import clsx from 'clsx'
 export default function ExportMenu({ dosenData, buttonClass, fullRows, filters }) {
   const [isOpen, setIsOpen] = useState(false)
   const [exporting, setExporting] = useState(null)
+  const [progress, setProgress] = useState(null)
   const [coords, setCoords] = useState({ top: 0, left: 0, placement: 'bottom' })
   const menuRef = useRef(null)
   const buttonRef = useRef(null)
@@ -68,25 +69,34 @@ export default function ExportMenu({ dosenData, buttonClass, fullRows, filters }
 
   const handleExportAll = async (e) => {
     e?.stopPropagation()
+    if (exporting) return // cegah double-click
     setExporting('all')
+    setProgress(null)
     try {
-      await exportDosenReport(dosenData)
+      await exportDosenReport(dosenData, (p) => setProgress(p))
     } finally {
       setExporting(null)
+      setProgress(null)
       setIsOpen(false)
     }
   }
 
   const handleExportKelas = async (e, kelas) => {
     e?.stopPropagation()
+    if (exporting) return // cegah double-click
     setExporting(kelas.kodeKelas)
+    setProgress(null)
     try {
-      await exportDosenReportPerKelas(dosenData, kelas)
+      await exportDosenReportPerKelas(dosenData, kelas, (p) => setProgress(p))
     } finally {
       setExporting(null)
+      setProgress(null)
       setIsOpen(false)
     }
   }
+
+  // Teks status ekspor: "..." saat inisialisasi, persen saat berjalan
+  const progressPct = progress ? Math.min(100, Math.round((progress.done / progress.total) * 100)) : null
 
   // Standardized style for consistency
   const standardBtnStyle = buttonClass || 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500 hover:text-white font-extrabold'
@@ -104,7 +114,7 @@ export default function ExportMenu({ dosenData, buttonClass, fullRows, filters }
         )}
       >
         <FileDown size={12} />
-        {exporting === 'all' ? '...' : 'Cetak PDF'}
+        {exporting === 'all' ? (progressPct != null ? `${progressPct}%` : '...') : 'Cetak PDF'}
       </button>
     )
   }
@@ -126,7 +136,7 @@ export default function ExportMenu({ dosenData, buttonClass, fullRows, filters }
           title="Unduh Semua Kelas"
         >
           <FileDown size={12} />
-          {exporting === 'all' ? '...' : 'Cetak PDF'}
+          {exporting === 'all' ? (progressPct != null ? `${progressPct}%` : '...') : 'Cetak PDF'}
         </button>
         <button
           onClick={(e) => { 
@@ -201,7 +211,7 @@ export default function ExportMenu({ dosenData, buttonClass, fullRows, filters }
                       )}
                     </div>
                   </div>
-                  {exporting === k.kodeKelas && <span className="ml-auto text-[10px] animate-pulse text-[var(--brand)]">...</span>}
+                  {exporting === k.kodeKelas && <span className="ml-auto text-[10px] animate-pulse text-[var(--brand)]">{progressPct != null ? `${progressPct}%` : '...'}</span>}
                 </button>
               ))}
             </div>

@@ -231,10 +231,19 @@ function parseTimestamp(ts) {
   if (ymd) return new Date(+ymd[1], +ymd[2] - 1, +ymd[3], 0, 0, 0)
   return null
 }
+// Memo hasil wibDate per timestamp — matchFilters memanggil fungsi ini per baris
+// saat filter tanggal aktif; parseTimestamp + format ulang tiap render 4000 baris
+// jadi beban nyata. Key = string timestamp mentah (deterministik).
+const WIB_DATE_CACHE = new Map()
+const WIB_DATE_CACHE_MAX = 50000
 export function wibDate(ts) {
   if (!ts || ts === '-') return null
+  if (WIB_DATE_CACHE.has(ts)) return WIB_DATE_CACHE.get(ts)
   const d = parseTimestamp(ts)
-  return d ? WIB_DTF.format(d) : null
+  const out = d ? WIB_DTF.format(d) : null
+  if (WIB_DATE_CACHE.size >= WIB_DATE_CACHE_MAX) WIB_DATE_CACHE.delete(WIB_DATE_CACHE.keys().next().value)
+  WIB_DATE_CACHE.set(ts, out)
+  return out
 }
 
 // ── Main parser (New Google Form structure — Sep 2026) ────────────────────

@@ -199,6 +199,7 @@ export default function DosenDetailPage() {
 
   // Export handlers
   async function handleExportAll() {
+    if (exporting) return; // cegah double-click / tumpang tindih ekspor
     setExporting("all");
     try {
       await exportDosenReport(dosenData);
