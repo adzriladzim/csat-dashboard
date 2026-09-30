@@ -55,19 +55,56 @@ const yieldToUI = () => new Promise(r => setTimeout(r, 0))
 const STREAM_CHUNK = 5000
 const FILTER_CHUNK = 2000
 
-// Adapter web ReadableStream (res.body) → stream yang dipahami PapaParse
-// (ReadableStreamStreamer butuh: readable + on('data'|'end'|'error') + pause/resume).
+// Adapter web ReadableStream (res.body) → object stream yang dipahami PapaParse.
+// `read` (L70) wajib utk routing PapaParse 5.5.3 papaparse.js:244 →
+// ReadableStreamStreamer; tidak pernah dipanggil — no-op disengaja. Reader hanya
+// pakai on('data'|'end'|'error') + pause/resume.
 // Efek: PapaParse mem-parsing per chunk data event → kontrol balik ke event loop
 // antar chunk → 11MB tidak dibuffer + fetch/parse tidak membekukan UI 3-8 dtk.
-function makePapaStream(body) {
+function makePapaStream(body, { signal } = {}) {
   const reader = body.getReader()
   const decoder = new TextDecoder()
   const cbs = { data: [], end: [], error: [] }
   let paused = false
   let resumeWait = null
+  let started = false
+  let cancelled = false
+  const run = async () => {
+    try {
+      while (!cancelled) {
+        while (paused) await new Promise(r => { resumeWait = r })
+        const { done, value } = await reader.read()
+        if (done) { if (!cancelled) cbs.end.forEach(fn => fn()); return }
+        // Decoder non-fatal: potongan UTF-8 bisa terpotong antar chunk network.
+        if (!cancelled) cbs.data.forEach(fn => fn(decoder.decode(value, { stream: true })))
+      }
+    } catch (e) {
+      // Termasuk AbortError dari AbortController — diteruskan ke Papa → reject.
+      if (!cancelled) cbs.error.forEach(fn => fn(e))
+    }
+  }
+  // Lazy-start: Papa.parse attach listener async (dynamic import papaparse) —
+  // start IIFE di on() pertama supaya chunk awal tidak hilang sebelum listener ada.
+  const start = () => {
+    if (started || cancelled) return
+    started = true
+    run()
+  }
+  // Abort/tidak: batalkan reader + berhenti emit; read() pending selesai via cancel().
+  const onAbort = () => {
+    cancelled = true
+    if (resumeWait) { const r = resumeWait; resumeWait = null; r() }
+    reader.cancel().catch(() => {})
+    cbs.error.forEach(fn => fn(new Error('Sync dibatalkan')))
+  }
+  if (signal) {
+    if (signal.aborted) onAbort()
+    else signal.addEventListener('abort', onAbort, { once: true })
+  }
   const stream = {
     readable: true,
-    on: (type, fn) => { if (cbs[type]) cbs[type].push(fn) },
+    read: () => {},
+    on: (type, fn) => { if (cbs[type]) { cbs[type].push(fn); start() } },
     removeListener: (type, fn) => { cbs[type] = (cbs[type] || []).filter(f => f !== fn) },
     pause: () => { paused = true },
     resume: () => {
@@ -75,20 +112,6 @@ function makePapaStream(body) {
       if (resumeWait) { const r = resumeWait; resumeWait = null; r() }
     },
   }
-  ;(async () => {
-    try {
-      while (!paused) {
-        const { done, value } = await reader.read()
-        if (done) { cbs.end.forEach(fn => fn()); return }
-        // Decoder non-fatal: potongan UTF-8 bisa terpotong antar chunk network.
-        cbs.data.forEach(fn => fn(decoder.decode(value, { stream: true })))
-        if (paused) await new Promise(r => { resumeWait = r })
-      }
-    } catch (e) {
-      // Termasuk AbortError dari AbortController — diteruskan ke Papa → reject.
-      cbs.error.forEach(fn => fn(e))
-    }
-  })()
   return stream
 }
 
@@ -109,7 +132,7 @@ export async function fetchSheetsCsv(config, { signal } = {}) {
       throw new Error('Sheet ditolak Google — pastikan akses "Anyone with the link: Viewer"')
     }
     if (!res.body) return { text: await res.text() }  // guard eksotik (body null)
-    return { stream: makePapaStream(res.body) }
+    return { stream: makePapaStream(res.body, { signal }) }
   } catch (e) {
     if (signal?.aborted) throw new Error('Sync dibatalkan')
     // 4xx / sheet ditolak = masalah konfigurasi → jangan coba proxy, error asli.
